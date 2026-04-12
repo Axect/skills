@@ -1,6 +1,6 @@
 ---
 name: dropbox
-description: Upload files to Dropbox, download from Dropbox, and create or reuse shared links. Use when the user mentions Dropbox, asks to upload/download/share a file via Dropbox, or wants a shareable link for a file already in Dropbox. Use `~/.config/dropbox/credentials.json` as the primary credentials path, while continuing to accept legacy Dropbox skill credential locations automatically.
+description: Upload files to Dropbox, download from Dropbox, and create or reuse shared links. Use when the user mentions Dropbox, asks to upload/download/share a file via Dropbox, or wants a shareable link for a file already in Dropbox. Use `~/.config/dropbox-skill/credentials.json` as the only supported credentials path.
 ---
 
 # Dropbox
@@ -13,13 +13,13 @@ Invoke this skill when the user says any of:
 - "upload X to Dropbox" → use `scripts/upload.sh`
 - "download X from Dropbox" / "get X from Dropbox" → `scripts/download.sh`
 - "share link", "shared link", "Dropbox link", "make a link for X" → `scripts/share.sh`
-- "set up Dropbox", "configure Dropbox", or when `~/.config/dropbox/credentials.json` does not exist → `scripts/setup.sh`
+- "set up Dropbox", "configure Dropbox", or when `~/.config/dropbox-skill/credentials.json` does not exist → `scripts/setup.sh`
 
 ## Prerequisites (check before any operation)
 
 Before running upload/download/share, verify the credentials file exists:
 
-    test -f ~/.config/dropbox/credentials.json
+    test -f ~/.config/dropbox-skill/credentials.json
 
 If it does not exist, tell the user:
 > Dropbox is not set up yet. I can run the setup flow — it will ask for your app key, app secret, and an authorization code from a browser URL. Proceed?

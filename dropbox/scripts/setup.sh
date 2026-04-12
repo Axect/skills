@@ -8,15 +8,10 @@ set -uo pipefail
 # DROPBOX_SKILL_CREDS: override credentials path (used by tests and for multi-account setups).
 # Intentionally duplicated from auth.sh — setup.sh must not source auth.sh so
 # that setup can run on a fresh install with no credentials file present.
-DROPBOX_SKILL_CREDS="${DROPBOX_SKILL_CREDS:-$HOME/.config/dropbox/credentials.json}"
-LEGACY_DROPBOX_SKILL_CREDS="$HOME/.config/dropbox-skill/credentials.json"
+DROPBOX_SKILL_CREDS="${DROPBOX_SKILL_CREDS:-$HOME/.config/dropbox-skill/credentials.json}"
 LEGACY_CC_DROPBOX_CREDS="${CC_DROPBOX_CREDS:-$HOME/.config/cc-dropbox/credentials.json}"
-if [[ -z "${DROPBOX_SKILL_CREDS_EXPLICIT:-}" && ! -f "$DROPBOX_SKILL_CREDS" ]]; then
-  if [[ -f "$LEGACY_DROPBOX_SKILL_CREDS" ]]; then
-    DROPBOX_SKILL_CREDS="$LEGACY_DROPBOX_SKILL_CREDS"
-  elif [[ -f "$LEGACY_CC_DROPBOX_CREDS" ]]; then
-    DROPBOX_SKILL_CREDS="$LEGACY_CC_DROPBOX_CREDS"
-  fi
+if [[ -z "${DROPBOX_SKILL_CREDS_EXPLICIT:-}" && ! -f "$DROPBOX_SKILL_CREDS" && -f "$LEGACY_CC_DROPBOX_CREDS" ]]; then
+  DROPBOX_SKILL_CREDS="$LEGACY_CC_DROPBOX_CREDS"
 fi
 
 require_deps() {
