@@ -9,10 +9,12 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 
 ## Included skills
 
-- `dropbox` — upload, download, and share files through the Dropbox API
-- `paperbanana` — generate academic diagrams and statistical plots with the PaperBanana CLI
-- `research-log` — manage research-log workflows such as initialization, querying, review, and state capture
-- `vastai` — search, create, and manage Vast.ai GPU cloud instances
+| Skill | Primary use | Entry point |
+|---|---|---|
+| `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` |
+| `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` |
+| `research-log` | Manage research-log workflows such as initialization, querying, review, and state capture | `research-log/SKILL.md` |
+| `vastai` | Search, create, and manage Vast.ai GPU cloud instances | `vastai/SKILL.md` |
 
 ## Quick start
 
