@@ -14,11 +14,19 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 - `research-log` — manage research-log workflows such as initialization, querying, review, and state capture
 - `vastai` — search, create, and manage Vast.ai GPU cloud instances
 
-## How to navigate
+## Quick start
 
-- Start with each skill's `SKILL.md` file for the main workflow and trigger guidance.
-- Use bundled `scripts/` directories for executable helpers.
-- Use bundled `references/` directories for deeper task-specific guidance.
+1. Pick the skill that matches the user's task.
+2. Open that skill's `SKILL.md` first.
+3. Follow any prerequisite checks before running scripts or commands.
+4. Use bundled `scripts/` for executable helpers and `references/` for deeper guidance.
+
+## Which skill to use?
+
+- Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
+- Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
+- Choose `research-log` for project registration, experiment logs, status queries, and review workflows.
+- Choose `vastai` for renting GPUs, searching offers, or managing remote compute instances.
 
 ## Structure
 
