@@ -1,0 +1,13 @@
+# Secrets and local credentials
+**/credentials.json
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/.env
+**/.env.*
+
+# Local scratch and scan outputs
+*.log
+*.tmp
+*.out
