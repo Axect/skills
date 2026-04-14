@@ -1,0 +1,207 @@
+# Client Setup Guide
+
+This document explains how to use the skills in this repository from different clients, with a focus on Claude Code, Codex, and Forge-style local setups.
+
+## What this repository provides
+
+Each skill in this repository lives in its own directory and uses `SKILL.md` as the entrypoint.
+Some skills also include helper assets such as:
+
+- `scripts/` for executable helpers
+- `references/` for supporting documentation
+- `assets/` for templates or bundled resources
+
+Current skill directories in this repository:
+
+- `dropbox`
+- `paperbanana`
+- `research-log`
+- `research-report`
+- `vastai`
+
+## Recommended installation style
+
+In most cases, **symlinking** a skill directory is the best choice while you are actively editing this repository.
+
+Use a **symlink** when:
+- you want changes in this repo to show up immediately in the client
+- you maintain the skill in one canonical place
+
+Use a **copy** when:
+- you want a pinned snapshot
+- the target environment does not follow symlinks cleanly
+- you are packaging a release artifact
+
+In the examples below, assume this repository is checked out at:
+
+```bash
+REPO=/absolute/path/to/skills
+```
+
+## Claude Code
+
+Claude Code supports personal, project, and plugin skill locations.
+
+### Supported locations
+
+- Personal: `~/.claude/skills/<skill-name>/SKILL.md`
+- Project: `.claude/skills/<skill-name>/SKILL.md`
+- Plugin: `<plugin>/skills/<skill-name>/SKILL.md`
+
+### Install one skill for all projects
+
+```bash
+mkdir -p ~/.claude/skills
+ln -s "$REPO/research-report" ~/.claude/skills/research-report
+```
+
+### Install one skill only for the current repository
+
+Run this from the target project root:
+
+```bash
+mkdir -p .claude/skills
+ln -s "$REPO/vastai" .claude/skills/vastai
+```
+
+### Install the whole collection into your personal Claude Code skills
+
+```bash
+mkdir -p ~/.claude/skills
+for skill in dropbox paperbanana research-log research-report vastai; do
+  ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
+done
+```
+
+### Behavior notes
+
+- Claude Code watches skill directories for changes.
+- Adding, editing, or removing an existing skill under `~/.claude/skills/` or `.claude/skills/` is picked up in the current session.
+- If the top-level skills directory did not exist when the session started, restart Claude Code after creating it.
+- Skills inside a `.claude/skills/` directory from an `--add-dir` path are also loaded.
+
+### Quick verification
+
+After installation, confirm one of the following works:
+
+- invoke the skill directly, for example `/research-report`
+- ask Claude for a task that should naturally trigger the skill
+
+## Codex
+
+Codex uses Agent Skills and scans several locations for installed skills.
+
+### Common locations
+
+- User scope: `$HOME/.agents/skills`
+- Project scope: `$CWD/.agents/skills`
+- Parent scope when launched inside a repository: `$CWD/../.agents/skills`
+- Repository-root scope: `$REPO_ROOT/.agents/skills`
+- Admin scope: `/etc/codex/skills`
+
+Codex also supports symlinked skill folders.
+
+### Install one skill for your user account
+
+```bash
+mkdir -p ~/.agents/skills
+ln -s "$REPO/research-log" ~/.agents/skills/research-log
+```
+
+### Install one skill only for the current repository
+
+Run this from the target project root:
+
+```bash
+mkdir -p .agents/skills
+ln -s "$REPO/paperbanana" .agents/skills/paperbanana
+```
+
+### Install the whole collection for your user account
+
+```bash
+mkdir -p ~/.agents/skills
+for skill in dropbox paperbanana research-log research-report vastai; do
+  ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
+done
+```
+
+### Behavior notes
+
+- Codex discovers skills from its configured scan locations.
+- If a skill does not appear immediately, start a new Codex session.
+- If a skill was intentionally disabled, check `~/.codex/config.toml` for `[[skills.config]]` entries.
+- If you are building a richer Codex integration later, you can add optional metadata in `agents/openai.yaml` next to the skill.
+
+### Quick verification
+
+After installation:
+
+- start Codex in a directory where the installed scope applies
+- ask for a workflow that matches the skill, or invoke the skill if your interface exposes it directly
+
+## Forge
+
+In this environment, Forge uses `~/forge` as its main working directory, and the active skill collection lives under `~/forge/skills`.
+
+### Recommended approach for this repository
+
+Treat this repository as the canonical source, then expose it to Forge in one of these ways:
+
+- sync or symlink individual skill directories into `~/forge/skills`
+- if your Forge wrapper supports it, point the Forge skill root at this repository
+
+### Practical patterns
+
+#### Option 1: symlink selected skills into `~/forge/skills`
+
+This is the most practical setup when you want Forge to use the skills from this repository directly.
+
+```bash
+mkdir -p ~/forge/skills
+ln -s "$REPO/research-report" ~/forge/skills/research-report
+ln -s "$REPO/vastai" ~/forge/skills/vastai
+```
+
+#### Option 2: make this repository the active Forge skills collection
+
+Use this when your local Forge setup allows the skill root itself to be configured.
+
+```text
+/absolute/path/to/skills/
+├── dropbox/
+├── paperbanana/
+├── research-log/
+├── research-report/
+└── vastai/
+```
+
+### Behavior notes
+
+- Forge behavior still depends on the launcher or wrapper that starts it.
+- If Forge caches the available skills at session start, open a new session after changing `~/forge/skills`.
+- If this repository is already mirrored or linked into `~/forge/skills`, you only need to keep the repository up to date.
+
+## Choosing a scope
+
+Use this rule of thumb:
+
+- **Personal/global scope**: use when you want the same skill in many projects
+- **Project scope**: use when the skill is tightly coupled to one repository
+- **Whole collection install**: use when you want this repo to act as your main reusable skill library
+- **Selective install**: use when you want tighter control over what each client can see
+
+## Troubleshooting checklist
+
+If a skill does not show up:
+
+1. Confirm the final path contains `SKILL.md` directly inside the skill directory.
+2. Confirm the symlink target resolves correctly.
+3. Confirm you installed into the correct client-specific root.
+4. Start a new client session.
+5. For Codex, also check whether the skill was disabled in `~/.codex/config.toml`.
+6. For Claude Code, if you created the top-level skills directory after launch, restart the session.
+
+## Repository maintenance tip
+
+If you are actively developing skills in this repository, keep one canonical checkout and symlink from each client into that checkout instead of copying files around. That keeps updates simple and avoids version drift across clients.

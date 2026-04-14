@@ -23,6 +23,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 2. Open that skill's `SKILL.md` first.
 3. Follow any prerequisite checks before running scripts or commands.
 4. Use bundled `scripts/` for executable helpers and `references/` for deeper guidance.
+5. For client-specific installation and linking, see `CLIENT_SETUP.md`.
 
 ## Which skill to use?
 
