@@ -3,9 +3,9 @@ name: vastai
 description: Manage Vast.ai GPU cloud instances via the vastai CLI. Use this skill whenever the user mentions Vast.ai, GPU rentals, cloud GPU instances, searching for GPU offers, creating/destroying instances, vast.ai billing, or any task involving the vastai command-line tool. Also trigger when the user wants to rent GPUs, find cheap GPUs, deploy Docker containers on remote GPUs, manage remote training infrastructure, or transfer data to/from cloud GPU machines. Even if the user just says "spin up a GPU" or "find me an A100", this skill likely applies.
 ---
 
-# Vast.ai
+# Vast.ai CLI Skill
 
-This skill helps you use the `vastai` CLI to manage GPU cloud resources on the Vast.ai marketplace.
+This skill helps you use the `vastai` CLI to manage GPU cloud resources on the Vast.ai marketplace. Vast.ai is an open marketplace for GPU compute — you can search for available machines, rent them, deploy Docker containers, transfer data, and manage billing, all from the command line.
 
 ## Prerequisites
 
@@ -153,10 +153,30 @@ vastai destroy instances ID1 ID2 ID3
 
 Always destroy instances when done to stop storage charges.
 
+## Setting up Python on a Fresh Instance
+
+For any GPU work on a rented instance, use `uv` to set up Python — it auto-resolves the CUDA-correct PyTorch wheel for the GPU architecture. **Always read `references/python-setup.md` before writing a setup script**, especially when:
+- Using Blackwell GPUs (RTX 5070/5080/5090) — needs PyTorch 2.7+ with CUDA 12.8+
+- Installing PyTorch — never pin `--index-url` unless you know the target sm_ version
+- Switching Python versions in an existing venv
+
+Minimal pattern:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+cd /workspace/<project>
+rm -rf .venv
+uv python install 3.13
+uv venv --python 3.13
+source .venv/bin/activate
+uv pip install -U torch <other deps>   # CUDA wheel auto-picked
+```
+
 ## Additional Features
 
 For detailed documentation on these topics, read the corresponding reference file:
 
+- **Python/uv setup on remote instances**: `references/python-setup.md`
 - **Instance management** (stop/start/reboot/recycle/update, labels, SSH, logs, execute): `references/instances.md`
 - **Search fields & query syntax**: `references/search-fields.md`
 - **Volumes** (persistent storage): `references/volumes.md`
