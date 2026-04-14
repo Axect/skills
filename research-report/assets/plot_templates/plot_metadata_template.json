@@ -1,0 +1,32 @@
+{
+  "training_curves": {
+    "description": "Training and validation metrics across optimization steps",
+    "section_hint": "results",
+    "caption": "Validation improves rapidly during the early phase and then stabilizes as the best configuration separates from the baseline.",
+    "source_context": "plots/data/training_curves.csv",
+    "source_script": "plots/training_curves.py",
+    "source_function": "main",
+    "style": ["science", "nature"],
+    "dpi": 300
+  },
+  "comparison_summary": {
+    "description": "Grouped comparison across methods, datasets, or ablations",
+    "section_hint": "comparison",
+    "caption": "The strongest configuration improves the primary metric while preserving a consistent ordering across categories.",
+    "source_context": "plots/data/comparison_summary.csv",
+    "source_script": "plots/comparison_summary.py",
+    "source_function": "main",
+    "style": ["science", "nature"],
+    "dpi": 300
+  },
+  "ablation_grid": {
+    "description": "Multi-panel regime or ablation comparison",
+    "section_hint": "results",
+    "caption": "The multi-panel view separates regime-specific behavior and highlights where each variant improves or degrades relative to the baseline.",
+    "source_context": "plots/data/ablation_grid.csv",
+    "source_script": "plots/ablation_grid.py",
+    "source_function": "main",
+    "style": ["science", "nature"],
+    "dpi": 300
+  }
+}
