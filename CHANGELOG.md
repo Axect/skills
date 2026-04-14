@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-04-15
+
+### Added
+- Added the `reference-search` skill with OpenAlex-based literature search guidance, query pattern references, and a helper script for markdown or JSON reference curation.
+
+### Changed
+- Updated the `research-report` skill to support optional literature and citation workflows through the new `reference-search` companion skill.
+- Updated Forge setup guidance in `CLIENT_SETUP.md` to require copying real skill directories into `~/forge/skills` instead of using symlinks, because Forge may not detect symlinked skills reliably.
+
 ## 2026-04-14
 
 ### Added
