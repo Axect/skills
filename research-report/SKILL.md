@@ -1,6 +1,6 @@
 ---
 name: research-report
-description: Create or revise a structured markdown research or experiment report with integrated plots, plot manifest tracking, report version history, and report-body validation inside a single Harness without external Codex or Gemini calls. Use when you need to generate `report.md`, inventory or validate plots, create `plots/plot_manifest.json`, manage `report_versions.json`, or turn an experiment or output directory into a reusable report workflow.
+description: Create or revise a structured markdown research or experiment report with integrated plots, optional literature/reference support, plot manifest tracking, report version history, and report-body validation inside a single Harness without external Codex or Gemini calls. Use when you need to generate `report.md`, inventory or validate plots, create `plots/plot_manifest.json`, manage `report_versions.json`, connect report sections to supporting references, or turn an experiment or output directory into a reusable report workflow.
 ---
 
 # Research Report
@@ -15,6 +15,7 @@ Ask for only what is missing:
 - domain or audience
 - whether existing plots already exist in `plots/`
 - whether a lightweight plot metadata file should be supplied for better captions or section mapping
+- whether section-level reference support is needed for background, methodology, baseline comparisons, benchmark context, or claim-heavy passages
 
 ## Expected directory shape
 
@@ -31,6 +32,7 @@ The skill works best when the target directory looks roughly like this:
   src/
   tests/
   notes/ | brainstorm/ | plan/ | results/ | tables/
+  references/ | bib/ | related_work/
 ```
 
 Missing folders are acceptable. Adapt the report to whatever evidence actually exists.
@@ -49,7 +51,7 @@ When tailoring this skill to a project that already uses `outputs/` directories:
 ## Single-Harness workflow
 
 1. **Gather materials**
-   - Inventory `src/`, `tests/`, notes, metrics, tables, and any prior `report.md` or `report_v*.md`.
+   - Inventory `src/`, `tests/`, notes, metrics, tables, any prior `report.md` or `report_v*.md`, and any existing `references/`, `bib/`, or related-work notes.
    - Read the report template in `references/report_template.md`.
    - If `plots/` exists, build or refresh `plots/plot_manifest.json` with:
      ```bash
@@ -69,15 +71,26 @@ When tailoring this skill to a project that already uses `outputs/` directories:
    - The validator checks JSON artifacts and `report.md` body structure when present.
 
 3. **Map evidence to sections**
-   - Background: problem, context, assumptions, prior notes.
+   - Background: problem, context, assumptions, prior notes, and literature context.
    - Analysis or discovery summary: exploratory findings, trade-offs, or problem framing.
-   - Methodology: approach, algorithms, data flow, experimental design.
+   - Methodology: approach, algorithms, data flow, experimental design, and method citations when external grounding matters.
    - Implementation or setup: architecture, components, environment, constraints.
-   - Results and visualization: quantitative outcomes, comparisons, plots, tables.
-   - Validation: tests, checks, edge cases, failure modes, limitations.
+   - Results and visualization: quantitative outcomes, comparisons, plots, tables, and baseline or benchmark context when needed.
+   - Validation: tests, checks, edge cases, failure modes, limitations, and benchmark-protocol references when they clarify interpretation.
    - Conclusion: contributions, limitations, next steps.
 
-4. **Handle plots**
+4. **Attach literature support where needed**
+   - Use the companion `reference-search` skill whenever a section depends on prior work, external benchmark framing, method lineage, or an externally grounded claim that cannot be supported by local artifacts alone.
+   - Typical mappings:
+     - background or introduction -> `background` or `survey`
+     - methodology rationale -> `method`
+     - comparison targets -> `baseline`
+     - dataset, metric, or benchmark protocol context -> `evaluation`
+     - standalone factual claims -> `claim-support`
+   - Prefer weaving only the strongest 2-5 references into the report prose instead of dumping long bibliographies.
+   - Only save section-level reference notes when the user asks for them or the project already maintains a `references/` or similar folder.
+
+5. **Handle plots**
    - Reuse existing plots when they already support the narrative.
    - Generate missing plots only from real data already present in the workspace.
    - Preferred stack: `matplotlib` + `scienceplots`.
@@ -86,19 +99,21 @@ When tailoring this skill to a project that already uses `outputs/` directories:
    - Keep filenames stable and descriptive; refresh the manifest after any plot change.
    - Use the generic examples in `assets/plot_templates/` as starting points for learning curves, grouped comparisons, or multi-panel ablations.
 
-5. **Draft the report**
+6. **Draft the report**
    - Use `references/report_template.md` as the starting structure.
    - Embed each plot inline near the paragraph that interprets it.
+   - When a section depends on prior work or benchmark framing, use curated results from `reference-search` and mention only references you actually reviewed.
+   - Avoid fake citation placeholders or generic "prior work shows" wording without concrete support.
    - Avoid orphaned figures and unsupported quantitative claims.
    - If a canonical section has no source material, rename or repurpose it instead of leaving a hollow placeholder.
    - When the report is dense, optional `<!-- EVIDENCE BLOCK: ... -->` markers can help trace claims to figures or tables.
 
-6. **Run two self-review passes locally**
-   - **Traceability pass**: every claim should point to code, test output, metric, table, or plot.
+7. **Run two self-review passes locally**
+   - **Traceability pass**: every claim should point to code, test output, metric, table, plot, or a curated literature source from `reference-search`.
    - **Visualization pass**: every plot should have a caption, section placement, interpretation, and reproducibility context.
-   - Resolve issues first: unsupported claims, unlabeled figures, weak captions, stale paths, mismatched plot discussion, or manifest/report drift.
+   - Resolve issues first: unsupported claims, unlabeled figures, weak captions, stale paths, mismatched plot discussion, thinly supported literature statements, or manifest/report drift.
 
-7. **Version the report when updating an existing draft**
+8. **Version the report when updating an existing draft**
    - If `report_versions.json` already exists, archive the current report before overwriting it:
      - read `current_version`
      - copy `report.md` to `report_v{current_version}.md`
@@ -115,9 +130,9 @@ When tailoring this skill to a project that already uses `outputs/` directories:
      - `3` for substantial methodology or result changes
    - Add structured change records with repeated `--change '{...json...}'` arguments when useful.
 
-8. **Validate again before finishing**
+9. **Validate again before finishing**
    - Re-run the validator on the output directory.
-   - Report: file locations, plot count, validation findings, thin sections, missing figure references, and any known caveats.
+   - Report: file locations, plot count, validation findings, thin sections, missing figure references, sections that still need stronger literature support, and any known caveats.
 
 ## Plot metadata file contract
 
@@ -141,6 +156,7 @@ Use a JSON object keyed by plot stem or plot id when default inference is not en
 ## Template resources
 
 - `references/report_template.md`: baseline report structure aligned with the report workflow.
+- `reference-search`: companion skill for background references, method citations, baseline references, benchmark context, and claim-support searches while drafting the report.
 - `assets/plot_templates/training_curves_template.py`: line-plot template for learning curves or time-series diagnostics.
 - `assets/plot_templates/comparison_bars_template.py`: grouped comparison template for model, dataset, or ablation summaries.
 - `assets/plot_templates/multi_panel_ablation_template.py`: faceted multi-panel template for ablation or per-regime comparisons.
@@ -167,5 +183,6 @@ Adapt rather than apologizing:
 - `report_versions.json`
 - `plots/plot_manifest.json`
 - optional archived reports: `report_v{N}.md`
+- optional section-level reference support notes only when the user requests saved citation outputs or the project already uses a references directory
 
 After creating or updating this skill, suggest starting a new session so the new skill is discoverable from session start.
