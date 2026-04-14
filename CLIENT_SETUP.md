@@ -146,21 +146,20 @@ In this environment, Forge uses `~/forge` as its main working directory, and the
 
 ### Recommended approach for this repository
 
-Treat this repository as the canonical source, then expose it to Forge in one of these ways:
+Treat this repository as the canonical source, then expose it to Forge by copying real skill directories into `~/forge/skills`.
 
-- sync or symlink individual skill directories into `~/forge/skills`
-- if your Forge wrapper supports it, point the Forge skill root at this repository
+Do **not** use symlinks for Forge skills in this environment. Forge may fail to detect symlinked skill directories, so the installed skill under `~/forge/skills` must be a real directory.
 
 ### Practical patterns
 
-#### Option 1: symlink selected skills into `~/forge/skills`
+#### Option 1: copy selected skills into `~/forge/skills`
 
-This is the most practical setup when you want Forge to use the skills from this repository directly.
+Use this setup when you want Forge to load specific skills from this repository.
 
 ```bash
 mkdir -p ~/forge/skills
-ln -s "$REPO/research-report" ~/forge/skills/research-report
-ln -s "$REPO/vastai" ~/forge/skills/vastai
+cp -R "$REPO/research-report" ~/forge/skills/research-report
+cp -R "$REPO/vastai" ~/forge/skills/vastai
 ```
 
 #### Option 2: make this repository the active Forge skills collection
@@ -180,7 +179,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 
 - Forge behavior still depends on the launcher or wrapper that starts it.
 - If Forge caches the available skills at session start, open a new session after changing `~/forge/skills`.
-- If this repository is already mirrored or linked into `~/forge/skills`, you only need to keep the repository up to date.
+- If this repository is already mirrored or copied into `~/forge/skills`, you only need to keep the installed directories up to date.
 
 ## Choosing a scope
 
@@ -196,7 +195,7 @@ Use this rule of thumb:
 If a skill does not show up:
 
 1. Confirm the final path contains `SKILL.md` directly inside the skill directory.
-2. Confirm the symlink target resolves correctly.
+2. For Forge, confirm the installed skill directory is a real directory copied into the client root, not a symlink.
 3. Confirm you installed into the correct client-specific root.
 4. Start a new client session.
 5. For Codex, also check whether the skill was disabled in `~/.codex/config.toml`.
@@ -204,4 +203,4 @@ If a skill does not show up:
 
 ## Repository maintenance tip
 
-If you are actively developing skills in this repository, keep one canonical checkout and symlink from each client into that checkout instead of copying files around. That keeps updates simple and avoids version drift across clients.
+If you are actively developing skills in this repository, keep one canonical checkout. For Claude Code and Codex, symlinking from the client into that checkout can keep updates simple. For Forge, copy the real skill directories into `~/forge/skills` instead of symlinking, because symlinked skills may not be detected.
