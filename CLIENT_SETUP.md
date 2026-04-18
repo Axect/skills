@@ -15,9 +15,12 @@ Current skill directories in this repository:
 
 - `dropbox`
 - `paperbanana`
+- `reference-search`
 - `research-log`
 - `research-report`
 - `vastai`
+
+> Several skills also need a one-time **external setup** (CLIs, API keys, credentials files) that is independent of the client. See the "Per-skill prerequisites" section near the end of this guide — do that before your first invocation.
 
 ## Recommended installation style
 
@@ -68,7 +71,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in dropbox paperbanana research-log research-report vastai; do
+for skill in dropbox paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -121,7 +124,7 @@ ln -s "$REPO/paperbanana" .agents/skills/paperbanana
 
 ```bash
 mkdir -p ~/.agents/skills
-for skill in dropbox paperbanana research-log research-report vastai; do
+for skill in dropbox paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
 done
 ```
@@ -170,6 +173,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 /absolute/path/to/skills/
 ├── dropbox/
 ├── paperbanana/
+├── reference-search/
 ├── research-log/
 ├── research-report/
 └── vastai/
@@ -180,6 +184,76 @@ Use this when your local Forge setup allows the skill root itself to be configur
 - Forge behavior still depends on the launcher or wrapper that starts it.
 - If Forge caches the available skills at session start, open a new session after changing `~/forge/skills`.
 - If this repository is already mirrored or copied into `~/forge/skills`, you only need to keep the installed directories up to date.
+
+## Per-skill prerequisites
+
+Installing a skill into your client's skill directory only makes it **discoverable** — some skills also need an external CLI, API key, or credentials file on your machine before they can actually run. Do this once per machine, regardless of which client you are using.
+
+### dropbox — OAuth credentials
+
+1. Install `curl` and `jq` if missing.
+2. Create (or open) a Dropbox app at https://www.dropbox.com/developers/apps with:
+   - Permission type: **Scoped access**
+   - Access type: **Full Dropbox**
+   - Permissions: `files.content.write`, `files.content.read`, `sharing.write`, `sharing.read`
+3. Run the interactive setup:
+   ```bash
+   bash "$REPO/dropbox/scripts/setup.sh"
+   ```
+   It prompts for the app key, app secret, and authorization code, then writes `~/.config/dropbox-skill/credentials.json` (mode 600).
+4. Verify:
+   ```bash
+   test -f ~/.config/dropbox-skill/credentials.json && echo "dropbox: ready"
+   ```
+
+### paperbanana — CLI + env file
+
+1. Install the `paperbanana` CLI per its upstream instructions; confirm with `paperbanana --help`.
+2. Create the env file:
+   ```bash
+   mkdir -p ~/.config/paperbanana
+   cat > ~/.config/paperbanana/env << 'EOF'
+   export GOOGLE_API_KEY="your-google-api-key"
+   export VLM_MODEL="gemini-3-flash-preview"
+   EOF
+   chmod 600 ~/.config/paperbanana/env
+   ```
+   Alternatively, run `paperbanana setup` for the interactive wizard.
+3. The skill always runs commands as `source ~/.config/paperbanana/env && paperbanana ...`, so never hardcode keys in invocations.
+
+### reference-search — no setup required
+
+Runs entirely on the Python standard library against the public OpenAlex API.
+
+- Optional: pass `--email you@example.com` to `reference-search/scripts/openalex_search.py` to use OpenAlex's polite pool.
+
+### research-log — workspace auto-created
+
+The skill manages `~/.research-log/` automatically on first use. Nothing to install.
+
+- Register a new project via `/log-init` (or the skill's `initialize` workflow).
+- Storage layout: `research-log/references/conventions.md`.
+
+### research-report — no setup required
+
+Uses only the Python standard library. Helper scripts live in `research-report/scripts/` and are invoked from inside a project's output directory.
+
+### vastai — CLI + API key
+
+1. Install the CLI:
+   ```bash
+   uv pip install vastai     # preferred
+   # or: pip install vastai
+   ```
+2. Register your API key (get it at https://cloud.vast.ai/cli/):
+   ```bash
+   vastai set api-key YOUR_API_KEY
+   ```
+   The key is stored at `~/.vast_api_key` — treat it as secret.
+3. Verify:
+   ```bash
+   vastai show user
+   ```
 
 ## Choosing a scope
 
@@ -200,6 +274,10 @@ If a skill does not show up:
 4. Start a new client session.
 5. For Codex, also check whether the skill was disabled in `~/.codex/config.toml`.
 6. For Claude Code, if you created the top-level skills directory after launch, restart the session.
+
+If a skill loads but fails at runtime:
+
+7. Re-check the "Per-skill prerequisites" section above — missing CLI binaries (`paperbanana`, `vastai`), missing credentials (`~/.config/dropbox-skill/credentials.json`, `~/.vast_api_key`), or a missing env file (`~/.config/paperbanana/env`) are the most common cause.
 
 ## Repository maintenance tip
 
