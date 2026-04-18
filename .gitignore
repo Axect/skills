@@ -11,3 +11,10 @@
 *.log
 *.tmp
 *.out
+
+# Skill run outputs (paperbanana generations, adversarial-review reports,
+# research-report artifacts) — intentionally local.
+outputs/
+
+# Failure archive is intentionally tracked in history — see commit-triage skill.
+!failure/

@@ -7,6 +7,7 @@ All notable changes to this repository are documented in this file.
 ### Added
 - Added the `commit-triage` skill for classifying uncommitted changes into commit / `failure/`-archive / ambiguous buckets, with a no-`Co-Authored-By` rule, a named-paths-only staging rule, and a no-auto-push rule. Includes `references/classification.md` for per-path heuristics and `references/failure-layout.md` for the `failure/<YYYY-MM-DD-slug>/` archive convention and `NOTES.md` template.
 - Added the `adversarial-review` skill that spawns a parallel persona swarm (Hostile Theorist, Experimentalist, Statistician, Journal Editor, Citation Auditor, Figure Critic) against a draft and synthesizes their findings into a ranked fix list. Outputs land under `outputs/review/<YYYY-MM-DD-HHMM>/` next to the draft. Includes `references/personas.md` (per-persona briefs and output contract), `references/meta-editor.md` (dedup, severity ranking, defense authoring), and `references/integration.md` (wiring with `reference-search`, `research-report`, Korean translation, and `commit-triage`).
+- Extended `.gitignore` to exclude `outputs/` (skill run artifacts) while explicitly preserving `failure/` in history to match the `commit-triage` skill's archive convention.
 
 ### Changed
 - Updated `README.md` to include the `reference-search` skill in the skill table, directory structure, and "Which skill to use?" guidance.
