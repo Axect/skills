@@ -4,11 +4,15 @@ All notable changes to this repository are documented in this file.
 
 ## 2026-04-18
 
+### Added
+- Added the `commit-triage` skill for classifying uncommitted changes into commit / `failure/`-archive / ambiguous buckets, with a no-`Co-Authored-By` rule, a named-paths-only staging rule, and a no-auto-push rule. Includes `references/classification.md` for per-path heuristics and `references/failure-layout.md` for the `failure/<YYYY-MM-DD-slug>/` archive convention and `NOTES.md` template.
+- Added the `adversarial-review` skill that spawns a parallel persona swarm (Hostile Theorist, Experimentalist, Statistician, Journal Editor, Citation Auditor, Figure Critic) against a draft and synthesizes their findings into a ranked fix list. Outputs land under `outputs/review/<YYYY-MM-DD-HHMM>/` next to the draft. Includes `references/personas.md` (per-persona briefs and output contract), `references/meta-editor.md` (dedup, severity ranking, defense authoring), and `references/integration.md` (wiring with `reference-search`, `research-report`, Korean translation, and `commit-triage`).
+
 ### Changed
 - Updated `README.md` to include the `reference-search` skill in the skill table, directory structure, and "Which skill to use?" guidance.
 - Added a `Skill requirements & setup` section to `README.md` summarizing the external CLIs, API keys, and credential files each skill needs before first use (dropbox, paperbanana, vastai, plus "no setup" notes for the rest).
-- Updated `CLIENT_SETUP.md` to list `reference-search` in the skill directories, install loops, and repository structure tree.
-- Added a `Per-skill prerequisites` section to `CLIENT_SETUP.md` with step-by-step one-time setup instructions for `dropbox`, `paperbanana`, and `vastai`, and explicit "no setup required" confirmation for `reference-search`, `research-log`, and `research-report`.
+- Updated `CLIENT_SETUP.md` to list `adversarial-review`, `commit-triage`, and `reference-search` in the skill directories, install loops, and repository structure tree.
+- Added a `Per-skill prerequisites` section to `CLIENT_SETUP.md` with step-by-step one-time setup instructions for `dropbox`, `paperbanana`, and `vastai`, and explicit "no setup required" confirmation for `adversarial-review`, `commit-triage`, `reference-search`, `research-log`, and `research-report`.
 - Extended the `CLIENT_SETUP.md` troubleshooting checklist with a runtime-failure entry pointing back to the prerequisites section.
 
 ## 2026-04-15

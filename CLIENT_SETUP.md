@@ -13,6 +13,8 @@ Some skills also include helper assets such as:
 
 Current skill directories in this repository:
 
+- `adversarial-review`
+- `commit-triage`
 - `dropbox`
 - `paperbanana`
 - `reference-search`
@@ -71,7 +73,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in dropbox paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -124,7 +126,7 @@ ln -s "$REPO/paperbanana" .agents/skills/paperbanana
 
 ```bash
 mkdir -p ~/.agents/skills
-for skill in dropbox paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
 done
 ```
@@ -171,6 +173,8 @@ Use this when your local Forge setup allows the skill root itself to be configur
 
 ```text
 /absolute/path/to/skills/
+├── adversarial-review/
+├── commit-triage/
 ├── dropbox/
 ├── paperbanana/
 ├── reference-search/
@@ -188,6 +192,14 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ## Per-skill prerequisites
 
 Installing a skill into your client's skill directory only makes it **discoverable** — some skills also need an external CLI, API key, or credentials file on your machine before they can actually run. Do this once per machine, regardless of which client you are using.
+
+### adversarial-review — no setup required
+
+Spawns persona subagents through the host client's Agent tool and reuses `reference-search` for citation and prior-art checks. No additional CLIs or keys.
+
+### commit-triage — no setup required
+
+Uses only `git` inside the target repository. Install it in the same scope as the other skills and invoke it from any git working tree.
 
 ### dropbox — OAuth credentials
 

@@ -11,6 +11,8 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 
 | Skill | Primary use | Entry point | External setup |
 |---|---|---|---|
+| `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
+| `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
 | `reference-search` | Search and curate academic references via OpenAlex for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python) |
@@ -28,6 +30,14 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 ## Skill requirements & setup
 
 Several skills depend on external CLIs, API keys, or credential files. Install and configure them **once per machine** before invoking the skill.
+
+### adversarial-review
+
+No external setup required. Spawns persona subagents through the host client's Agent tool and uses `reference-search` (stdlib Python + OpenAlex) for citation and prior-art audits.
+
+### commit-triage
+
+No external setup required. Uses only `git` in the current repository.
 
 ### dropbox
 
@@ -95,6 +105,8 @@ Requires the `vastai` CLI and a Vast.ai API key.
 
 ## Which skill to use?
 
+- Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
+- Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
@@ -106,6 +118,8 @@ Requires the `vastai` CLI and a Vast.ai API key.
 
 ```text
 skills/
+├── adversarial-review/
+├── commit-triage/
 ├── dropbox/
 ├── paperbanana/
 ├── reference-search/
