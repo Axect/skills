@@ -16,6 +16,7 @@ Current skill directories in this repository:
 - `adversarial-review`
 - `commit-triage`
 - `dropbox`
+- `morgen`
 - `paperbanana`
 - `reference-search`
 - `research-log`
@@ -73,7 +74,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review commit-triage dropbox paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox morgen paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -126,7 +127,7 @@ ln -s "$REPO/paperbanana" .agents/skills/paperbanana
 
 ```bash
 mkdir -p ~/.agents/skills
-for skill in adversarial-review commit-triage dropbox paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox morgen paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
 done
 ```
@@ -176,6 +177,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── adversarial-review/
 ├── commit-triage/
 ├── dropbox/
+├── morgen/
 ├── paperbanana/
 ├── reference-search/
 ├── research-log/
@@ -217,6 +219,22 @@ Uses only `git` inside the target repository. Install it in the same scope as th
    ```bash
    test -f ~/.config/dropbox-skill/credentials.json && echo "dropbox: ready"
    ```
+
+### morgen — API key
+
+1. Install `curl` and `jq` if missing.
+2. Get a Morgen API key at https://platform.morgen.so under *Developers API*.
+3. Run the interactive setup:
+   ```bash
+   bash "$REPO/morgen/scripts/setup.sh"
+   ```
+   It prompts for the API key, verifies it against `/v3/calendars/list`, and writes `~/.config/morgen-skill/credentials.json` (mode 600).
+4. Verify:
+   ```bash
+   test -f ~/.config/morgen-skill/credentials.json && echo "morgen: ready"
+   ```
+
+All requests go to `https://api.morgen.so/v3` with `Authorization: ApiKey <KEY>`. Rate limit is 100 points per 15 minutes — list endpoints cost 10 points each.
 
 ### paperbanana — CLI + env file
 
@@ -289,7 +307,7 @@ If a skill does not show up:
 
 If a skill loads but fails at runtime:
 
-7. Re-check the "Per-skill prerequisites" section above — missing CLI binaries (`paperbanana`, `vastai`), missing credentials (`~/.config/dropbox-skill/credentials.json`, `~/.vast_api_key`), or a missing env file (`~/.config/paperbanana/env`) are the most common cause.
+7. Re-check the "Per-skill prerequisites" section above — missing CLI binaries (`paperbanana`, `vastai`), missing credentials (`~/.config/dropbox-skill/credentials.json`, `~/.config/morgen-skill/credentials.json`, `~/.vast_api_key`), or a missing env file (`~/.config/paperbanana/env`) are the most common cause.
 
 ## Repository maintenance tip
 

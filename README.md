@@ -14,6 +14,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
+| `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
 | `reference-search` | Search and curate academic references via OpenAlex for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python) |
 | `research-log` | Manage research-log workflows such as initialization, querying, review, and state capture | `research-log/SKILL.md` | `~/.research-log/` workspace (auto) |
@@ -50,6 +51,20 @@ Requires a Dropbox app and OAuth credentials stored at `~/.config/dropbox-skill/
   ```
   The script prompts for your app key, app secret, and an authorization code from the Dropbox OAuth URL.
   Required app permissions: `files.content.write`, `files.content.read`, `sharing.write`, `sharing.read`.
+
+### morgen
+
+Requires a Morgen API key stored at `~/.config/morgen-skill/credentials.json`.
+
+- Dependencies: `curl`, `jq`.
+- Get an API key at https://platform.morgen.so under *Developers API*.
+- Run the interactive setup:
+  ```bash
+  bash morgen/scripts/setup.sh
+  ```
+  The script prompts for the API key, verifies it against `/v3/calendars/list`, and writes the credentials file with mode 600.
+- All requests go to `https://api.morgen.so/v3` with the header `Authorization: ApiKey <KEY>`.
+- Rate limit: 100 points per 15 minutes (list endpoints cost 10 points each).
 
 ### paperbanana
 
@@ -108,6 +123,7 @@ Requires the `vastai` CLI and a Vast.ai API key.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
+- Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
 - Choose `research-log` for project registration, experiment logs, status queries, and review workflows.
@@ -121,6 +137,7 @@ skills/
 ├── adversarial-review/
 ├── commit-triage/
 ├── dropbox/
+├── morgen/
 ├── paperbanana/
 ├── reference-search/
 ├── research-log/

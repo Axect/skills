@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-04-21
+
+### Added
+- Added the `morgen` skill wrapping the Morgen API v3 (docs.morgen.so). Covers calendars (`list`, `update`), events (`list`, `create`, `update`, `delete` with `seriesUpdateMode`), Morgen tasks (`list`, `get`, `create`, `update`, `move`, `close`, `reopen`, `delete`), integrations (`accounts`, `providers`), and tags (`list`, `get`, `create`, `update`, `delete`). Uses `ApiKey` header auth with credentials stored at `~/.config/morgen-skill/credentials.json` (mode 600), a sourceable `auth.sh` with unified error handling (exit codes 2/3/4/5/6 for missing creds / auth / 404 / other / 429), and references in `references/api-reference.md` and `references/examples.md`.
+- Added `morgen/scripts/todos.sh`, a local-cached TODO wrapper over the Morgen Tasks API. Manual `sync` hits `/tasks/list` once; reads (`list`, `today`, `overdue`, `show`) serve from the local cache at `~/.cache/morgen-skill/todos.json` at 0 rate-limit cost; writes (`add`, `done`, `reopen`, `delete`) hit the API at 1 point each and patch the cache in place. Supports short-ID prefix resolution, stale-cache warnings via `MORGEN_STALE_SECONDS`, and filtering by `--tag` / `--priority` / `--all`. No automatic sync and no conflict resolution — next `sync` wins.
+
+### Changed
+- Extended `morgen/scripts/setup.sh` with non-interactive modes (`--stdin`, `--key`, `--help`) so a skill orchestrator (e.g. Claude Code) can run setup without a TTY after the user pastes their API key into chat. Original interactive mode (no args) is unchanged. `SKILL.md` now documents the full skill-orchestrated setup flow, including the security caveat around argv exposure and the rule that Claude must never echo the key back or run setup unprompted.
+
 ## 2026-04-18
 
 ### Added
