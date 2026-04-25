@@ -12,6 +12,10 @@
 *.tmp
 *.out
 
+# Python bytecode caches
+__pycache__/
+*.pyc
+
 # Skill run outputs (paperbanana generations, adversarial-review reports,
 # research-report artifacts) — intentionally local.
 outputs/

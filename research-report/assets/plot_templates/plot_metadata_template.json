@@ -7,6 +7,8 @@
     "source_script": "plots/training_curves.py",
     "source_function": "main",
     "style": ["science", "nature"],
+    "palette": "okabe_ito",
+    "language": "en",
     "dpi": 300
   },
   "comparison_summary": {
@@ -17,6 +19,8 @@
     "source_script": "plots/comparison_summary.py",
     "source_function": "main",
     "style": ["science", "nature"],
+    "palette": "okabe_ito",
+    "language": "en",
     "dpi": 300
   },
   "ablation_grid": {
@@ -27,6 +31,8 @@
     "source_script": "plots/ablation_grid.py",
     "source_function": "main",
     "style": ["science", "nature"],
+    "palette": "okabe_ito",
+    "language": "en",
     "dpi": 300
   }
 }
