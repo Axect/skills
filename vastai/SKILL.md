@@ -73,6 +73,8 @@ vastai search offers 'datacenter=true inet_down>500 inet_up>500'
 
 **Pricing type**: Add `-d` (on-demand), `-b` (bid/spot), or `-r` (reserved).
 
+**Before renting for multi-day work, always check the `Max_Days` column** in the formatted search output (far right of the price row). This is the host's committed contract length — when it elapses, vast.ai terminates your container regardless of training state. See `references/search-fields.md` for details on reading/parsing `Max_Days` and the 1.5× duration rule.
+
 ### 2. Create an Instance
 
 ```bash
@@ -145,11 +147,13 @@ vastai cloud copy --src cloud_service:path --dst instance_id:/path --transfer "C
 
 ```bash
 # Destroy single instance (irreversible!)
-vastai destroy instance ID
+vastai destroy instance ID -y
 
 # Destroy multiple
-vastai destroy instances ID1 ID2 ID3
+vastai destroy instances ID1 ID2 ID3 -y
 ```
+
+`vastai destroy instance` prompts `Are you sure...? [y/N]` on stdin and aborts if not attached to a TTY (piping `yes` does not work — it reads from the terminal). **Always pass `-y` (or `--yes`) from non-interactive contexts** such as Claude tool calls, scripts, or CI.
 
 Always destroy instances when done to stop storage charges.
 
@@ -209,8 +213,18 @@ vastai search offers 'gpu_ram>=24 reliability>0.98 inet_down>200' -o 'dph'
 
 **Deploy a training job:**
 ```bash
-# 1. Find an offer
+# 1. Find an offer — inspect Max_Days from formatted output
 vastai search offers 'gpu_name=A100_SXM4 num_gpus=1 reliability>0.99' -o 'dph'
+
+# 1a. CRITICAL for jobs > 24h: verify Max_Days >= 1.5 × expected_hours / 24
+#     The formatted table shows Max_Days in the price row (far right).
+#     A host with Max_Days < your training duration will kill the container mid-run.
+#     For exact values, parse raw:
+vastai search offers '<query>' --raw | python3 -c "
+import sys, json, time
+for o in json.load(sys.stdin)[:10]:
+    print(o['id'], f\"{(o['end_date']-time.time())/86400:.1f} days\", o['dph_total'])
+"
 
 # 2. Create instance with your training image
 vastai create instance OFFER_ID --image your-registry/training:latest \
@@ -218,6 +232,11 @@ vastai create instance OFFER_ID --image your-registry/training:latest \
 
 # 3. Monitor
 vastai logs INSTANCE_ID --tail 50
+# Also watch end_date mid-training — set an alert when hours_until_end < training_hours_left
+vastai show instance INSTANCE_ID --raw | python3 -c "
+import sys, json, time
+d=json.load(sys.stdin); h=(d['end_date']-time.time())/3600
+print(f\"hours until contract end: {h:.1f}\")"
 
 # 4. Copy results back
 vastai copy INSTANCE_ID:/workspace/results ./local_results
@@ -225,6 +244,8 @@ vastai copy INSTANCE_ID:/workspace/results ./local_results
 # 5. Destroy
 vastai destroy instance INSTANCE_ID
 ```
+
+**Contract expiration is a silent failure mode.** vast.ai enforces the host's `Max_Days` strictly — when `end_date` passes, the container moves to `exited / stopped`, billing stops, and you lose any in-container state not yet rsynced out. Symptoms: SSH refuses, `vastai show instance` reports `actual_status: exited` (often with `status_msg` still saying "running" — do not trust that field alone, always compare `end_date` to current time). Mitigation: (a) filter offers by `Max_Days` before renting, (b) keep rsync of checkpoints running to local, (c) set a reminder / script to poll `end_date` vs wall time.
 
 **Manage spot instances (cheaper but interruptible):**
 ```bash

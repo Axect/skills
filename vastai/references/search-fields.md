@@ -40,6 +40,25 @@ GPU names use underscores for spaces (e.g., `RTX_4090`, `A100_SXM4`, `RTX_3090`,
 | `total_flops` | float | Combined GPU TFLOPs |
 | `verified` | bool | Machine verification status |
 
+## Contract Duration (`Max_Days`)
+
+The formatted output of `vastai search offers` shows a **`Max_Days`** column (far right of the price row). This is the maximum contract length the host commits to — **the host may terminate the rental at `end_date = start_time + Max_Days`**, killing your container regardless of training state. Filter is NOT exposed as a query field; read from the formatted table or from raw JSON (`.end_date - now`).
+
+**Rule of thumb**: require `Max_Days ≥ 1.5 × expected_training_hours / 24` before renting. Short Max_Days (e.g. 0.5 day, 13h) is the silent killer of long training jobs — not all offers advertise sufficient committed duration.
+
+```bash
+# Parse Max_Days from formatted output (column position varies, use raw for robustness)
+vastai search offers 'gpu_name=RTX_5080 reliability>0.98 verified=true' -o 'dph' --raw \
+  | python3 -c "
+import sys, json, time
+offers = json.load(sys.stdin)
+now = time.time()
+for o in offers[:10]:
+    days_remaining = (o['end_date'] - now) / 86400
+    print(f\"id={o['id']} dph={o['dph_total']:.4f} days_left={days_remaining:.1f} mach={o['machine_id']}\")
+"
+```
+
 ## Search Command Options
 
 | Flag | Description |

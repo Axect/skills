@@ -9,6 +9,26 @@ Instance states: Image Download -> Boot -> **Running** -> Stopped -> Destroyed
 - Stopping an instance preserves data but stops GPU charges
 - Destroying is irreversible and stops all charges
 
+## Contract Duration (silent failure mode)
+
+Every rental has a hard `end_date` = rental_start + host's `Max_Days`. When `end_date` elapses, vast.ai moves the container to `exited / stopped` regardless of what your training process is doing — **SSH refuses, in-container state is lost, and the `status_msg` field often still claims "success, running" for hours after**, so don't trust it alone.
+
+```bash
+# Inspect current contract duration
+vastai show instance ID --raw | python3 -c "
+import sys, json, time
+d = json.load(sys.stdin)
+h = (d['end_date'] - time.time()) / 3600
+print(f'state: {d[\"actual_status\"]} / {d[\"intended_status\"]}')
+print(f'hours_until_end_date: {h:.1f}')
+print(f'status_msg: {(d.get(\"status_msg\") or \"\")[-200:]}')
+"
+```
+
+- **Before renting** long jobs: verify `Max_Days` column in `vastai search offers` output (see `search-fields.md`). Require `Max_Days ≥ 1.5 × expected_hours / 24`.
+- **During training**: periodically poll `end_date` vs current time. When `hours_until_end < remaining_training_hours`, the job will be killed — rsync checkpoints out and plan a migration.
+- **After an unexpected `exited`**: check `hours_until_end_date` before assuming a bug; negative value means contract expiration, not container crash. Destroy the expired instance and rent a longer-duration offer.
+
 ## Creating Instances
 
 ```bash
@@ -132,10 +152,12 @@ vastai prepay instance ID AMOUNT
 
 ```bash
 # Single (irreversible!)
-vastai destroy instance ID
+vastai destroy instance ID -y
 
 # Multiple
-vastai destroy instances ID1 ID2 ID3
+vastai destroy instances ID1 ID2 ID3 -y
 ```
+
+The CLI prompts `Are you sure...? [y/N]` on the terminal and aborts if no TTY is attached. Piping `yes` does not satisfy the prompt — it reads directly from the terminal. Use `-y` / `--yes` in any non-interactive context (Claude tool calls, scripts, CI) to skip the confirmation.
 
 Always destroy when done to avoid ongoing storage charges.
