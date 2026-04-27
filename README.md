@@ -155,3 +155,7 @@ skills/
 ├── research-report/
 └── vastai/
 ```
+
+## License
+
+Released under the [MIT License](LICENSE) © 2026 Tae-Geun Kim.
