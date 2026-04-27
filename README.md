@@ -14,6 +14,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
+| `friendly-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for friendly whiteboard-style infographic slides for lab meetings and informal talks | `friendly-slide-illustrator/SKILL.md` | None |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
 | `reference-search` | Search and curate academic references via OpenAlex for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python) |
@@ -51,6 +52,14 @@ Requires a Dropbox app and OAuth credentials stored at `~/.config/dropbox-skill/
   ```
   The script prompts for your app key, app secret, and an authorization code from the Dropbox OAuth URL.
   Required app permissions: `files.content.write`, `files.content.read`, `sharing.write`, `sharing.read`.
+
+### friendly-slide-illustrator
+
+No external setup required. The skill is purely a **prompt composer** — it produces a copy-pasteable text prompt for an image-generation model (ChatGPT Image 2.0 / gpt-image-1, DALL-E 3, Sora image, Midjourney). You bring your own image generator.
+
+- Style block lives in `friendly-slide-illustrator/references/friendly-whiteboard-style.md` and is treated as load-bearing — drop it into prompts verbatim, do not paraphrase.
+- The OSPREY v0.21 data-pipeline prompt is preserved as a worked example in `friendly-slide-illustrator/references/example-osprey-v021.md`; reuse its structure 1-for-1 for new multi-stage pipeline figures.
+- Defaults: 18:9 cinematic-wide canvas, English-only on-canvas text, numbered circular badges per panel, off-white background. See the SKILL.md for tone dials (calmer / more playful / black-and-white / Korean-caption hybrid).
 
 ### morgen
 
@@ -123,6 +132,7 @@ Requires the `vastai` CLI and a Vast.ai API key.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
+- Choose `friendly-slide-illustrator` to compose image-generation prompts for friendly whiteboard-style slides — pipeline diagrams, "how it works" figures, lab-meeting infographics — when you want the result to feel warm and casual rather than stiff and academic.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
@@ -137,6 +147,7 @@ skills/
 ├── adversarial-review/
 ├── commit-triage/
 ├── dropbox/
+├── friendly-slide-illustrator/
 ├── morgen/
 ├── paperbanana/
 ├── reference-search/
