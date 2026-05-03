@@ -16,6 +16,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `friendly-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for friendly whiteboard-style infographic slides for lab meetings and informal talks | `friendly-slide-illustrator/SKILL.md` | None |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
+| `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
 | `reference-search` | Search and curate academic references via OpenAlex for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python) |
 | `research-log` | Manage research-log workflows such as initialization, querying, review, and state capture | `research-log/SKILL.md` | `~/.research-log/` workspace (auto) |
@@ -74,6 +75,30 @@ Requires a Morgen API key stored at `~/.config/morgen-skill/credentials.json`.
   The script prompts for the API key, verifies it against `/v3/calendars/list`, and writes the credentials file with mode 600.
 - All requests go to `https://api.morgen.so/v3` with the header `Authorization: ApiKey <KEY>`.
 - Rate limit: 100 points per 15 minutes (list endpoints cost 10 points each).
+
+### overleap
+
+Requires the [`overleap`](https://github.com/Axect/overleap) Node.js CLI and a valid Overleaf session cookie.
+
+- Install:
+  ```bash
+  npm install -g overleap
+  ```
+  Requires Node.js >= 18 and `git` (the dependency `socket.io-client` is fetched from a GitHub fork).
+- Verify the binary is on `PATH`:
+  ```bash
+  command -v overleap && overleap --help | head -5
+  ```
+- Save your Overleaf session cookie into a per-project `.env` file with the bundled helper:
+  ```bash
+  bash overleap/scripts/init_env.sh <dir> <<< 'overleaf_session2=...'
+  ```
+  The script writes `<dir>/.env` with mode `0600` and ensures `.env` is in `<dir>/.gitignore`. Get the cookie from browser DevTools → Application → Cookies → `overleaf.com` → copy the full cookie string (or just the `overleaf_session2` value). See `overleap/references/cookie-setup.md` for full instructions and refresh procedure.
+- Smoke-test:
+  ```bash
+  cd <dir> && overleap projects
+  ```
+- `overleap sync` is a long-running daemon — never invoke it as a foreground Bash call from Claude. Use a separate terminal, `pueue`, or `run_in_background` (`overleap/references/long-running-patterns.md` covers all three).
 
 ### paperbanana
 
@@ -134,6 +159,7 @@ Requires the `vastai` CLI and a Vast.ai API key.
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `friendly-slide-illustrator` to compose image-generation prompts for friendly whiteboard-style slides — pipeline diagrams, "how it works" figures, lab-meeting infographics — when you want the result to feel warm and casual rather than stiff and academic.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
+- Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
 - Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
 - Choose `research-log` for project registration, experiment logs, status queries, and review workflows.
@@ -149,6 +175,7 @@ skills/
 ├── dropbox/
 ├── friendly-slide-illustrator/
 ├── morgen/
+├── overleap/
 ├── paperbanana/
 ├── reference-search/
 ├── research-log/

@@ -16,7 +16,9 @@ Current skill directories in this repository:
 - `adversarial-review`
 - `commit-triage`
 - `dropbox`
+- `friendly-slide-illustrator`
 - `morgen`
+- `overleap`
 - `paperbanana`
 - `reference-search`
 - `research-log`
@@ -74,7 +76,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review commit-triage dropbox morgen paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox friendly-slide-illustrator morgen overleap paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -95,40 +97,35 @@ After installation, confirm one of the following works:
 
 ## Codex
 
-Codex uses Agent Skills and scans several locations for installed skills.
+Codex uses Agent Skills from `$CODEX_HOME/skills`, which defaults to
+`~/.codex/skills`.
 
 ### Common locations
 
-- User scope: `$HOME/.agents/skills`
-- Project scope: `$CWD/.agents/skills`
-- Parent scope when launched inside a repository: `$CWD/../.agents/skills`
-- Repository-root scope: `$REPO_ROOT/.agents/skills`
-- Admin scope: `/etc/codex/skills`
+- User scope: `$CODEX_HOME/skills` (default: `~/.codex/skills`)
 
 Codex also supports symlinked skill folders.
 
 ### Install one skill for your user account
 
 ```bash
-mkdir -p ~/.agents/skills
-ln -s "$REPO/research-log" ~/.agents/skills/research-log
+mkdir -p ~/.codex/skills
+ln -s "$REPO/research-log" ~/.codex/skills/research-log
 ```
 
-### Install one skill only for the current repository
-
-Run this from the target project root:
+### Install another single skill
 
 ```bash
-mkdir -p .agents/skills
-ln -s "$REPO/paperbanana" .agents/skills/paperbanana
+mkdir -p ~/.codex/skills
+ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 ```
 
 ### Install the whole collection for your user account
 
 ```bash
-mkdir -p ~/.agents/skills
-for skill in adversarial-review commit-triage dropbox morgen paperbanana reference-search research-log research-report vastai; do
-  ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
+mkdir -p ~/.codex/skills
+for skill in adversarial-review commit-triage dropbox friendly-slide-illustrator morgen overleap paperbanana reference-search research-log research-report vastai; do
+  ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
 
@@ -235,6 +232,35 @@ Uses only `git` inside the target repository. Install it in the same scope as th
    ```
 
 All requests go to `https://api.morgen.so/v3` with `Authorization: ApiKey <KEY>`. Rate limit is 100 points per 15 minutes — list endpoints cost 10 points each.
+
+### overleap — Node.js CLI + Overleaf session cookie
+
+1. Install Node.js >= 18 and `git`. Verify:
+   ```bash
+   node --version    # must be >= 18
+   git --version
+   ```
+2. Install the CLI globally:
+   ```bash
+   npm install -g overleap
+   ```
+   (The `socket.io-client` dependency is fetched from a GitHub fork, which is why `git` is required.)
+3. Verify the binary is on `PATH`:
+   ```bash
+   command -v overleap && overleap --help | head -5
+   ```
+4. For each Overleaf project you want to sync, save the cookie into a per-project `.env` file using the bundled helper:
+   ```bash
+   bash "$REPO/overleap/scripts/init_env.sh" <project-dir> <<< 'overleaf_session2=...'
+   ```
+   The script writes `<project-dir>/.env` with mode `0600` and ensures `.env` is in `<project-dir>/.gitignore`. Get the cookie from browser DevTools → Application → Cookies → `overleaf.com` → copy the full cookie string (or just the `overleaf_session2` value).
+5. Smoke-test:
+   ```bash
+   cd <project-dir> && overleap projects
+   ```
+   On success you'll see a numbered project list; that's also the connectivity / auth check.
+
+`overleap sync` is a long-running daemon. Run it from a dedicated terminal pane, under `pueue`, or via `run_in_background` — never as a foreground Bash call from Claude. See `overleap/references/long-running-patterns.md` for concrete recipes.
 
 ### paperbanana — CLI + env file
 
