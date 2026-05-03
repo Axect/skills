@@ -15,7 +15,7 @@ Invoke this skill when the user says any of:
 
 - "sync my Overleaf project" / "start overleap" / "edit Overleaf locally" → `overleap sync` workflow (see **Sync workflow**)
 - "list my Overleaf projects" / "what projects do I have on Overleaf" → `overleap projects`
-- "compile this on Overleaf" / "build the PDF via Overleaf" → `overleap compile`
+- "compile this on Overleaf" / "build the PDF via Overleaf" / "compile this paper" *while in an overleap-synced directory* → `overleap compile` (do **not** run `pdflatex` / `latexmk` locally inside the sync dir — see **Path & file rules** below for why)
 - "set up overleap" / "configure overleap" / "save my Overleaf cookie" / `overleap` exits with `OVERLEAF_COOKIE is required` → **Setup flow**
 - "refresh the Overleaf cookie" / "my Overleaf session expired" → **Cookie refresh** in `references/cookie-setup.md`
 - The user asks Claude to edit `.tex` / `.bib` / `.sty` files in a directory that already has `.env` with `OVERLEAF_COOKIE` → assume sync is the intended flow; check whether a sync daemon is already running before starting one
@@ -168,6 +168,7 @@ cd <dir> && overleap compile -p <id-or-num>
 - Output is written to `<dir>/output.pdf` (overwrites any existing file with the same name).
 - If compilation fails server-side, the script prints `[compile] Compilation failed:` and points to the log. Surface the message verbatim and offer to inspect the log via the Overleaf web UI.
 - `compile` does **not** require sync to be running — it goes through the REST endpoint with the cookie + CSRF token.
+- **Always prefer `overleap compile` over local `pdflatex` / `latexmk` / `bibtex` when the directory is an overleap sync target.** Local compile leaks `.aux` / `.log` / `.bbl` / `.fls` / `.fdb_latexmk` / `.synctex.gz` artifacts back to Overleaf — see Path & file rules.
 
 ## Project listing (`overleap projects`)
 
@@ -184,6 +185,7 @@ Output is a numbered table of `name [accessLevel] lastUpdated`. The number is wh
 - `overleap` always operates relative to `--dir` (or cwd). Never run sync from `~` or any directory containing unrelated files — it will try to upload everything that's not in `IGNORE_PATTERNS`.
 - The watcher ignores common noise (`.git/`, `node_modules/`, dotfiles handled by chokidar defaults, plus the patterns in `overleap/src/constants.js`). Still, **start sync in a clean directory** dedicated to that one Overleaf project.
 - Do not put `.env` (with the cookie) in the same directory committed to git without first ensuring it's in `.gitignore`. The setup script does this automatically.
+- **Do not run local LaTeX compilation inside the sync directory.** `pdflatex` / `latexmk` / `bibtex` / `biber` / `xelatex` produce `.aux`, `.log`, `.bbl`, `.bcf`, `.blg`, `.toc`, `.out`, `.fls`, `.fdb_latexmk`, `.synctex.gz`, and `.pdf` artifacts. `overleap`'s `IGNORE_PATTERNS` does **not** filter any of these — they will all be uploaded to Overleaf as if you'd added them to the project. Real consequences seen in the past: duplicate bibliography rendering on the server, conflicting compile state, noisy collaborator diffs, accidental `output.pdf` overwrite. Use **`overleap compile`** for PDF generation (server-side, returns `output.pdf` only — see Compile workflow above), or **copy `.tex` files to a separate scratch directory** for local compile testing and never touch them in the sync dir while compiling. If you've already leaked artifacts, clean them up via the Overleaf web UI's file panel or, if the project is git-tracked, `git rm` and let overleap propagate the deletes.
 
 ## Failure modes & how to react
 
@@ -196,6 +198,7 @@ Output is a numbered table of `name [accessLevel] lastUpdated`. The number is wh
 | Compile fails with no PDF | LaTeX error on Overleaf side | Open the project in the browser and inspect the log; overleap surfaces only `success/failure` |
 | `Multiple matches for "<query>":` followed by an interactive prompt | Fuzzy `-p` match was ambiguous; in a non-TTY context the prompt fails immediately with `Input stream closed` or `Invalid selection` | Re-run with a more specific name, the project number from `overleap projects`, or the 24-char Overleaf ID |
 | Local file overwritten unexpectedly | Two writers (Claude + collaborator) racing | Sync engine uses OT to merge, but if a collaborator deletes a file you just created, the server wins. Restore from git or Overleaf history. |
+| Mysterious duplicate bibliography on Overleaf, or `.aux` / `.log` / `.bbl` / `.fls` / `.fdb_latexmk` files appearing in the project | Local LaTeX compile (`pdflatex`, `latexmk`, etc.) was run inside the sync directory and the build artifacts uploaded | Stop the local compile. Move it to a scratch directory outside `--dir`. Clean up the leaked artifacts on Overleaf via the web UI's file panel (or `git rm` if the project is git-tracked). For PDF output, prefer `overleap compile` instead. |
 
 For deeper context on the protocol, OT version tracking, and edge cases the upstream project has fixed, see `references/sync-internals.md`.
 
