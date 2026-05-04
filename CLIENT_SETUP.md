@@ -17,6 +17,7 @@ Current skill directories in this repository:
 - `commit-triage`
 - `dropbox`
 - `friendly-slide-illustrator`
+- `md2pdf-typora`
 - `morgen`
 - `overleap`
 - `paperbanana`
@@ -76,7 +77,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review commit-triage dropbox friendly-slide-illustrator morgen overleap paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox friendly-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -124,7 +125,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review commit-triage dropbox friendly-slide-illustrator morgen overleap paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox friendly-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -216,6 +217,28 @@ Uses only `git` inside the target repository. Install it in the same scope as th
    ```bash
    test -f ~/.config/dropbox-skill/credentials.json && echo "dropbox: ready"
    ```
+
+### md2pdf-typora — pandoc + Chromium
+
+1. Install pandoc:
+   ```bash
+   # Arch
+   sudo pacman -S pandoc
+   # Debian / Ubuntu
+   sudo apt install pandoc
+   # macOS
+   brew install pandoc
+   ```
+   Verify with `pandoc --version`.
+2. Install a Chromium-family browser if not already present (`google-chrome-stable`, `google-chrome`, or `chromium`). The skill renders the patched HTML to PDF via `--headless=new --print-to-pdf` and needs the binary on `PATH`. Verify with `command -v google-chrome-stable` or equivalent.
+3. Network access: math is rendered with MathJax SVG (`tex-svg-full.js`) loaded from the `cdn.jsdelivr.net` CDN, and body fonts (IBM Plex Serif, MaruBuri, Roboto Slab, JetBrains Mono) come from Google Fonts. Chrome must reach these CDNs during the conversion.
+4. No credentials, no API keys.
+5. Smoke-test:
+   ```bash
+   echo -e "# Hello\n\nInline math: $a^2 + b^2 = c^2$." > /tmp/_md2pdf_test.md
+   bash -c 'cd /tmp && pandoc _md2pdf_test.md -o _md2pdf_test.html --standalone --mathjax'
+   ```
+   If pandoc completes without error, the skill itself drives the rest of the pipeline (HTML patch + Chrome print).
 
 ### morgen — API key
 

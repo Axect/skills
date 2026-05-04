@@ -1,0 +1,311 @@
+/* Typora "Whitey" Theme - Adapted for Pandoc HTML + Chrome headless PDF */
+
+@import url("https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css");
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@200;300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,500;0,700;1,500;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+html {
+    font-size: 19px;
+}
+
+html, body {
+    margin: auto;
+    background: #fefefe;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    font-family: "IBM Plex Serif", "MaruBuri", "Vollkorn", Palatino, Times, serif;
+    color: #333;
+    line-height: 1.53;
+    text-align: justify;
+    max-width: 960px;
+    margin: 0 auto;
+    margin-bottom: 2em;
+    padding: 40px 30px;
+}
+
+/* ── Typography ── */
+
+h1, h2, h3, h4 {
+    font-family: "Roboto Slab", serif;
+}
+
+h1:first-child, h1 {
+    margin-top: 1.6em;
+    font-weight: bold;
+    font-size: 3em;
+}
+
+h1, h2 {
+    text-align: center;
+}
+
+h2 {
+    margin-top: 2em;
+    font-weight: bold;
+}
+
+h2::after {
+    border-bottom: 1px solid #2f2f2f;
+    content: '';
+    width: 100px;
+    display: block;
+    margin: 0 auto;
+    height: 1px;
+}
+
+h3 {
+    font-weight: bold;
+    margin-top: 3em;
+}
+
+h4 {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+h1 + h2, h2 + h3 {
+    margin-top: 0.83em;
+}
+
+p {
+    margin-top: 0;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    hyphens: auto;
+}
+
+/* ── Links ── */
+
+a {
+    color: #2484c1;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+a img {
+    border: none;
+}
+
+h1 a, h1 a:hover {
+    color: #333;
+    text-decoration: none;
+}
+
+/* ── Lists ── */
+
+ul {
+    list-style: square;
+    padding-left: 1.2em;
+}
+
+ol {
+    padding-left: 1.2em;
+}
+
+/* ── Blockquote ── */
+
+blockquote {
+    margin-left: 1em;
+    padding-left: 1em;
+    border-left: 1px solid #ddd;
+}
+
+/* ── Code ── */
+
+code, pre {
+    font-family: "JetBrains Mono", "Consolas", "Menlo", "Monaco", monospace, serif;
+    font-size: .9em;
+    background: white;
+}
+
+/* Inline code */
+code {
+    padding: 0 4px;
+    border: 1px solid #e7eaed;
+    border-radius: 3px;
+    background-color: #f8f8f8;
+}
+
+/* Code blocks */
+pre {
+    margin-left: 1em;
+    padding: 6px 1em 8px 1em;
+    border: 1px solid #ddd;
+    margin-bottom: 1.5em;
+    overflow-x: auto;
+}
+
+pre code {
+    border: none;
+    background: transparent;
+    padding: 0;
+}
+
+/* ── Horizontal Rule ── */
+
+hr {
+    color: #ddd;
+    height: 1px;
+    margin: 2em 0;
+    border-top: solid 1px #ddd;
+    border-bottom: none;
+    border-left: 0;
+    border-right: 0;
+}
+
+/* ── Tables ── */
+
+table {
+    margin-bottom: 1.333333rem;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table th, table td {
+    padding: 8px;
+    line-height: 1.333333rem;
+    vertical-align: top;
+    border-top: 1px solid #ddd;
+}
+
+table th {
+    font-weight: bold;
+}
+
+table thead th {
+    vertical-align: bottom;
+}
+
+table thead:first-child tr:first-child th,
+table thead:first-child tr:first-child td {
+    border-top: 0;
+}
+
+table tbody + tbody {
+    border-top: 2px solid #ddd;
+}
+
+/* ── Images / Figures ── */
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0.5em auto;
+}
+
+figure {
+    margin: 1.2em 0;
+    text-align: center;
+}
+
+figcaption {
+    font-size: 0.9em;
+    color: #777;
+    margin-top: 0.5em;
+}
+
+/* ── Footnotes ── */
+
+.footnotes {
+    font-size: 0.9em;
+    opacity: 0.8;
+    margin-top: 2em;
+    border-top: 1px solid #ddd;
+    padding-top: 1em;
+}
+
+/* ── MathJax ── */
+
+.MathJax_Display, mjx-container[jax="CHTML"][display="true"] {
+    margin: 1em 0 !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* ── Pandoc title block (hidden — title comes from markdown h1) ── */
+
+header#title-block-header {
+    display: none;
+}
+
+/* ── Table of contents ── */
+
+nav#TOC {
+    margin-bottom: 2em;
+    padding: 1em;
+    border: 1px solid #ddd;
+}
+
+nav#TOC ul {
+    list-style-type: none;
+    padding-left: 1em;
+}
+
+nav#TOC > ul {
+    padding-left: 0;
+}
+
+/* ── Print styles ── */
+
+@media print {
+    html {
+        font-size: 13px;
+    }
+
+    body {
+        max-width: 100%;
+        padding: 20px;
+    }
+
+    pre {
+        page-break-inside: avoid;
+        word-wrap: break-word;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+    }
+
+    table, figure {
+        page-break-inside: avoid;
+    }
+}
+
+/* ── Syntax highlighting (pandoc) ── */
+
+code span.al { color: #ff0000; font-weight: bold; }
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; }
+code span.at { color: #7d9029; }
+code span.bn { color: #40a070; }
+code span.bu { color: #008000; }
+code span.cf { color: #007020; font-weight: bold; }
+code span.ch { color: #4070a0; }
+code span.cn { color: #880000; }
+code span.co { color: #60a0b0; font-style: italic; }
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; }
+code span.do { color: #ba2121; font-style: italic; }
+code span.dt { color: #902000; }
+code span.dv { color: #40a070; }
+code span.er { color: #ff0000; font-weight: bold; }
+code span.fl { color: #40a070; }
+code span.fu { color: #06287e; }
+code span.im { color: #008000; font-weight: bold; }
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; }
+code span.kw { color: #007020; font-weight: bold; }
+code span.op { color: #666666; }
+code span.ot { color: #007020; }
+code span.pp { color: #bc7a00; }
+code span.sc { color: #4070a0; }
+code span.ss { color: #bb6688; }
+code span.st { color: #4070a0; }
+code span.va { color: #19177c; }
+code span.vs { color: #4070a0; }
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; }

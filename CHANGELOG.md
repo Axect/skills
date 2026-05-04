@@ -2,6 +2,16 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-05-04
+
+### Added
+- Added the `md2pdf-typora` skill for converting Markdown to PDF that visually matches Typora's Whitey-theme export. Pipeline: pandoc (MD → standalone HTML) → patched HTML (inline Whitey CSS, MathJax SVG forced via `sed` rewrite of pandoc's default CHTML reference, print-layout overrides for A4, inline-math `nowrap`, TOC repositioned after the first body `<h1>`) → Chrome headless `--print-to-pdf`. Bundles the Whitey CSS at `md2pdf-typora/typora-whitey.css`. Hardened against a few load-bearing pandoc quirks: HR-then-`##` heading pairs are normalized so they are not fused into a stray table, and the markdown reader is invoked with `-f markdown-yaml_metadata_block+tex_math_dollars` so a Korean blockquote like `> **도메인**: 물리학` does not raise a YAML parse error.
+- Added `## Pre-flight Dependency Smoke Test` section to `vastai/SKILL.md` and a matching detailed workflow + troubleshooting row to `vastai/references/python-setup.md`. Documents the late-bound import trap (a script that imports `scipy.optimize.curve_fit` inside a function body passes `python -c "import script"` but fails when the codepath fires mid-batch, cascade-failing every pueue dependent). Recommends one full smoke invocation per distinct script type before queuing the batch.
+
+### Changed
+- Updated `README.md` to include `md2pdf-typora` in the skill table, the "Skill requirements & setup" section (pandoc + Chromium prerequisites, MathJax SVG and Google Fonts CDN access notes), the "Which skill to use?" guidance, and the directory tree.
+- Updated `CLIENT_SETUP.md` to list `md2pdf-typora` in the skill directories and the Claude Code / Codex install loops, and added a `Per-skill prerequisites` entry covering pandoc install commands per OS, Chromium discovery, network requirements for MathJax + Google Fonts, and a pandoc smoke-test.
+
 ## 2026-04-21
 
 ### Added

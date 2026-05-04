@@ -15,6 +15,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `friendly-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for friendly whiteboard-style infographic slides for lab meetings and informal talks | `friendly-slide-illustrator/SKILL.md` | None |
+| `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
@@ -61,6 +62,24 @@ No external setup required. The skill is purely a **prompt composer** — it pro
 - Style block lives in `friendly-slide-illustrator/references/friendly-whiteboard-style.md` and is treated as load-bearing — drop it into prompts verbatim, do not paraphrase.
 - The OSPREY v0.21 data-pipeline prompt is preserved as a worked example in `friendly-slide-illustrator/references/example-osprey-v021.md`; reuse its structure 1-for-1 for new multi-stage pipeline figures.
 - Defaults: 18:9 cinematic-wide canvas, English-only on-canvas text, numbered circular badges per panel, off-white background. See the SKILL.md for tone dials (calmer / more playful / black-and-white / Korean-caption hybrid).
+
+### md2pdf-typora
+
+Requires `pandoc` and a Chromium-family browser (`google-chrome-stable`, `google-chrome`, or `chromium`) on `PATH`. The Whitey theme CSS bundled at `md2pdf-typora/typora-whitey.css` is used inline; no separate install.
+
+- Install pandoc with your package manager:
+  ```bash
+  # Arch
+  sudo pacman -S pandoc
+  # Debian / Ubuntu
+  sudo apt install pandoc
+  # macOS
+  brew install pandoc
+  ```
+- A working Chromium build is required because the pipeline renders the patched HTML to PDF via `--headless=new --print-to-pdf`.
+- Math is rendered via MathJax SVG (`tex-svg-full.js`) loaded from CDN — Chrome needs network access during the conversion. The skill rewrites pandoc's default CHTML reference to SVG to avoid silent missing-glyph fallbacks (e.g. `\phi` rendering as `□`).
+- Body fonts (IBM Plex Serif Latin, MaruBuri Korean, Roboto Slab headings, JetBrains Mono code) are also fetched from Google Fonts CDN.
+- Optional flags: `--dropbox [subfolder]` mirrors the produced PDF to `~/Dropbox/Magi/[subfolder]/`; `--send-telegram` posts it via the Telegram skill if configured.
 
 ### morgen
 
@@ -158,6 +177,7 @@ Requires the `vastai` CLI and a Vast.ai API key.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `friendly-slide-illustrator` to compose image-generation prompts for friendly whiteboard-style slides — pipeline diagrams, "how it works" figures, lab-meeting infographics — when you want the result to feel warm and casual rather than stiff and academic.
+- Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
 - Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
@@ -174,6 +194,7 @@ skills/
 ├── commit-triage/
 ├── dropbox/
 ├── friendly-slide-illustrator/
+├── md2pdf-typora/
 ├── morgen/
 ├── overleap/
 ├── paperbanana/
