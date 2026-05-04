@@ -164,6 +164,41 @@ For any GPU work on a rented instance, use `uv` to set up Python — it auto-res
 - Installing PyTorch — never pin `--index-url` unless you know the target sm_ version
 - Switching Python versions in an existing venv
 
+## Pre-flight Dependency Smoke Test (CRITICAL before queuing N jobs)
+
+**Before queuing a batch of N jobs via pueue / a job runner, smoke-test ONE end-to-end invocation per distinct script first.** Late-bound imports (`from X import Y` inside function bodies, or in code paths not exercised by `python -c "import script"`) hide missing deps until that codepath fires mid-execution. With pueue `--after` dependency chains, ONE late failure cascade-fails every queued task downstream.
+
+Quick checklist after `uv pip install -r requirements.txt` finishes on remote:
+
+```bash
+# 1. Module-level imports of every entry-point script
+for s in analyze_*.py evaluate_*.py train_*.py; do
+  python -c "import ast; ast.parse(open('$s').read())" || echo "syntax error in $s"
+done
+python -c "$(grep -hE '^(import |from )' analyze_*.py evaluate_*.py | sort -u)" 2>&1 \
+  | grep -i 'error\|no module' && echo "MISSING DEPS" || echo "module imports OK"
+
+# 2. ONE quick smoke run per distinct script type (no pueue dep chain yet)
+python evaluate_model_thermo.py --project P --group G --seed 42 --device cuda:0 \
+    --batch_size 8 --n_batches 1 --output /tmp/smoke.csv
+# … wait for it to finish (Success or fail). Repeat for each script type.
+
+# 3. ONLY THEN queue the full batch
+```
+
+The trap is *function-body imports* — a script that says `import torch` at the top but does `from scipy.optimize import curve_fit` inside `fit_oz_full_correlator()` will pass step 1 (module-level imports OK) and only fail when fit code runs. Step 2 catches this.
+
+Symptoms when you skip the smoke test:
+- All 24 thermo jobs succeed → first correlator job fires, dies on `ModuleNotFoundError`, all 17 dependents `Dependency failed`.
+- Cost: usually trivial (failures fire fast on import error) but the recovery overhead — pause queue, install dep, `pueue restart -i` for every cascade-failed task — is real and adds 10–30 min per cascade.
+
+Common stealth deps for ML/physics workflows (add to remote `uv pip install` line preemptively):
+- `scipy` — used by `scipy.optimize.curve_fit`, `scipy.stats`, `scipy.signal` in late-bound imports
+- `scikit-learn` — `sklearn.decomposition`, `sklearn.linear_model` in analysis helpers
+- `pandas` — usually OK at module level but worth verifying
+- `tqdm`, `rich`, `matplotlib`, `wandb` — some scripts assume these
+- `optuna` — only if HPO code path fires
+
 Minimal pattern:
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh

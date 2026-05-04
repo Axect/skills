@@ -101,6 +101,40 @@ Copy this to the instance and run it via `ssh -p <port> root@<host> 'bash /root/
 | `No CUDA GPUs are available` | Wrong container or driver issue | Check `nvidia-smi` on the host; recreate instance |
 | Broken symlinks after rsync | Local repo has symlinks pointing at host paths | Use `rsync --copy-links` or strip symlinks via `--exclude` |
 | `rsync: mkdir failed: File exists` | Destination is a broken symlink | `ssh ... 'rm <path> && mkdir -p <path>'` first |
+| `ModuleNotFoundError` mid-batch (job 24 of 30 dies) | Late-bound import (`from X import Y` inside function body) not in `requirements.txt` | Always smoke-test ONE end-to-end run per script type BEFORE queuing the batch — see "Pre-flight dependency smoke test" below |
+
+## Pre-flight Dependency Smoke Test
+
+**Before queuing N jobs via pueue or any dep-chain runner, run ONE complete invocation of each distinct script type and let it finish.** This catches late-bound imports that `requirements.txt` omits.
+
+The failure mode: a script that does `import torch` at module top but `from scipy.optimize import curve_fit` inside `fit_oz_full_correlator()` will pass `python -c "import script"`, get queued 30 times, run 24 jobs successfully, then die on job 25 when the fit code path first fires — cascading-failing all dependents.
+
+Recommended workflow:
+
+```bash
+# After remote_setup.sh finishes — BEFORE queuing the batch:
+
+# Step A: Module-level import check (cheap)
+cd ~/<project>
+source .venv/bin/activate
+python -c "$(grep -hE '^(import |from .* import )' \
+    analyze_*.py evaluate_*.py main.py | sort -u)" 2>&1 \
+    | grep -i 'no module' && { echo "MISSING DEPS"; exit 1; }
+
+# Step B: Smoke-test ONE quick invocation per distinct script type
+# Use minimal --batch_size / --n_T to finish in seconds-to-minutes
+python evaluate_model_thermo.py --project P --group G --seed 42 \
+    --batch_size 8 --n_batches 1 --device cuda:0 --output /tmp/smoke_thermo.csv
+python analyze_correlation_clock.py --seed 42 --device cuda:0 \
+    --models Clock_w8 --n_T 4 --n_samples 100 --output /tmp/smoke_clock.csv
+# ... etc for each entry-point script
+
+# Step C: ONLY after all smokes pass, queue the full batch via pueue
+```
+
+If any smoke fails with `ModuleNotFoundError`, install the missing dep on the remote venv (`uv pip install <dep>`) and retry the smoke before queuing.
+
+**Cost-saving tip**: Build a `python-deps-check.sh` that runs Step A + the smoke commands, save it in your project repo, and run it as the LAST line of remote setup. Setup script exits non-zero on missing deps → instance is set up but you stop before queuing → fix and retry quickly.
 
 ## Project Data Transfer
 
