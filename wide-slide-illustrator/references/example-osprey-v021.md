@@ -1,6 +1,6 @@
 ---
 name: Example — OSPREY v0.21 Data Pipeline Prompt
-description: Worked example of a friendly-slide-illustrator prompt — the OSPREY v0.21 unified data-generation pipeline as a 5-panel 18:9 infographic. User-approved on 2026-04-27.
+description: Worked example of a wide-slide-illustrator (Friendly Whiteboard variant) prompt — the OSPREY v0.21 unified data-generation pipeline as a 5-panel 18:9 infographic. User-approved on 2026-04-27.
 type: reference
 ---
 

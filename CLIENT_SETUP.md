@@ -16,7 +16,7 @@ Current skill directories in this repository:
 - `adversarial-review`
 - `commit-triage`
 - `dropbox`
-- `friendly-slide-illustrator`
+- `wide-slide-illustrator`
 - `md2pdf-typora`
 - `morgen`
 - `overleap`
@@ -77,7 +77,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review commit-triage dropbox friendly-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -125,7 +125,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review commit-triage dropbox friendly-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report vastai; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
