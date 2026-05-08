@@ -239,3 +239,5 @@ OVERALL LOOK block and to add three concrete sub-patterns (status badge,
 pull-quote, connection line) so the prompt names refined replacements for
 the residual whiteboard tropes. Always include those sub-patterns when a
 panel needs a stamp / sticky-note / motion-arrow equivalent.
+
+Invocation tags inside prompts use the ALL-CAPS form: **STATUS-BADGE PATTERN / PULL-QUOTE PATTERN / CONNECTION-LINE PATTERN** (section headings above are Title-case markdown convention; the prompt-side tag is ALL-CAPS for visibility — see `example-osprey-editorial.md`).
