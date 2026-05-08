@@ -4,17 +4,25 @@ description: >
   Compose detailed image-generation prompts (ChatGPT Image 2.0 / gpt-image-1, DALL-E,
   Sora image, Midjourney) for wide cinematic infographic slides — multi-panel
   18:9 figures that explain a methodology, data pipeline, or architecture in
-  one image. Two reusable style variants are supported: Friendly Whiteboard
-  (warm, sketchy, lab-meeting feel) and Editorial Magazine (refined, Quanta /
-  NYT feature-spread feel). Output prompts always force on-image text to be
-  English-only and combine a reusable style block with task-specific panel
-  content.
+  one image. Six reusable style variants are supported: Friendly Whiteboard
+  (warm sketch, lab-meeting feel), Editorial Magazine (refined Quanta / NYT
+  feature spread), Engineering Blueprint (NASA / SpaceX schematic, monospace
+  + cyan-on-navy), Swiss Minimalist (Müller-Brockmann typography applied to
+  methodology content), Dark Tech / Neon (Linear / Anthropic / Cursor keynote,
+  charcoal + neon glow), and Scientific Poster (Phys Rev / Nature published
+  figure). Output prompts always force on-image text to be English-only and
+  combine a reusable style block with task-specific panel content.
   Use when the user asks to: generate a slide illustration, make an infographic,
-  create a wide pipeline diagram, draw a "how it works" figure, or produce an
-  image-generator prompt for a methodology / data-pipeline / architecture
-  overview — friendly-casual OR magazine-refined.
+  create a wide pipeline diagram, draw a "how it works" figure, produce a paper
+  hero figure, render a journal-style methodology figure, build a keynote
+  backdrop, or produce an image-generator prompt for a methodology / data-
+  pipeline / architecture overview.
   Triggers on: "wide slide", "lab meeting figure", "whiteboard style",
   "editorial slide", "magazine infographic", "Quanta-style figure",
+  "blueprint diagram", "schematic figure", "engineering blueprint",
+  "Swiss minimalist poster", "Müller-Brockmann", "dark mode keynote",
+  "AI lab keynote", "neon slide", "scientific poster", "journal figure",
+  "Phys Rev figure", "Nature figure", "paper hero figure",
   "infographic prompt", "wide pipeline figure", "ChatGPT image prompt",
   "image generation prompt", "casual presentation diagram", "hero figure",
   "friendly slide".

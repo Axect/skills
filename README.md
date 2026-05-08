@@ -14,7 +14,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
-| `wide-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for wide cinematic 18:9 infographic slides — Friendly Whiteboard or Editorial Magazine variants | `wide-slide-illustrator/SKILL.md` | None |
+| `wide-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for wide cinematic 18:9 multi-panel infographic slides — six style variants: Friendly Whiteboard, Editorial Magazine, Engineering Blueprint, Swiss Minimalist, Dark Tech / Neon, Scientific Poster | `wide-slide-illustrator/SKILL.md` | None |
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
@@ -59,11 +59,15 @@ Requires a Dropbox app and OAuth credentials stored at `~/.config/dropbox-skill/
 
 No external setup required. The skill is purely a **prompt composer** — it produces a copy-pasteable text prompt for an image-generation model (ChatGPT Image 2.0 / gpt-image-1, DALL-E 3, Sora image, Midjourney). You bring your own image generator.
 
-- Two reusable style variants — both share the same 5-panel 18:9 composition and English-only-on-canvas guard rail; they differ only in surface treatment.
-  - **Friendly Whiteboard** (warm sketch, lab-meeting feel): style block in `wide-slide-illustrator/references/friendly-whiteboard-style.md`; example in `wide-slide-illustrator/references/example-osprey-v021.md`.
-  - **Editorial Magazine** (Quanta / NYT feature spread): style block in `wide-slide-illustrator/references/editorial-magazine-style.md`; example in `wide-slide-illustrator/references/example-osprey-editorial.md`. Always include the explicit "hard negatives" bullet from the style block.
-- Style blocks are load-bearing — drop them into prompts verbatim, do not paraphrase.
-- Defaults: 18:9 cinematic-wide canvas, English-only on-canvas text, numbered marker per panel. See the SKILL.md for tone dials per variant (calmer / more playful / Bauhaus-clean / Korean-caption hybrid, etc.).
+- Six reusable style variants — all share the same 5-panel 18:9 composition and English-only-on-canvas guard rail; they differ only in surface treatment.
+  - **Friendly Whiteboard** (warm sketch, lab-meeting feel): `wide-slide-illustrator/references/friendly-whiteboard-style.md`; example `example-osprey-v021.md`.
+  - **Editorial Magazine** (Quanta / NYT feature spread): `wide-slide-illustrator/references/editorial-magazine-style.md`; example `example-osprey-editorial.md`. Sub-patterns: STATUS-BADGE / PULL-QUOTE / CONNECTION-LINE.
+  - **Engineering Blueprint** (NASA / SpaceX schematic, monospace + cyan-on-navy): `wide-slide-illustrator/references/engineering-blueprint-style.md`. Sub-patterns: DIMENSION-LINE / TERMINAL-NODE / STAGE-BOX.
+  - **Swiss Minimalist** (Müller-Brockmann typography over methodology content; orthodox title-poster mode opt-in via tone dial): `wide-slide-illustrator/references/swiss-minimalist-style.md`. Sub-patterns: PROMINENT-NUMBER / PRIMARY-PLOT / GRID-CARD.
+  - **Dark Tech / Neon** (Linear / Anthropic / Cursor keynote, charcoal + neon glow): `wide-slide-illustrator/references/dark-tech-neon-style.md`. Sub-patterns: NEON-CHIP / GLOW-PATH / MONOSPACE-LABEL.
+  - **Scientific Poster** (Phys Rev / Nature published figure, panel labels (a)–(e), running FIG. N. caption): `wide-slide-illustrator/references/scientific-poster-style.md`. Sub-patterns: PANEL-LETTER / FIG-CAPTION / AXIS-LABEL.
+- Style blocks are load-bearing — drop them into prompts verbatim, do not paraphrase. Always include the variant's "hard negatives" bullet so cues from sibling variants don't leak through (lesson learned from the editorial v1 → v2 hardening pass).
+- Defaults: 18:9 cinematic-wide canvas, English-only on-canvas text, numbered marker per panel. See SKILL.md for tone dials per variant (calmer / more playful / Bauhaus-clean / orthodox-Swiss-poster / Korean-caption hybrid, etc.).
 
 ### md2pdf-typora
 
@@ -178,7 +182,7 @@ Requires the `vastai` CLI and a Vast.ai API key.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
-- Choose `wide-slide-illustrator` to compose image-generation prompts for wide cinematic 18:9 multi-panel infographic slides — pipeline diagrams, "how it works" figures, hero figures, lab-meeting infographics. Pick the Friendly Whiteboard variant for warm/casual lab-meeting tone, or the Editorial Magazine variant for refined Quanta/NYT-style paper hero figures.
+- Choose `wide-slide-illustrator` to compose image-generation prompts for wide cinematic 18:9 multi-panel infographic slides — pipeline diagrams, "how it works" figures, hero figures, paper figures, keynote backdrops. Six style variants by audience and target medium: Friendly Whiteboard (lab meeting), Editorial Magazine (Quanta / NYT paper hero), Engineering Blueprint (technical schematic), Swiss Minimalist (typographic poster on methodology content), Dark Tech / Neon (AI-lab keynote backdrop), Scientific Poster (Phys Rev / Nature journal figure).
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
