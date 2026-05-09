@@ -164,6 +164,20 @@ No external setup required. Uses Python standard library only.
 - Helper scripts live in `research-report/scripts/` (`build_plot_manifest.py`, `record_report_version.py`, `validate_artifacts.py`).
 - Designed to be used from inside a project directory that already contains experiment outputs.
 
+### scienceplot-py
+
+Requires `matplotlib` and `scienceplots` in the runtime environment that will execute the generated script. The skill writes the `.py` file but does not run it; the user runs it themselves (preferred: `uv run <path>`).
+
+- Install runtime deps in the project that owns the data:
+  ```bash
+  uv add matplotlib scienceplots pandas pyarrow numpy
+  ```
+  - `pandas` for parquet / CSV input. `pyarrow` is the parquet backend (drop it for CSV-only or NumPy-only data).
+  - `numpy` for `.npy` / `.npz` input.
+- The `import scienceplots` line in the generated script is required even though Pyright flags it as unused — the `science` and `nature` styles register by import side-effect.
+- savefig DPI is **300** (intentionally lowered from the upstream `pq_plot.py` template's 600). Bump higher only if the user explicitly asks.
+- Plot variants and data-loader patterns: see `scienceplot-py/references/` (`single_line.py`, `multi_line.py`, `scatter_errorbar.py`, `subplots.py`, `data_loaders.md`).
+
 ### vastai
 
 Requires the `vastai` CLI and a Vast.ai API key.
@@ -179,6 +193,19 @@ Requires the `vastai` CLI and a Vast.ai API key.
   The key is stored at `~/.vast_api_key`. Never commit or share it.
 - Verify access: `vastai show user`.
 
+### xkcd-py
+
+Requires `matplotlib` in the runtime environment. The skill writes the `.py` file but does not run it; the user runs it themselves.
+
+- Install runtime deps:
+  ```bash
+  uv add matplotlib pandas pyarrow numpy
+  ```
+  No `scienceplots` is needed — `plt.xkcd()` is built into matplotlib.
+- For best visual results, install an xkcd-style font (Humor Sans / xkcd Script / Comic Neue). Without it, matplotlib falls back to Bitstream Vera Sans and emits a `findfont: Font family ['xkcd Script', ...] not found` warning; the plot still renders correctly.
+- savefig DPI is **300** with `figsize=(10, 6)` — a wider canvas than the matplotlib default, needed for the hand-drawn font and stroke widths to read cleanly.
+- Plot variants and data-loader patterns: see `xkcd-py/references/` (same four templates as `scienceplot-py`, plus `data_loaders.md`).
+
 ## Which skill to use?
 
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
@@ -192,7 +219,9 @@ Requires the `vastai` CLI and a Vast.ai API key.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
 - Choose `research-log` for project registration, experiment logs, status queries, and review workflows.
 - Choose `research-report` for generating or revising structured report artifacts from research or experiment outputs.
+- Choose `scienceplot-py` to scaffold a publication-style matplotlib script following the lab's `scienceplots` (`science`+`nature`) template — single line, multi-line + legend, scatter / errorbar, or multi-panel subplots from parquet / CSV / NumPy data.
 - Choose `vastai` for renting GPUs, searching offers, or managing remote compute instances.
+- Choose `xkcd-py` for a hand-drawn / sketch-style matplotlib script (`with plt.xkcd():`, wider canvas, dpi=300) — same data-source and plot-variant coverage as `scienceplot-py`.
 
 ## Structure
 
@@ -201,7 +230,6 @@ skills/
 ├── adversarial-review/
 ├── commit-triage/
 ├── dropbox/
-├── wide-slide-illustrator/
 ├── md2pdf-typora/
 ├── morgen/
 ├── overleap/
@@ -209,7 +237,10 @@ skills/
 ├── reference-search/
 ├── research-log/
 ├── research-report/
-└── vastai/
+├── scienceplot-py/
+├── vastai/
+├── wide-slide-illustrator/
+└── xkcd-py/
 ```
 
 ## License
