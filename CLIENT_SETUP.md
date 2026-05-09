@@ -26,6 +26,7 @@ Current skill directories in this repository:
 - `research-report`
 - `scienceplot-py`
 - `vastai`
+- `xkcd-py`
 
 > Several skills also need a one-time **external setup** (CLIs, API keys, credentials files) that is independent of the client. See the "Per-skill prerequisites" section near the end of this guide — do that before your first invocation.
 
@@ -78,7 +79,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai; do
+for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -126,7 +127,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai; do
+for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -185,7 +186,8 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── research-report/
 ├── scienceplot-py/
 ├── vastai/
-└── wide-slide-illustrator/
+├── wide-slide-illustrator/
+└── xkcd-py/
 ```
 
 ### Behavior notes
@@ -348,6 +350,16 @@ uv add matplotlib scienceplots pandas pyarrow numpy
    ```bash
    vastai show user
    ```
+
+### xkcd-py — Python deps in your runtime
+
+The skill writes a `.py` file but does not run it; the user runs the script. Make sure the *runtime environment* has:
+
+```bash
+uv add matplotlib pandas pyarrow numpy
+```
+
+No `scienceplots` is needed — `plt.xkcd()` is built into matplotlib. For best visual results, install an xkcd-style font (Humor Sans / xkcd Script / Comic Neue). Without one, matplotlib falls back to Bitstream Vera Sans and emits a `findfont: Font family ['xkcd Script', ...] not found` warning at render time; the plot still renders correctly.
 
 ## Choosing a scope
 
