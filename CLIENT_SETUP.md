@@ -24,6 +24,7 @@ Current skill directories in this repository:
 - `reference-search`
 - `research-log`
 - `research-report`
+- `scienceplot-py`
 - `vastai`
 
 > Several skills also need a one-time **external setup** (CLIs, API keys, credentials files) that is independent of the client. See the "Per-skill prerequisites" section near the end of this guide — do that before your first invocation.
@@ -77,7 +78,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -125,7 +126,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report vastai; do
+for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -175,12 +176,16 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── adversarial-review/
 ├── commit-triage/
 ├── dropbox/
+├── md2pdf-typora/
 ├── morgen/
+├── overleap/
 ├── paperbanana/
 ├── reference-search/
 ├── research-log/
 ├── research-report/
-└── vastai/
+├── scienceplot-py/
+├── vastai/
+└── wide-slide-illustrator/
 ```
 
 ### Behavior notes
@@ -316,6 +321,16 @@ The skill manages `~/.research-log/` automatically on first use. Nothing to inst
 ### research-report — no setup required
 
 Uses only the Python standard library. Helper scripts live in `research-report/scripts/` and are invoked from inside a project's output directory.
+
+### scienceplot-py — Python deps in your runtime
+
+The skill writes a `.py` file but does not run it; the user runs the script (typically `uv run <path>`). Make sure the *runtime environment* has the libraries the generated script imports:
+
+```bash
+uv add matplotlib scienceplots pandas pyarrow numpy
+```
+
+`pyarrow` is needed only for parquet input — drop it if your data is CSV-only or NumPy-only. The `scienceplots` package is required even though linters flag the import as unused; it registers the `science` and `nature` styles by import side-effect.
 
 ### vastai — CLI + API key
 

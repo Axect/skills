@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-05-09
+
+### Added
+- Added the `scienceplot-py` skill that writes a Python matplotlib plot script following the user's `scienceplots` (`science`+`nature`) lab template (canonical source: `~/Socialst/Templates/PyPlot_Template/pq_plot.py`). Style invariants are load-bearing and explicitly enumerated in `SKILL.md`: `import scienceplots` (kept even though linters flag it as unused — the styles register by import side-effect), `with plt.style.context(["science", "nature"]):`, `pparam = dict(...)` + `ax.set(**pparam)`, `ax.autoscale(tight=True)`, raw-string LaTeX, and `dpi=300, bbox_inches='tight'` savefig. Note that the savefig DPI was lowered from the upstream template's 600 to 300 by user request — the skill's invariant has intentionally diverged from `pq_plot.py`. Bundles four reference templates (single line, multi-line + legend, scatter / errorbar, multi-panel subplots) and a parquet / CSV / NumPy `.npy` / `.npz` data-loader cheat sheet at `references/data_loaders.md`. The skill writes the `.py` only and never executes it; the user runs it themselves (typically `uv run`).
+
+### Changed
+- Updated `README.md` to list `scienceplot-py` in the skill table.
+- Updated `CLIENT_SETUP.md` to include `scienceplot-py` in the current-skill-directories list, both install loops (Claude Code and Codex), and the per-skill prerequisites section. The Forge "Option 2" tree example was also caught up to skills it had been silently missing (`md2pdf-typora`, `overleap`, `wide-slide-illustrator`) and is now alphabetically complete.
+
 ## 2026-05-04
 
 ### Added
