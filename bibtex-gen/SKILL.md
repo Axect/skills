@@ -61,6 +61,14 @@ The orchestrator auto-detects the input type:
 Batch mode reads one query per line from a file (`#` comments and blank
 lines ignored).
 
+For an OpenAlex-driven discovery → citation pipeline, the orchestrator
+also accepts `--from-search refs.json`, where `refs.json` is the JSON
+output of the `reference-search` skill (`openalex_search.py --format
+json`). Each result's DOI is extracted (title fallback if no DOI) and
+routed through the normal HEP / Scholar / CrossRef pipeline — so you can
+run "find me 10 papers on X" and turn that into a `.bib` in one extra
+command. See `references/examples.md` for the full pipeline recipe.
+
 ## Bibtex key style
 
 Each source returns its own key style; **the skill preserves them verbatim**:
@@ -135,7 +143,11 @@ classification heuristics in `references/hep_classification.md`.
 - `scripts/bibtex_gen.py` — orchestrator; runnable as `uv run scripts/bibtex_gen.py "<query>"`.
 - `references/sources.md` — per-source API details, response shape, and gotchas.
 - `references/hep_classification.md` — when a query is classified HEP vs non-HEP and how to override.
-- `references/examples.md` — copy-pasteable CLI invocations (single, batch, HEP override, file append).
+- `references/examples.md` — copy-pasteable CLI invocations (single, batch, HEP override, file append, `reference-search` integration).
+
+## Companion skills
+
+- `reference-search` — OpenAlex-based literature discovery. Use it upstream of this skill when the user has a topic / claim / section in mind but no specific paper picked out. Save its output with `--format json`, then run `bibtex-gen --from-search <file>.json` to materialize a `.bib`.
 
 After creating or updating this skill, suggest starting a new session so
 the new skill is discoverable from session start.

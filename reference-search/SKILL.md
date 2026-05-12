@@ -145,10 +145,32 @@ Use this structure unless the user asks for something else:
 
 If the user asks to save the results, write the formatted markdown to the requested path after reviewing the results. If the path is relative, resolve it from the current working directory.
 
+## Downstream: producing bibtex from results
+
+When the user wants a real `.bib` file (not just a curated markdown shortlist), pair this skill with the **`bibtex-gen`** companion. The flow is:
+
+1. Run this skill with `--format json` and save the output:
+   ```bash
+   uv run reference-search/scripts/openalex_search.py \
+     "{query}" --mode {mode} --limit {limit} --format json \
+     > /tmp/{slug}.json
+   ```
+2. Pipe that JSON into `bibtex-gen`:
+   ```bash
+   uv run bibtex-gen/scripts/bibtex_gen.py \
+     --from-search /tmp/{slug}.json \
+     --output paper/refs.bib --verbose
+   ```
+
+`bibtex-gen` extracts each result's DOI from `identifier` and routes it through HEP (InspireHEP) → non-HEP (Google Scholar → CrossRef) so that HEP papers land with `Author:YYYYabc` keys and non-HEP papers land with Scholar / CrossRef keys. OpenAlex is **discovery only**; canonical bibtex always comes from the field-appropriate authoritative source.
+
+If the user asks for `references` *and* a `.bib` in the same step, run both skills back-to-back rather than fabricating bibtex from the OpenAlex metadata directly.
+
 ## Resources
 
 - `scripts/openalex_search.py`: OpenAlex query helper with markdown and JSON output.
 - `references/query_patterns.md`: query construction heuristics and mode examples.
 - `research-report`: companion reporting skill that can consume section-level reference support from this skill.
+- `bibtex-gen`: companion skill that turns this skill's JSON output into a real `.bib` file (`bibtex-gen --from-search <file>.json`). Use it whenever the user wants citations materialized, not just curated.
 
 After creating or updating this skill, suggest starting a new session so the new skill is discoverable from session start.

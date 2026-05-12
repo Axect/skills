@@ -114,3 +114,23 @@ The user's preference is:
 
 This matches the user's spoken rule: *"HEP는 InspireHEP, 그 외는 Google
 Scholar, Scholar가 부족하면 출판사 bibtex."*
+
+## Upstream: OpenAlex (via `reference-search`)
+
+When the user does not yet know *which* papers to cite, the
+**`reference-search` skill** sits upstream of this one. It queries
+OpenAlex with topic / claim / section-goal style inputs and returns a
+JSON list of candidates with DOI / authors / year / citation count.
+
+`bibtex-gen --from-search <file>.json` consumes that JSON: for each
+result, the DOI (if present, parsed from the `https://doi.org/...`
+identifier) becomes one query through the normal HEP / Scholar /
+CrossRef pipeline. Falls back to the title when DOI is missing.
+
+Why route through HEP/Scholar/CrossRef instead of using OpenAlex's own
+metadata as bibtex? Because OpenAlex is built for **discovery and
+citation-graph analytics**, not for bibtex fidelity — its records often
+miss journal abbreviations, eprint fields, and collaboration tags that
+HEP and publisher records have. Treating OpenAlex as a candidate
+generator and letting InspireHEP / CrossRef provide the actual bibtex
+keeps the citation style canonical for each subfield.

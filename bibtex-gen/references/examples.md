@@ -118,6 +118,37 @@ the query is listed on stderr and the exit code is 2. Typical fixes:
 - For a paywalled paper with no DOI, fetch the publisher's bibtex
   manually and paste it in.
 
+## From a `reference-search` result (discovery → citation)
+
+`reference-search` does OpenAlex-based discovery: "find me papers about X".
+Pipe its JSON output into `bibtex-gen --from-search` to turn the
+discovery into a proper `.bib` file. Each result's DOI is extracted and
+routed through the normal HEP / Scholar / CrossRef pipeline, so HEP
+papers in the OpenAlex hit list will still come back with `Author:YYYYabc`
+keys from InspireHEP and non-HEP papers will route via Scholar /
+CrossRef.
+
+```bash
+# 1. Discover candidates with reference-search (writes JSON for downstream use).
+uv run reference-search/scripts/openalex_search.py \
+  "Higgs boson discovery" --limit 5 --format json > /tmp/higgs.json
+
+# 2. Materialize a .bib from those candidates.
+uv run bibtex-gen/scripts/bibtex_gen.py \
+  --from-search /tmp/higgs.json \
+  --output paper/refs.bib --verbose
+```
+
+When the OpenAlex result lacks a DOI (rare for journal articles, common
+for older preprints / data records), the orchestrator falls back to the
+title as the query. This is best-effort — for cleanest output, prefer
+OpenAlex queries that surface DOI-bearing records (journal articles,
+proceedings).
+
+`--from-search` is fully composable with `--batch` and positional
+arguments — they all feed into the same queue and are processed in the
+order they are added (positional → `--batch` → `--from-search`).
+
 ## Inside an existing paper repo
 
 If the user is working on a paper draft, a common pattern is to maintain a

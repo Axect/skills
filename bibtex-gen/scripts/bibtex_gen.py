@@ -244,6 +244,37 @@ def load_batch(path: str) -> list[str]:
     return out
 
 
+def load_from_search(path: str) -> list[str]:
+    """Read reference-search JSON output and yield a query per entry.
+
+    The companion skill `reference-search` emits JSON of the form
+    `{"results": [{"identifier": "...", "title": "...", ...}, ...]}`.
+
+    For each entry, prefer the DOI (parsed from the identifier URL when
+    possible); fall back to the title if no DOI is available. The bibtex_gen
+    pipeline classifies and routes each query as usual.
+    """
+    with open(path, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: expected top-level JSON object")
+    results = data.get("results")
+    if not isinstance(results, list):
+        raise ValueError(f"{path}: missing 'results' array (is this a reference-search JSON file?)")
+    out: list[str] = []
+    for entry in results:
+        if not isinstance(entry, dict):
+            continue
+        identifier = (entry.get("identifier") or "").strip()
+        title = (entry.get("title") or "").strip()
+        kind, _ = detect_input(identifier) if identifier else ("title", "")
+        if kind in {"arxiv", "doi"} and identifier:
+            out.append(identifier)
+        elif title:
+            out.append(title)
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -257,6 +288,15 @@ def main() -> int:
     parser.add_argument(
         "--batch",
         help="Path to a file with one query per line (# for comments).",
+    )
+    parser.add_argument(
+        "--from-search",
+        dest="from_search",
+        help=(
+            "Path to a reference-search JSON output file. Each result's DOI "
+            "(or title fallback) becomes one query through the normal "
+            "HEP/Scholar/CrossRef routing pipeline."
+        ),
     )
     parser.add_argument(
         "--output",
@@ -293,6 +333,12 @@ def main() -> int:
     queries: list[str] = list(args.queries)
     if args.batch:
         queries.extend(load_batch(args.batch))
+    if args.from_search:
+        try:
+            queries.extend(load_from_search(args.from_search))
+        except (OSError, ValueError, json.JSONDecodeError) as e:
+            print(f"--from-search failed: {e}", file=sys.stderr)
+            return 1
 
     if not queries:
         parser.print_help()

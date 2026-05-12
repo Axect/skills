@@ -10,6 +10,7 @@ All notable changes to this repository are documented in this file.
 ### Changed
 - Updated `README.md` (four touchpoints: skill table, requirements section, "Which skill to use?" picker, and the directory tree) to list `bibtex-gen`.
 - Updated `CLIENT_SETUP.md` (four touchpoints: skill directory list near the top, both install loops for Claude Code and Codex, the Forge tree, and a new "Per-skill prerequisites" entry describing the PEP 723 auto-install behavior and a smoke-test).
+- Wired `bibtex-gen` to `reference-search` via a new `--from-search <file>.json` flag on the orchestrator. The flag reads `reference-search`'s existing JSON output (`openalex_search.py --format json`), extracts each candidate's DOI (or title fallback when no DOI is present), and feeds the queue through the normal HEP / Scholar / CrossRef routing pipeline — so discovery via OpenAlex yields a `.bib` whose HEP entries still carry InspireHEP `Author:YYYYabc` keys and whose non-HEP entries route through Scholar / CrossRef. Composable with `--batch` and positional args (processed in order: positional → batch → from-search). `reference-search/SKILL.md` gained a new "Downstream: producing bibtex from results" section and a `bibtex-gen` entry in its Resources list, completing the cross-link in both directions.
 
 ## 2026-05-09
 
