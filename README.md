@@ -19,6 +19,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
+| `overleaf-section-workflow` | Disciplined section-by-section workflow for Overleaf physics-paper drafts: Korean intermediate draft → user iteration → Opus-direct English LaTeX → out-of-tree build. Codifies non-negotiables (no em/en-dashes, no forward refs in background, citation content verified, scienceplots conventions, build never inside sync folder) and orchestrates `overleap`, `scienceplot-py`, `reference-search`, `bibtex-gen`, and `commit-triage` in turn. | `overleaf-section-workflow/SKILL.md` | TeX distribution (`pdflatex`, `bibtex`) + the companion skills it orchestrates |
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
 | `reference-search` | Search and curate academic references via OpenAlex for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python) |
 | `research-log` | Manage research-log workflows such as initialization, querying, review, and state capture | `research-log/SKILL.md` | `~/.research-log/` workspace (auto) |
@@ -138,6 +139,20 @@ Requires the [`overleap`](https://github.com/Axect/overleap) Node.js CLI and a v
   ```
 - `overleap sync` is a long-running daemon — never invoke it as a foreground Bash call from Claude. Use a separate terminal, `pueue`, or `run_in_background` (`overleap/references/long-running-patterns.md` covers all three).
 
+### overleaf-section-workflow
+
+Requires a working TeX distribution on `PATH` and the companion skills it orchestrates (all already in this repo).
+
+- TeX prerequisites (used by the `templates/build_template.sh` build script):
+  ```bash
+  command -v pdflatex && command -v bibtex
+  ```
+  Install via TeX Live (`sudo pacman -S texlive-most` on Arch, `sudo apt install texlive-full` on Debian/Ubuntu, `brew install --cask mactex` on macOS) — the skill does not install TeX for you.
+- Companion skills the workflow invokes (no extra setup beyond their own per-skill prerequisites): `overleap` (Overleaf sync), `scienceplot-py` (plot scripts), `reference-search` (literature discovery), `bibtex-gen` (citation generation), `commit-triage` (clean session-boundary commits), and optionally `deep-research` for novelty verification.
+- Three-directory contract: the workflow assumes `~/zbin/OverLeaf/<PROJECT>/` (sync), `<PROJECT>_draft/` (Korean drafts), `<PROJECT>_build/` (out-of-tree TeX build). Never build inside the sync folder — build artefacts would propagate back to Overleaf.
+- Translation is **Opus-only** by user mandate — this skill explicitly forbids delegating section translation to a Sonnet subagent, even where the general lab convention would. See `references/05_translation_rules.md`.
+- All draft text and final LaTeX must be em/en-dash-free; verify with `grep -cP "[\x{2013}\x{2014}]" <file>` (must return 0).
+
 ### paperbanana
 
 Requires the `paperbanana` CLI and an env file at `~/.config/paperbanana/env`.
@@ -227,6 +242,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
+- Choose `overleaf-section-workflow` when you are drafting a physics paper section-by-section on Overleaf and want the disciplined Korean-draft → user-iteration → Opus-direct English-LaTeX → out-of-tree-build loop, with citation-content verification, scienceplots-grade plots, and em/en-dash-free output. This is the orchestration layer; `overleap` is just the sync primitive it builds on.
 - Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
 - Choose `research-log` for project registration, experiment logs, status queries, and review workflows.
@@ -246,6 +262,7 @@ skills/
 ├── md2pdf-typora/
 ├── morgen/
 ├── overleap/
+├── overleaf-section-workflow/
 ├── paperbanana/
 ├── reference-search/
 ├── research-log/

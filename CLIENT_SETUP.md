@@ -21,6 +21,7 @@ Current skill directories in this repository:
 - `md2pdf-typora`
 - `morgen`
 - `overleap`
+- `overleaf-section-workflow`
 - `paperbanana`
 - `reference-search`
 - `research-log`
@@ -80,7 +81,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review bibtex-gen commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
+for skill in adversarial-review bibtex-gen commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap overleaf-section-workflow paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -128,7 +129,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review bibtex-gen commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
+for skill in adversarial-review bibtex-gen commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap overleaf-section-workflow paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -182,6 +183,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── md2pdf-typora/
 ├── morgen/
 ├── overleap/
+├── overleaf-section-workflow/
 ├── paperbanana/
 ├── reference-search/
 ├── research-log/
@@ -313,6 +315,35 @@ All requests go to `https://api.morgen.so/v3` with `Authorization: ApiKey <KEY>`
    On success you'll see a numbered project list; that's also the connectivity / auth check.
 
 `overleap sync` is a long-running daemon. Run it from a dedicated terminal pane, under `pueue`, or via `run_in_background` — never as a foreground Bash call from Claude. See `overleap/references/long-running-patterns.md` for concrete recipes.
+
+### overleaf-section-workflow — TeX + companion skills
+
+The skill is a workflow orchestrator. It needs a working TeX distribution on `PATH` plus the companion skills it invokes; nothing else.
+
+1. Install TeX Live (or another TeX distribution that provides `pdflatex` and `bibtex`):
+   ```bash
+   # Arch
+   sudo pacman -S texlive-most
+   # Debian / Ubuntu
+   sudo apt install texlive-full
+   # macOS
+   brew install --cask mactex
+   ```
+   Verify:
+   ```bash
+   command -v pdflatex && command -v bibtex && pdflatex --version | head -1
+   ```
+2. Make sure the companion skills are installed and configured according to their own per-skill prerequisites in this file:
+   - `overleap` (Overleaf sync — needs the `overleap` CLI and a per-project session cookie)
+   - `scienceplot-py` (plot scripts — needs `matplotlib` + `scienceplots` in the runtime env)
+   - `reference-search` (literature discovery — no setup)
+   - `bibtex-gen` (citation generation — no setup; `scholarly` auto-installed via PEP 723 when `uv run`)
+   - `commit-triage` (session-end commits — no setup)
+3. Three-directory contract. The workflow assumes the user maintains three sibling directories per paper project — typically under `~/zbin/OverLeaf/`:
+   - `<PROJECT>/` — the Overleaf sync folder (mirrored via `overleap`). `.tex`, `ref.bib`, `figs/` live here. **Never run pdflatex/bibtex here** — build artefacts would sync back to Overleaf.
+   - `<PROJECT>_draft/` — Korean section drafts as `section<N>_ko.md`.
+   - `<PROJECT>_build/` — out-of-tree build scripts and artefacts. Use the bundled `templates/build_template.sh` (set `JOBNAME`).
+4. The skill does not install any libraries itself and does not write to your system other than via the companion-skill scripts.
 
 ### paperbanana — CLI + env file
 
