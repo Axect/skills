@@ -12,6 +12,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | Skill | Primary use | Entry point | External setup |
 |---|---|---|---|
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
+| `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `wide-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for wide cinematic 18:9 multi-panel infographic slides — six style variants: Friendly Whiteboard, Editorial Magazine, Engineering Blueprint, Swiss Minimalist, Dark Tech / Neon, Scientific Poster | `wide-slide-illustrator/SKILL.md` | None |
@@ -40,6 +41,16 @@ Several skills depend on external CLIs, API keys, or credential files. Install a
 ### adversarial-review
 
 No external setup required. Spawns persona subagents through the host client's Agent tool and uses `reference-search` (stdlib Python + OpenAlex) for citation and prior-art audits.
+
+### bibtex-gen
+
+No external setup required. The HEP (InspireHEP), publisher-fallback (CrossRef), and arXiv-category-probe paths are stdlib-only. The non-HEP Google Scholar path uses the [`scholarly`](https://pypi.org/project/scholarly/) library, which is declared in the orchestrator's **PEP 723 inline script metadata header** — `uv run bibtex-gen/scripts/bibtex_gen.py …` will provision an ephemeral environment that includes it on first run and reuse the cached env afterwards. No `uv add` or `pip install` needed.
+
+- If the orchestrator is run with bare `python3` instead of `uv run`, `scholarly` may be missing; non-HEP queries then fall through directly to CrossRef DOI bibtex (correct publisher-grade entries, but you lose Scholar's preferred key style).
+- HEP / non-HEP classification is automatic — a query is HEP iff InspireHEP returns a match. arXiv IDs additionally consult the arXiv API for `hep-*` / `nucl-*` category tags. Use `--hep` or `--no-hep` to override.
+- Source-native bibtex keys are preserved verbatim: `Author:YYYYabc` (InspireHEP), `firstauthorYYYYword` (Scholar), `Lastname_Year` (CrossRef). The skill does not rewrite keys.
+- The orchestrator sleeps 0.5 s between batch queries by default to stay polite with all three APIs (`--sleep 0` to disable).
+- Helper script: `bibtex-gen/scripts/bibtex_gen.py`. See `bibtex-gen/references/examples.md` for full CLI patterns.
 
 ### commit-triage
 
@@ -209,6 +220,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 ## Which skill to use?
 
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
+- Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `wide-slide-illustrator` to compose image-generation prompts for wide cinematic 18:9 multi-panel infographic slides — pipeline diagrams, "how it works" figures, hero figures, paper figures, keynote backdrops. Six style variants by audience and target medium: Friendly Whiteboard (lab meeting), Editorial Magazine (Quanta / NYT paper hero), Engineering Blueprint (technical schematic), Swiss Minimalist (typographic poster on methodology content), Dark Tech / Neon (AI-lab keynote backdrop), Scientific Poster (Phys Rev / Nature journal figure).
@@ -228,6 +240,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 ```text
 skills/
 ├── adversarial-review/
+├── bibtex-gen/
 ├── commit-triage/
 ├── dropbox/
 ├── md2pdf-typora/

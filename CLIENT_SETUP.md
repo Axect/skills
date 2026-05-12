@@ -14,6 +14,7 @@ Some skills also include helper assets such as:
 Current skill directories in this repository:
 
 - `adversarial-review`
+- `bibtex-gen`
 - `commit-triage`
 - `dropbox`
 - `wide-slide-illustrator`
@@ -79,7 +80,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
+for skill in adversarial-review bibtex-gen commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -127,7 +128,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
+for skill in adversarial-review bibtex-gen commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -175,6 +176,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ```text
 /absolute/path/to/skills/
 ├── adversarial-review/
+├── bibtex-gen/
 ├── commit-triage/
 ├── dropbox/
 ├── md2pdf-typora/
@@ -203,6 +205,26 @@ Installing a skill into your client's skill directory only makes it **discoverab
 ### adversarial-review — no setup required
 
 Spawns persona subagents through the host client's Agent tool and reuses `reference-search` for citation and prior-art checks. No additional CLIs or keys.
+
+### bibtex-gen — no setup required
+
+No keys, no installs. The orchestrator `scripts/bibtex_gen.py` carries a **PEP 723 inline script metadata** header that declares `scholarly` as a dependency, so `uv run` automatically provisions an ephemeral environment with `scholarly` on first invocation and reuses the cached env after that.
+
+Smoke-test with a HEP arXiv ID (uses the stdlib-only InspireHEP path; should return immediately even on a fresh machine):
+
+```bash
+uv run "$REPO/bibtex-gen/scripts/bibtex_gen.py" arxiv:1207.7214
+```
+
+Expected: an `@article{ATLAS:2012yve, ...}` bibtex entry on stdout.
+
+Smoke-test the non-HEP path (Scholar → CrossRef fallback). On first run `uv` resolves `scholarly` and caches it:
+
+```bash
+uv run "$REPO/bibtex-gen/scripts/bibtex_gen.py" --no-hep "Attention is all you need"
+```
+
+If the orchestrator is invoked with bare `python3` (no `uv`) instead, `scholarly` may be missing and non-HEP queries fall through directly to CrossRef — still correct publisher-grade bibtex, but you lose Scholar's preferred key style.
 
 ### commit-triage — no setup required
 

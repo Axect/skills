@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-05-13
+
+### Added
+- Added the `bibtex-gen` skill — generate bibtex entries by routing each reference to its most authoritative source. HEP papers go to **InspireHEP** (`/api/literature?format=bibtex`, returning canonical `Author:YYYYabc`-style entries), non-HEP papers go to **Google Scholar** via the `scholarly` library (`firstauthorYYYYword`-style), and **CrossRef** DOI bibtex (`/works/{DOI}/transform/application/x-bibtex`) is the publisher fallback when Scholar is unavailable. HEP / non-HEP classification is automatic: a query is HEP iff InspireHEP returns a match, with arXiv `hep-*` / `nucl-*` category tags as an extra short-circuit signal for arXiv-ID inputs. `--hep` / `--no-hep` flags allow explicit overrides. Source-native bibtex keys are preserved verbatim — the skill does not rewrite keys or fields. Accepts arXiv IDs, DOIs, paper titles, and URLs; supports single-shot and batch (`--batch refs.txt`) input; streams to stdout or appends to a `.bib` file with `--output`. The orchestrator carries a **PEP 723 inline script metadata header** declaring `scholarly` as a dependency, so `uv run scripts/bibtex_gen.py …` auto-provisions an ephemeral environment on first invocation — no `uv add` / `uv pip install` step needed. Bibtex-only fallback path (HEP + CrossRef) is stdlib-only and works under bare `python3` if uv is unavailable. Bundles `scripts/bibtex_gen.py` plus three reference docs (`sources.md`, `hep_classification.md`, `examples.md`).
+
+### Changed
+- Updated `README.md` (four touchpoints: skill table, requirements section, "Which skill to use?" picker, and the directory tree) to list `bibtex-gen`.
+- Updated `CLIENT_SETUP.md` (four touchpoints: skill directory list near the top, both install loops for Claude Code and Codex, the Forge tree, and a new "Per-skill prerequisites" entry describing the PEP 723 auto-install behavior and a smoke-test).
+
 ## 2026-05-09
 
 ### Added
