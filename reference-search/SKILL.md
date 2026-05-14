@@ -1,6 +1,6 @@
 ---
 name: reference-search
-description: Search and curate academic references for a topic, claim, section, baseline, method, evaluation need, or report section using OpenAlex, with markdown-ready summaries and optional save paths. Use when the user asks for papers, references, citations, related work, supporting literature, survey papers, background sources, baseline citations, evidence to support a report or research claim, or wants section-by-section citation help while drafting `report.md`.
+description: Search and curate academic references for a topic, claim, section, baseline, method, evaluation need, or report section using domain-aware routing across InspireHEP, OpenAlex, and Semantic Scholar, with markdown-ready summaries and optional save paths. Use when the user asks for papers, references, citations, related work, supporting literature, survey papers, background sources, baseline citations, evidence to support a report or research claim, or wants section-by-section citation help while drafting `report.md`.
 ---
 
 # Reference Search
@@ -8,6 +8,23 @@ description: Search and curate academic references for a topic, claim, section, 
 Use this skill to find and curate literature for research writing, report support, method comparison, or quick topic familiarization.
 
 It is especially useful as a companion to `research-report` when a report section needs external literature support beyond local experiment artifacts.
+
+## Sources and routing
+
+The skill queries three sources via a single CLI:
+
+| Source             | Best for                                                                 |
+|--------------------|--------------------------------------------------------------------------|
+| **InspireHEP**     | HEP / nuclear / gr-qc / cosmology-overlap papers. Highest precision.     |
+| **OpenAlex**       | All other domains, with precision filters (title+abstract scope, topics).|
+| **Semantic Scholar** | Supplementary; has TLDR summaries useful for screening.                |
+
+**Default routing (`--source auto`)**:
+- Domain is inferred from the query (or set explicitly with `--domain`).
+- HEP family domain → InspireHEP first; if it returns less than half the requested limit, OpenAlex is queried to fill the gap.
+- Non-HEP domain → OpenAlex first; falls back to Semantic Scholar if results are sparse.
+
+Override with `--source inspire|openalex|semscholar|all`.
 
 ## Inputs to confirm
 
@@ -23,11 +40,10 @@ If the user provides only a broad topic, default to `background` mode.
 
 ## Default behavior
 
-- Search OpenAlex first.
-- Prefer recent papers for `background`, `evaluation`, and `claim-support` unless the user asks for classics.
-- Prefer review or survey papers in `survey` mode.
-- Prefer seminal and widely cited papers in `baseline` mode.
-- Return concise, markdown-ready results with enough metadata to cite or follow up.
+- Infer domain automatically; route to the best source.
+- Apply OpenAlex precision filters (`title_and_abstract.search`, `has_abstract`, `language:en`, `is_paratext:false`).
+- Drop low-relevance results via `--min-score` and `--min-coverage` cutoffs (defaults: 0.05 and 0.10).
+- Return concise, markdown-ready results with quoted matched sentences from each abstract.
 - Do not fabricate claims about paper contents beyond title, metadata, and retrieved abstract text.
 
 ## Report-oriented workflow
@@ -36,11 +52,11 @@ When the user is drafting or revising a report:
 
 1. Identify the target section and the citation role.
 2. Choose one primary mode for that section:
-   - `Research Background` -> `background` or `survey`
-   - `Methodology` -> `method`
-   - `Results & Visualization` comparison paragraphs -> `baseline`
-   - `Validation` benchmark or protocol discussion -> `evaluation`
-   - any isolated factual statement -> `claim-support`
+   - `Research Background` → `background` or `survey`
+   - `Methodology` → `method`
+   - `Results & Visualization` comparison paragraphs → `baseline`
+   - `Validation` benchmark or protocol discussion → `evaluation`
+   - any isolated factual statement → `claim-support`
 3. Turn the section need into a compact query rather than searching the whole paragraph verbatim.
 4. Return only the strongest 2-5 references unless the user asks for a long list.
 5. If saving notes for a report, prefer a section-scoped filename such as:
@@ -55,90 +71,83 @@ When the user is drafting or revising a report:
    - Map the request into one of the supported modes.
    - If the user gives a sentence or claim, extract the core technical concepts before searching.
    - If the user mentions a report section, infer the citation role:
-     - introduction or context -> `background`
-     - related work overview -> `survey`
-     - method justification -> `method`
-     - comparison target -> `baseline`
-     - benchmark or metrics discussion -> `evaluation`
-     - evidence for a specific statement -> `claim-support`
+     - introduction or context → `background`
+     - related work overview → `survey`
+     - method justification → `method`
+     - comparison target → `baseline`
+     - benchmark or metrics discussion → `evaluation`
+     - evidence for a specific statement → `claim-support`
 
-2. **Choose a query and filter**
+2. **Choose a query**
    - Use the guidance in `references/query_patterns.md`.
    - Start with a narrow query that includes the main concepts.
-   - Default filters by mode:
-     - `background`: `publication_year:>2021,type:article|review`
-     - `survey`: `publication_year:>2019,type:review|article`
-     - `method`: `publication_year:>2020,type:article|review|preprint`
-     - `baseline`: `type:article|review|preprint`
-     - `evaluation`: `publication_year:>2020,type:article|review|dataset`
-     - `claim-support`: `publication_year:>2021,type:article|review|report`
-   - Default sort by mode:
-     - `survey`, `baseline`: `cited_by_count:desc`
-     - otherwise: `relevance_score:desc`
+   - Domain is inferred automatically; override with `--domain` only when the inference is wrong.
+   - Sort defaults by mode: `survey`/`baseline` → citation count; otherwise relevance score.
 
 3. **Run the search script**
-   - Use:
-     ```bash
-     python reference-search/scripts/openalex_search.py \
-       "{query}" \
-       --mode {mode} \
-       --filter "{filter}" \
-       --sort "{sort}" \
-       --limit {limit} \
-       --format md
-     ```
-   - If the user wants structured downstream processing, use `--format json`.
+   ```bash
+   uv run reference-search/scripts/reference_search.py \
+     "{query}" \
+     --mode {mode} \
+     --limit {limit} \
+     --format md
+   ```
+
+   Common overrides:
+   - `--domain {key}`: pin a domain. Known keys are listed in `references/domain_topics.md`.
+   - `--source {auto|inspire|openalex|semscholar|all}`: force a source.
+   - `--min-coverage 0`: disable the noise filter (useful when query is very short).
+   - `--topic-id Txxxx`: pass an OpenAlex topic ID directly (repeatable).
+   - `--email ax2ct@outlook.com`: polite-pool User-Agent for OpenAlex / Semantic Scholar.
+   - `--format json`: structured output for downstream tools (see `bibtex-gen` below).
 
 4. **Broaden when results are sparse**
    - If fewer than 3 relevant results appear:
      - simplify the query to the main nouns
-     - relax year filter to `publication_year:>2018`
-     - expand types to include `preprint` or `report`
-     - retry once without a type restriction if still sparse
+     - lower `--min-coverage` (try 0.05 or 0)
+     - try `--source all` to merge across sources
+     - relax mode (`background` rather than `claim-support`)
    - State when the search had to be broadened.
 
 5. **Curate, do not just dump results**
-   - For each selected paper, provide:
-     - title
-     - year
+   - The script already drops low-relevance results and reranks. Still inspect each result before presenting.
+   - For each selected paper, the output provides:
+     - title, year, citation count, final score
      - first author or short author string
-     - citation count
-     - DOI or OpenAlex URL
-     - 1–2 line relevance note grounded in the query and abstract
-   - Then add a short synthesis:
-     - dominant themes
-     - one recommended starting paper
-     - one gap or uncertainty if the search looks noisy or weak
+     - DOI or OpenAlex/arXiv URL
+     - matched query terms and a quoted abstract sentence proving relevance
+   - Then a short synthesis: dominant themes, recommended starting paper, caveat.
 
-6. **Format for the user’s context**
+6. **Format for the user's context**
    - For a general literature request, return a numbered shortlist.
    - For report-writing support, group results under headings like `Background References`, `Baseline References`, or `Evidence for Claim`.
-   - For claim support, explicitly say whether the retrieved references look like strong, partial, or weak support.
+   - For claim support, explicitly say whether the retrieved references look like strong, partial, or weak support based on the matched-terms count and the quoted sentence.
    - For section support, end with a short `How to use in the report` note describing where the references belong and what they can support.
 
 ## Output template
 
-Use this structure unless the user asks for something else:
+The CLI produces this structure (markdown mode):
 
 ```markdown
 ## Reference Search: "{query}"
 
-**Mode**: {mode}  
-**Filter**: {filter}  
-**Sort**: {sort}  
-**Results reviewed**: {count}
+**Mode**: {mode}
+**Domain**: {domain}
+**Sources**: {sources used}
+**Results**: {count}
 
 ### Recommended references
-1. **Paper title** ({year}, cited: {citations})
+1. **Paper title** ({year}, cited: {N}, score: {0.XX})
    - Authors: {authors}
+   - Source: {openalex|inspire|semscholar} / {venue}
    - DOI/URL: {identifier}
-   - Why it matters: {relevance note}
+   - Why it matters: {mode-prefix}. Matched {k}/{T} key terms ({matched_terms}). Source: ...
+     From abstract: "{quoted matched sentence}"
 
 ### Synthesis
 - Dominant themes: ...
 - Best starting point: ...
 - Caveat: ...
-- How to use in the report: ...
 ```
 
 ## Save behavior
@@ -151,7 +160,7 @@ When the user wants a real `.bib` file (not just a curated markdown shortlist), 
 
 1. Run this skill with `--format json` and save the output:
    ```bash
-   uv run reference-search/scripts/openalex_search.py \
+   uv run reference-search/scripts/reference_search.py \
      "{query}" --mode {mode} --limit {limit} --format json \
      > /tmp/{slug}.json
    ```
@@ -162,14 +171,21 @@ When the user wants a real `.bib` file (not just a curated markdown shortlist), 
      --output paper/refs.bib --verbose
    ```
 
-`bibtex-gen` extracts each result's DOI from `identifier` and routes it through HEP (InspireHEP) → non-HEP (Google Scholar → CrossRef) so that HEP papers land with `Author:YYYYabc` keys and non-HEP papers land with Scholar / CrossRef keys. OpenAlex is **discovery only**; canonical bibtex always comes from the field-appropriate authoritative source.
+`bibtex-gen` extracts each result's DOI from `identifier` and routes it through HEP (InspireHEP) → non-HEP (Google Scholar → CrossRef) so that HEP papers land with `Author:YYYYabc` keys and non-HEP papers land with Scholar / CrossRef keys. This skill is **discovery only**; canonical bibtex always comes from the field-appropriate authoritative source.
 
-If the user asks for `references` *and* a `.bib` in the same step, run both skills back-to-back rather than fabricating bibtex from the OpenAlex metadata directly.
+The JSON output preserves `results[].identifier` and `results[].title` for backward compatibility with `bibtex-gen --from-search`.
+
+If the user asks for `references` *and* a `.bib` in the same step, run both skills back-to-back rather than fabricating bibtex from the discovery metadata directly.
 
 ## Resources
 
-- `scripts/openalex_search.py`: OpenAlex query helper with markdown and JSON output.
+- `scripts/reference_search.py`: main entry. Domain-aware multi-source router.
+- `scripts/source_openalex.py`, `scripts/source_inspirehep.py`, `scripts/source_semantic_scholar.py`: source adapters.
+- `scripts/domain.py`: domain inference + topic ID mapping.
+- `scripts/relevance.py`: query-coverage scoring + matched-sentence extraction + dedup.
+- `scripts/_common.py`: shared `WorkSummary` dataclass and HTTP helper.
 - `references/query_patterns.md`: query construction heuristics and mode examples.
+- `references/domain_topics.md`: domain key reference and OpenAlex topic ID hints.
 - `research-report`: companion reporting skill that can consume section-level reference support from this skill.
 - `bibtex-gen`: companion skill that turns this skill's JSON output into a real `.bib` file (`bibtex-gen --from-search <file>.json`). Use it whenever the user wants citations materialized, not just curated.
 

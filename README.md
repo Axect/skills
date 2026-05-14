@@ -21,7 +21,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
 | `overleaf-section-workflow` | Disciplined section-by-section workflow for Overleaf physics-paper drafts: Korean intermediate draft → user iteration → Opus-direct English LaTeX → out-of-tree build. Codifies non-negotiables (no em/en-dashes, no forward refs in background, citation content verified, scienceplots conventions, build never inside sync folder) and orchestrates `overleap`, `scienceplot-py`, `reference-search`, `bibtex-gen`, and `commit-triage` in turn. | `overleaf-section-workflow/SKILL.md` | TeX distribution (`pdflatex`, `bibtex`) + the companion skills it orchestrates |
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
-| `reference-search` | Search and curate academic references via OpenAlex for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python) |
+| `reference-search` | Search and curate academic references via domain-aware routing across InspireHEP, OpenAlex, and Semantic Scholar for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python; optional `S2_API_KEY` env var) |
 | `research-log` | Manage research-log workflows such as initialization, querying, review, and state capture | `research-log/SKILL.md` | `~/.research-log/` workspace (auto) |
 | `research-report` | Create or revise structured research and experiment reports with plots, manifests, and validation helpers | `research-report/SKILL.md` | None (stdlib Python) |
 | `scienceplot-py` | Generate a Python matplotlib plot script following the user's mandatory `scienceplots` (`science`+`nature`) lab template, with parquet / CSV / NumPy data sources and four plot variants (single line, multi-line, scatter/errorbar, subplots). Writes the `.py` only — does not execute it. | `scienceplot-py/SKILL.md` | `matplotlib`, `scienceplots`, plus `pandas` / `numpy` as needed (in the user's runtime env) |
@@ -41,7 +41,7 @@ Several skills depend on external CLIs, API keys, or credential files. Install a
 
 ### adversarial-review
 
-No external setup required. Spawns persona subagents through the host client's Agent tool and uses `reference-search` (stdlib Python + OpenAlex) for citation and prior-art audits.
+No external setup required. Spawns persona subagents through the host client's Agent tool and uses `reference-search` (stdlib Python + InspireHEP/OpenAlex/Semantic Scholar) for citation and prior-art audits.
 
 ### bibtex-gen
 
@@ -171,10 +171,12 @@ Requires the `paperbanana` CLI and an env file at `~/.config/paperbanana/env`.
 
 ### reference-search
 
-No external setup required. Uses Python standard library only and calls the public OpenAlex API.
+No external setup required. Uses Python standard library only and queries InspireHEP, OpenAlex, and Semantic Scholar via their public APIs.
 
-- Optional: pass `--email` to the helper for OpenAlex's polite pool.
-- Helper script: `reference-search/scripts/openalex_search.py`.
+- Domain is inferred automatically from the query; HEP-family domains route to InspireHEP first, others to OpenAlex with Semantic Scholar as fallback. Override with `--domain` or `--source`.
+- Optional: pass `--email` for OpenAlex's polite pool.
+- Optional: set `S2_API_KEY` env var to raise Semantic Scholar rate limits (unauthenticated works but is rate-limited).
+- Helper script: `reference-search/scripts/reference_search.py`.
 
 ### research-log
 
