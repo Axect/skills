@@ -14,6 +14,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
+| `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; Korean output is mirrored to `~/Dropbox/Magi/<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `wide-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for wide cinematic 18:9 multi-panel infographic slides — six style variants: Friendly Whiteboard, Editorial Magazine, Engineering Blueprint, Swiss Minimalist, Dark Tech / Neon, Scientific Poster | `wide-slide-illustrator/SKILL.md` | None |
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
@@ -56,6 +57,20 @@ No external setup required. The HEP (InspireHEP), publisher-fallback (CrossRef),
 ### commit-triage
 
 No external setup required. Uses only `git` in the current repository.
+
+### concept-explainer
+
+Requires `matplotlib` and `scienceplots` in the runtime that executes the generated plot scripts, plus a working system TeX install (LaTeX rendering is mandatory — the `no-latex` style is forbidden by this skill). The `md2pdf-typora` skill handles the PDF assembly step at the end.
+
+- Install runtime deps:
+  ```bash
+  uv add matplotlib scienceplots numpy
+  ```
+- The `import scienceplots` line in every generated plot script is required even though Pyright flags it as unused — the `science` and `nature` styles register by import side-effect.
+- Unlike `scienceplot-py`, this skill **does** execute the plot scripts it generates (via `uv run`), because the auto-PDF step at the end depends on the PNGs existing.
+- Optional: `wide-slide-illustrator` for Friendly Whiteboard schematic prompts (the skill outputs prompts; the user — or the `codex-image` skill — renders them).
+- Korean output is auto-copied to `~/Dropbox/Magi/<concept-slug>/` per the user's global rule. Skip this if you do not want Dropbox mirroring.
+- See `concept-explainer/references/`: `audience-calibration.md`, `rigor-checklist.md`, `visualization-playbook.md`, `structure-template.md`, `schematic_friendly.md`, plus `plot_skeletons/{function_plot,parametric_sweep,heatmap}.py`.
 
 ### dropbox
 
@@ -239,6 +254,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
+- Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (Korean output mirrored to Dropbox).
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `wide-slide-illustrator` to compose image-generation prompts for wide cinematic 18:9 multi-panel infographic slides — pipeline diagrams, "how it works" figures, hero figures, paper figures, keynote backdrops. Six style variants by audience and target medium: Friendly Whiteboard (lab meeting), Editorial Magazine (Quanta / NYT paper hero), Engineering Blueprint (technical schematic), Swiss Minimalist (typographic poster on methodology content), Dark Tech / Neon (AI-lab keynote backdrop), Scientific Poster (Phys Rev / Nature journal figure).
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
@@ -260,6 +276,7 @@ skills/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/
+├── concept-explainer/
 ├── dropbox/
 ├── md2pdf-typora/
 ├── morgen/
