@@ -1,6 +1,13 @@
 ---
 name: overleaf-section-workflow
-description: Bilingual section-by-section workflow for Overleaf physics-paper drafts. Korean draft -> user iteration -> Opus-direct English translation -> out-of-tree build. Codifies lessons from a JCAP-style draft session: avoid AI-style emdashes, no forward references in background sections, verify citations across InspireHEP/CrossRef/Scholar, scienceplots conventions, novelty-claim hedging ("우리가 아는 한 / to our knowledge"), and Overleaf sync hygiene (never build in the sync folder). Use when the user wants to start, iterate, or finalize a paper section with proper academic discipline. Triggers on: "논문 섹션 작성", "main.tex 병합", "한글 초안 영어로", "overleaf 섹션", "JCAP section", "PRD section", "section-by-section paper", "Korean draft to English".
+description: >
+  Bilingual section-by-section workflow for Overleaf physics-paper drafts:
+  Korean draft, user iteration, Opus-direct English LaTeX translation,
+  out-of-tree build, and sync hygiene. Use when starting, iterating,
+  translating, or finalizing an Overleaf paper section; merging Korean drafts
+  into main.tex; verifying citations; enforcing no em/en dashes, no unsupported
+  novelty claims, and no forward references in background sections; or building
+  JCAP/PRD-style sections with figures and BibTeX.
 ---
 
 # Overleaf section workflow

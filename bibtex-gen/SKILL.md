@@ -1,23 +1,13 @@
 ---
 name: bibtex-gen
 description: >
-  Generate bibtex entries for academic references by routing each query to the
-  most authoritative source: HEP papers go to InspireHEP, non-HEP papers go to
-  Google Scholar (via the optional `scholarly` library), and CrossRef DOI bibtex
-  is used as the publisher-grade fallback when Scholar is unavailable or returns
-  no result. HEP classification is automatic — a query is treated as HEP iff
-  InspireHEP returns a match (arXiv categories `hep-*`/`nucl-*` are a strong
-  additional signal). Source-native bibtex keys are preserved verbatim. Accepts
-  arXiv IDs, DOIs, paper titles, or URLs, supports single-shot and batch input,
-  and can stream to stdout or append to a `.bib` file.
-  Use when the user asks to: build a bibtex entry, generate citations, fill a
-  `.bib` file, create a reference list, get a bibtex for an arXiv / DOI / title,
-  cite a HEP paper from InspireHEP, or assemble bibliography entries for a
-  paper draft, slide deck, or report.
-  Triggers on: "bibtex", "bib 파일", "비텍스", "참고문헌 만들어",
-  "인용 만들어", "cite this paper", "InspireHEP bibtex", "publisher bibtex",
-  "scholar bibtex", "DOI to bibtex", "arXiv to bibtex".
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep
+  Generate BibTeX entries for academic references from arXiv IDs, DOIs, titles,
+  URLs, batch lists, or reference-search JSON. Route HEP papers to InspireHEP,
+  non-HEP papers to Google Scholar when available, and CrossRef DOI BibTeX as a
+  fallback; preserve source-native keys and print or append to a .bib file. Use
+  when the user asks for bibtex, citation entries, bibliography filling,
+  arXiv/DOI/title-to-BibTeX, InspireHEP BibTeX, publisher BibTeX, or converting
+  discovered references into a .bib file.
 ---
 
 # bibtex-gen — BibTeX Generator (InspireHEP / Google Scholar / CrossRef)

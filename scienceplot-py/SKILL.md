@@ -1,25 +1,14 @@
 ---
 name: scienceplot-py
 description: >
-  Generate a Python matplotlib plot script that follows the user's mandatory
-  scienceplots style — `with plt.style.context(["science", "nature"]):`,
-  the `pparam = dict(...)` axis-config pattern, raw-string LaTeX labels, and
-  `dpi=300, bbox_inches='tight'` savefig. Supports parquet, CSV,
-  and NumPy (`.npy` / `.npz`) data sources, and four plot variants: single line,
-  multi-line + legend, scatter / errorbar, and multi-panel subplots. Produces
-  the `.py` file only — does NOT execute it. The user runs it themselves
-  (typically with `uv run`).
-  Use when the user asks to: write a matplotlib script, draft a publication-style
-  plot, plot data from parquet / CSV / `.npy`, generate a science / nature
-  style figure, set up a quick line / scatter / errorbar / subplot script, or
-  scaffold a plot matching their lab template.
-  Triggers on: "scienceplots", "science nature style", "matplotlib script",
-  "plot script", "publication plot", "line plot script", "scatter plot script",
-  "errorbar plot", "subplot figure", "plot from parquet", "plot from csv",
-  "plot from npy", "lab plot template", "pq_plot template",
-  "플롯 스크립트", "그래프 스크립트", "matplotlib 코드", "사이언스 플롯",
-  "산점도 스크립트", "서브플롯 스크립트", "에러바 플롯".
-allowed-tools: Read, Write, Edit, Glob, Grep
+  Generate Python matplotlib plotting scripts in the user's scienceplots lab
+  style: with plt.style.context(["science", "nature"]), pparam = dict(...),
+  raw-string LaTeX labels, and fig.savefig(..., dpi=300,
+  bbox_inches='tight'). Support parquet, CSV, NPY/NPZ data and single-line,
+  multi-line, scatter/errorbar, or subplot variants. Write the script only; do
+  not execute it. Use for publication-style plot scripts, science/nature
+  figures, plot-from-data scaffolds, and Korean or English requests for
+  matplotlib graph scripts.
 ---
 
 # scienceplot-py — Matplotlib Script Generator (scienceplots / science+nature)

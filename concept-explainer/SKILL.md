@@ -1,29 +1,13 @@
 ---
 name: concept-explainer
 description: >
-  Explain a specific concept (physics, mathematics, ML, statistics, CS) to a
-  named audience with full mathematical rigor and many visualizations. The
-  skill produces a single markdown document (`explanation.md`) whose section
-  language matches the user's request, executable matplotlib plot scripts
-  under `plots/` (always `scienceplots ["science", "nature"]`, never the
-  `no-latex` style), optional schematic-figure prompts under `schematics/`
-  composed via the `wide-slide-illustrator` Friendly Whiteboard style, and an
-  auto-generated PDF via `md2pdf-typora`. Every equation defines its symbols
-  before first non-definitional use, every derivation step names the rule it
-  applies, and approximations vs equalities are marked (`=` / `≈` / `∼` /
-  `∝`). For Korean output the final PDF is copied to
-  `~/Dropbox/Magi/<concept-slug>/` per the user's global rule.
-  Use when the user asks to: explain a concept, write lecture / tutorial
-  notes, derive something step-by-step, produce a teaching document, build a
-  pedagogically careful walkthrough with figures, write a "kind but rigorous"
-  explanation, prepare seminar handouts, or turn a paper section into a
-  classroom-ready note.
-  Triggers on: "concept explainer", "explain rigorously", "친절히 설명",
-  "쉽게 설명", "엄밀히 설명", "강의 노트", "강의 자료", "튜토리얼",
-  "단계별 유도", "수식 유도", "직관적 설명", "교재", "lecture notes",
-  "tutorial notes", "step-by-step derivation", "pedagogical walkthrough",
-  "seminar handout", "teaching note".
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Skill, Agent
+  Create rigorous teaching explanations as a single markdown document with
+  equations, assumptions, derivations, plots, optional schematic prompts, and
+  PDF export. Use when the user asks to explain a physics, math, ML, statistics,
+  or CS concept; write lecture, tutorial, or seminar notes; derive results step
+  by step; build a kind but rigorous walkthrough; or turn a paper section into
+  classroom-ready material. For Korean output, follow the skill's Dropbox PDF
+  copy rule.
 ---
 
 # concept-explainer — Kind, Rigorous, Visualization-Heavy Explanations
