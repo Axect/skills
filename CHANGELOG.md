@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-06-04
+
+### Added
+- Added the `journal-club-review` skill for turning an arXiv id/URL, a PDF, or raw text/markdown into a journal-club-style paper presentation. The output is nine ordered sections (TL;DR, The Problem, Key Idea, How It Works, Key Results, Why It Matters, Strengths/Limitations/Open Questions, Discussion Questions, Takeaways) designed to help a reading group understand and discuss a paper, deliberately not a referee report (no scores, no accept/reject, no severity tags). Every claim is grounded in the source with section/equation/figure citations, all math is rendered as LaTeX (`$...$` / `$$...$$`), and the output language auto-matches the source paper unless the user requests otherwise. Two optional friendly-whiteboard infographics (a `method` figure and a `results` figure) are generated in parallel via the bundled `codex` `image_generation` tool, reusing the visual style from `wide-slide-illustrator`. The skill is self-contained and does not require the arXiv Explorer app: it ports that project's journal-club section design and figure briefs into prompt form, and Claude does the analysis. Ingestion is handled by `scripts/extract_text.py`, which carries a PEP 723 inline-dependency header (`pdfplumber`, `httpx`, `feedparser`) so `uv run` auto-provisions its environment, writes `reviews/<slug>/source.md`, and prints a JSON metadata summary. Bundles three reference docs (`section-pipeline.md`, `figure-generation.md`, `style-and-math.md`). Entry point: `journal-club-review/SKILL.md`. Requires `uv`; figures additionally need a logged-in bundled `codex` runtime (ChatGPT OAuth), without which the review still renders text-only. Distinct from `workshop-paper-review` (OpenReview referee report) and `adversarial-review` (hostile pre-submission audit); the description cross-links all three to avoid trigger overlap.
+
+### Changed
+- Updated `README.md` across the four standard touchpoints (skill table, "Skill requirements & setup" section, "Which skill to use?" picker, directory tree) and `CLIENT_SETUP.md` across its five touchpoints (skill directory list, Claude Code and Codex install loops, Forge Option 2 tree, per-skill prerequisites section) to cover `journal-club-review`, including its PEP 723 auto-install behavior and the optional codex-runtime requirement for figures.
+
 ## 2026-06-03
 
 ### Added

@@ -18,6 +18,7 @@ Current skill directories in this repository:
 - `commit-triage`
 - `concept-explainer`
 - `dropbox`
+- `journal-club-review`
 - `md2pdf-typora`
 - `morgen`
 - `overleap`
@@ -85,7 +86,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review bibtex-gen commit-triage concept-explainer dropbox md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+for skill in adversarial-review bibtex-gen commit-triage concept-explainer dropbox journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -133,7 +134,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review bibtex-gen commit-triage concept-explainer dropbox md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+for skill in adversarial-review bibtex-gen commit-triage concept-explainer dropbox journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -185,6 +186,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── commit-triage/
 ├── concept-explainer/
 ├── dropbox/
+├── journal-club-review/
 ├── md2pdf-typora/
 ├── morgen/
 ├── overleap/
@@ -268,6 +270,18 @@ Requires `matplotlib` and `scienceplots` in the runtime that executes the genera
    ```bash
    test -f ~/.config/dropbox-skill/credentials.json && echo "dropbox: ready"
    ```
+
+### journal-club-review: uv (+ optional codex for figures)
+
+Requires `uv`. The extractor `scripts/extract_text.py` carries a **PEP 723 inline script metadata** header declaring `pdfplumber`, `httpx`, and `feedparser`, so `uv run` provisions an ephemeral environment on first invocation and reuses the cache after that. No `uv add` step needed.
+
+- Smoke-test the extractor on an arXiv ID (downloads the PDF, prints a JSON summary):
+  ```bash
+  uv run "$REPO/journal-club-review/scripts/extract_text.py" 1706.03762
+  ```
+  Expected: a JSON object with `title`, `authors`, `out_dir`, `source_md`, and `n_chars`, plus a `reviews/1706.03762/source.md` file.
+- Figures are optional and need a logged-in bundled `codex` runtime (ChatGPT OAuth). Verify with `codex login status` ("Logged in using ChatGPT"). Without it the review still renders text-only.
+- For arXiv inputs with messy extracted math, pass an `arxiv-doc-builder` markdown path instead of the raw ID for cleaner structure.
 
 ### md2pdf-typora — pandoc + Chromium
 

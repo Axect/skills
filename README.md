@@ -16,6 +16,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; Korean output is mirrored to `~/Dropbox/Magi/<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
+| `journal-club-review` | Turn an arXiv id/URL, a PDF, or raw text into a journal-club paper presentation (nine sections: TL;DR, The Problem, Key Idea, How It Works, Key Results, Why It Matters, Strengths/Limitations/Open Questions, Discussion Questions, Takeaways) meant to help a reading group understand and discuss a paper, not produce a referee report. LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures (method + results). | `journal-club-review/SKILL.md` | `uv` (extractor deps auto-installed via PEP 723); logged-in bundled `codex` for figures (optional) |
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
@@ -100,6 +101,15 @@ No external setup required. The skill is purely a **prompt composer** — it pro
   - **Scientific Poster** (Phys Rev / Nature published figure, panel labels (a)–(e), running FIG. N. caption): `wide-slide-illustrator/references/scientific-poster-style.md`. Sub-patterns: PANEL-LETTER / FIG-CAPTION / AXIS-LABEL.
 - Style blocks are load-bearing — drop them into prompts verbatim, do not paraphrase. Always include the variant's "hard negatives" bullet so cues from sibling variants don't leak through (lesson learned from the editorial v1 → v2 hardening pass).
 - Defaults: 18:9 cinematic-wide canvas, English-only on-canvas text, numbered marker per panel. See SKILL.md for tone dials per variant (calmer / more playful / Bauhaus-clean / orthodox-Swiss-poster / Korean-caption hybrid, etc.).
+
+### journal-club-review
+
+Requires `uv` (the extractor declares its deps inline via PEP 723: pdfplumber, httpx, feedparser). Figures need a logged-in bundled `codex` runtime (ChatGPT OAuth); without it the review still renders text-only.
+
+- Ingest an arXiv id/URL, a PDF, or a text/markdown file with `scripts/extract_text.py` (writes `source.md` + JSON metadata to `reviews/<slug>/`).
+- Output language auto-matches the source paper unless the user asks otherwise; all math is rendered as LaTeX.
+- Two optional friendly-whiteboard infographics (method + results) are generated in parallel via `codex exec`.
+- This is a teaching/discussion artifact (no scores, no accept/reject). For a referee report use `workshop-paper-review`; for an adversarial audit use `adversarial-review`.
 
 ### md2pdf-typora
 
@@ -284,6 +294,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (Korean output mirrored to Dropbox).
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
+- Choose `journal-club-review` to turn an arXiv id/URL, a PDF, or raw text into a journal-club presentation (nine sections from TL;DR to Takeaways) meant to help a reading group understand and discuss a paper, with LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures. Use `workshop-paper-review` instead for an OpenReview referee report, or `adversarial-review` for a hostile pre-submission audit.
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
@@ -309,6 +320,7 @@ skills/
 ├── commit-triage/
 ├── concept-explainer/
 ├── dropbox/
+├── journal-club-review/
 ├── md2pdf-typora/
 ├── morgen/
 ├── overleap/
