@@ -1,0 +1,58 @@
+site_name: __SITE_NAME__
+site_description: research notes (Typora .md, originals untouched)
+docs_dir: __DOCS_DIR__
+site_dir: __SITE_DIR__
+use_directory_urls: false
+__EXCLUDE_BLOCK__
+theme:
+  name: material
+  language: __LANG__
+  features:
+    - navigation.instant
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: light mode
+
+plugins:
+  - search:
+      lang:
+        - __LANG__
+        - en
+  - literate-nav:
+      nav_file: SUMMARY.md
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
