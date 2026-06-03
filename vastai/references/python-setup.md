@@ -8,14 +8,24 @@ This reference describes how to set up a Python environment on a Vast.ai instanc
 - **Isolated venvs per Python version**: `uv python install 3.13` provisions interpreters without touching system Python.
 - **Fast**: ~10× faster than `pip` for large dependency trees.
 
+## Image choice: prefer a plain Ubuntu image
+
+Rent with `--image ubuntu:22.04` (or similar minimal Ubuntu), NOT a `pytorch/pytorch:*` image. A pytorch image ships a torch+CUDA you will just override and tempts a `--index-url cuXY` pin that breaks on a different GPU arch; plain Ubuntu + `uv pip install -U torch` auto-resolves the right wheel for the actual GPU (cu124 Ampere, cu130 Blackwell — verified `2.12.0+cu130` on a 5060 Ti). **A bare Ubuntu image has none of `/workspace`, `rsync`, `curl`, `git`, `tmux`** — install them and create the workspace dir FIRST (Step 0 below), or rsync fails with "code 11 / mkdir failed: File exists" and `uv`/`tmux` are missing.
+
 ## Standard Setup Pattern
 
-Always do these five things, in order:
+Always do these, in order:
 
 ```bash
+# 0. Bare-Ubuntu prerequisites (a fresh ubuntu:22.04 lacks all of these)
+apt-get update -qq && apt-get install -y -qq rsync curl git build-essential tmux
+mkdir -p /workspace/<project>
+
 # 1. Install uv (once per instance)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+# (if PATH is unreliable in non-interactive ssh, force a known on-PATH location:
+#  curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh )
 
 # 2. Install a Python interpreter (pick one: 3.12, 3.13)
 uv python install 3.13
@@ -61,6 +71,28 @@ The Docker image's CUDA version (e.g., `pytorch/pytorch:2.5.1-cuda12.4-cudnn9-de
 
 A CUDA 12.4 container can run a PyTorch 2.11+cu130 wheel as long as the host driver supports CUDA 13.
 
+### 5. uv can install a torch NEWER than the host driver supports (silent cuda=False)
+
+`uv pip install -U torch` always grabs the LATEST wheel (currently `2.12.0+cu130`, CUDA 13). On a host whose driver only supports CUDA 12.8 (e.g. driver 570.x), that cu130 wheel installs fine but `torch.cuda.is_available()` returns **False** at runtime (no forward-compat across the CUDA major). The runtime error is `The NVIDIA driver on your system is too old (found version 12080)`.
+
+So "Ubuntu + uv auto-resolves torch" is NOT fully safe by itself. Two guards:
+- **Before renting**, prefer offers whose `cuda_max_good >= 13` if you want the latest cu13x torch. Hosts with new drivers (e.g. 590.x, `cuda_max_good 13.1`) run cu130 cleanly; older 12.8 hosts do not.
+- **After install, ALWAYS verify** `python -c "import torch; print(torch.cuda.is_available())"`. If it prints False, check `nvidia-smi` "CUDA Version" (the driver's max) and pin torch DOWN to match that EXACT version, not a blanket cu128: a driver showing CUDA 12.4 needs `--index-url .../cu124`, CUDA 12.8 needs `cu128`, CUDA 13.x runs `cu130`. cu128 is NOT universal: it is too new for a 12.4 driver (gives `driver too old, found version 12040`). So read the driver's CUDA version first, then `uv pip install torch --index-url https://download.pytorch.org/whl/cu<XYZ>` matching it. This is the ONE case where a torch pin is correct (pinning DOWN to the driver).
+
+**The re-break trap:** if you pin DOWN to cu128, do NOT relaunch via a script that re-runs your bootstrap/`install_requirements.sh` (whose `uv pip install -U torch` will re-fetch cu130 and re-break it). Launch a bootstrap-free training loop (`source .venv/bin/activate` + `python main.py ...`, no `-U torch`) so torch is never upgraded back.
+
+### 6. Launching a long remote job robustly (logging + process control)
+
+Common failures when starting a detached training run over SSH:
+- `tmux new-session -d "cmd > log"` puts `log` in the LAUNCHER's CWD (often `~`), not the script's post-`cd` directory, and the tmux server sometimes does not persist in a bare container, so the session vanishes and you cannot find the log.
+- `pkill -f <pattern>` / `pgrep -f <pattern>` run over SSH **self-match the command string** (the remote shell's argv contains your pattern), so `pkill -9 -f remote_sweep` kills its own wrapper before reaching the relaunch, and `pgrep -fc` returns N+1.
+
+Robust recipe:
+- Have the script write its OWN log via an absolute path right after `cd`: `exec > /workspace/<proj>/train.log 2>&1`. Then external redirection cannot misplace it.
+- Launch with `setsid bash script.sh </dev/null >/dev/null 2>&1 &` (survives SSH exit without depending on tmux).
+- To find/kill the old process without self-matching, use the bracket trick: `ps -eo pid,args | grep "[r]emote_sweep" | awk '{print $1}'` then `kill -9 <pid>`. For the definitive trainer count use `nvidia-smi --query-compute-apps=pid --format=csv,noheader | wc -l` (immune to self-match).
+- git-untracked config/data files do NOT rsync unless named explicitly. A missing config makes the trainer exit in <1s (FileNotFoundError before torch import, `cputime=00:00:00`), which a relaunch loop turns into a crash-loop that LOOKS like a GPU/torch failure. Verify configs exist on the remote with an ABSOLUTE path before launching, and `rsync` untracked files by name.
+
 ## Full Setup Script Template
 
 ```bash
@@ -99,7 +131,7 @@ Copy this to the instance and run it via `ssh -p <port> root@<host> 'bash /root/
 | `uv: command not found` in SSH | PATH not set in non-interactive shell | Explicit `export PATH=...` in every script |
 | `CUDA capability sm_XXX not supported` | Old PyTorch on new GPU | `uv pip install -U torch` (no index-url pin) |
 | `No CUDA GPUs are available` | Wrong container or driver issue | Check `nvidia-smi` on the host; recreate instance |
-| Broken symlinks after rsync | Local repo has symlinks pointing at host paths | Use `rsync --copy-links` or strip symlinks via `--exclude` |
+| Broken symlinks after rsync | Local repo has a symlinked dir (e.g. `runs -> ~/Dropbox/...`) pointing at a host path absent on the instance | Exclude it with BOTH the bare name AND trailing-slash form: `--exclude='runs' --exclude='runs/'` (a trailing-slash-only pattern won't match the symlink itself); or `rsync --copy-links` to follow it |
 | `rsync: mkdir failed: File exists` | Destination is a broken symlink | `ssh ... 'rm <path> && mkdir -p <path>'` first |
 | `ModuleNotFoundError` mid-batch (job 24 of 30 dies) | Late-bound import (`from X import Y` inside function body) not in `requirements.txt` | Always smoke-test ONE end-to-end run per script type BEFORE queuing the batch — see "Pre-flight dependency smoke test" below |
 

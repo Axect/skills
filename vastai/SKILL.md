@@ -64,6 +64,8 @@ vastai search offers 'datacenter=true inet_down>500 inet_up>500'
 | `inet_down` / `inet_up` | Network speed in Mb/s |
 | `datacenter` | Datacenter-only flag (true/false) |
 | `dlperf` | Deep learning performance score |
+| `gpu_max_power` | Host's GPU power limit in W (a capped value, e.g. 180 on a 3090, means a throttled, slower card) |
+| `cuda_max_good` | Max CUDA version the host DRIVER supports (gates the torch wheel you can run, see python-setup.md) |
 | `total_flops` | Combined GPU TFLOPs |
 | `rentable` | Currently available |
 | `static_ip` | Has stable IP |
@@ -75,6 +77,12 @@ vastai search offers 'datacenter=true inet_down>500 inet_up>500'
 
 **Before renting for multi-day work, always check the `Max_Days` column** in the formatted search output (far right of the price row). This is the host's committed contract length — when it elapses, vast.ai terminates your container regardless of training state. See `references/search-fields.md` for details on reading/parsing `Max_Days` and the 1.5× duration rule.
 
+**Filter by `inet_up` when you sync checkpoints OUT** (pulls depend on the instance's UPLOAD, not `inet_down`). Add `inet_up>400` for sync-heavy jobs. If upload is slow AND the file is rewritten during training (e.g. per-epoch `latest_model.pt`), a direct rsync reads a moving target and corrupts the local copy: `cp` to a frozen snapshot on the instance first, then rsync the snapshot with `--partial-dir` + retries.
+
+**Pick the GPU for the WORKLOAD, not by raw FLOPS.** A small model in a launch-heavy / sequential regime is latency-bound (kernel-launch + CPU), so a faster GPU buys little at 2-3× the cost. Benchmark min/epoch on a candidate before committing multi-day; `dlperf` over-weights big-model tensor-core throughput you may not use.
+
+**The same GPU model can differ ~1.6× in speed across hosts — check `gpu_max_power` and the CPU, not just `gpu_name`.** A power-capped card (e.g. a 3090 limited to 180W vs the full 350W) runs at roughly 1/3 the SM clock (measured 510 vs 1620 MHz) and is silently much slower; an old Xeon + high host `load` also drags a CPU-bound phase (AR sampling, dataloading). Prefer full-rating `gpu_max_power` and a modern CPU (EPYC/Ryzen over old Xeon). After renting, verify: `nvidia-smi --query-gpu=power.limit,clocks.sm --format=csv,noheader` (limit = full rating, clock boosts to ~1500-1900 MHz under load). A same-model swap to a full-power host is worth it for multi-day runs and adds no scientific confound (results depend on config+seed+epochs, not hardware).
+
 ### 2. Create an Instance
 
 ```bash
@@ -82,7 +90,7 @@ vastai create instance OFFER_ID --image IMAGE --disk DISK_GB [OPTIONS]
 ```
 
 **Key options:**
-- `--image IMAGE`: Docker image (e.g., `pytorch/pytorch:latest`, `vastai/tensorflow`)
+- `--image IMAGE`: Docker image. **Prefer a plain Ubuntu image (`ubuntu:22.04`) + `uv`** over a `pytorch/pytorch:*` image — see "Image choice" below.
 - `--disk DISK_GB`: Local disk size in GB
 - `--ssh`: Enable SSH access
 - `--jupyter`: Enable Jupyter access
@@ -94,11 +102,17 @@ vastai create instance OFFER_ID --image IMAGE --disk DISK_GB [OPTIONS]
 
 **Example:**
 ```bash
-# Rent offer 2459368 with PyTorch, 50GB disk, SSH access
-vastai create instance 2459368 --image pytorch/pytorch:latest --disk 50 --ssh --direct
+# Rent offer 2459368 with a plain Ubuntu image, 60GB disk, direct SSH
+vastai create instance 2459368 --image ubuntu:22.04 --disk 60 --ssh --direct --label my-run
 ```
 
-Billing starts immediately for storage; GPU billing starts once the instance reaches "running" state.
+**Image choice — prefer plain Ubuntu + uv, NOT a pytorch image.** A `pytorch/pytorch:*` image pins a torch+CUDA you override anyway and tempts a `--index-url cuXY` pin that breaks on other GPU archs; `ubuntu:22.04` + `uv pip install -U torch` auto-resolves the right wheel. A bare Ubuntu image has none of `/workspace`, `rsync`, `curl`, `git`, `tmux`, so setup MUST start with `apt-get install -y rsync curl git build-essential tmux` + `mkdir -p /workspace/<project>` before any rsync. See `references/python-setup.md`.
+
+Billing starts immediately for storage; GPU billing once the instance is "running".
+
+**Provisioning is NOT atomic — verify after creating.** `vastai create` bills immediately, but the rsync/install/launch phase is separate and may never run if your orchestration dies mid-way, leaving a bare, idle, still-billing instance. After creating, check `vastai show instances` for both the instance COUNT (catch duplicates) and per-instance state (torch present? `nvidia-smi` util > 0? training alive?). If setup died, FINISH it manually rather than re-running the provisioner (which may rent yet another).
+
+**Avoid autonomous auto-re-provision loops (money-runaway risk).** A daemon that auto-rents a replacement on death can runaway from one bug (e.g. not persisting the new instance id, so every tick re-rents): a 4-instance runaway happened in practice. Default to on-demand or manual resume. If you must automate: persist+verify state each tick, hard-cap the provision count, and fail-safe (an empty/errored `vastai show` is NOT "instance gone").
 
 ### 3. Manage Instances
 
@@ -127,6 +141,8 @@ vastai reboot instance ID
 # Label for easy identification
 vastai label instance ID "my-training-run"
 ```
+
+**SSH has two independent routes: direct and proxy. If one wedges, try the other before rebooting.** The direct port can fail every attempt with `kex_exchange_identification: Connection closed by remote host` while the GPU keeps training and the proxy still connects, so a dead direct SSH does NOT mean sshd is down. `ssh-url` gives only the direct url; get the proxy from raw: `vastai show instance ID --raw` -> `ssh_host` (`ssh<idx>.vast.ai`), `ssh_port`. Point sync scripts at the proxy (non-destructive, training never stops); confirm the GPU is alive meanwhile via the `gpu_util` field of `vastai show instances`.
 
 ### 4. Transfer Data
 
@@ -162,54 +178,13 @@ Always destroy instances when done to stop storage charges.
 For any GPU work on a rented instance, use `uv` to set up Python — it auto-resolves the CUDA-correct PyTorch wheel for the GPU architecture. **Always read `references/python-setup.md` before writing a setup script**, especially when:
 - Using Blackwell GPUs (RTX 5070/5080/5090) — needs PyTorch 2.7+ with CUDA 12.8+
 - Installing PyTorch — never pin `--index-url` unless you know the target sm_ version
+- The host driver is older than the latest torch's CUDA (e.g. driver CUDA 12.8): `uv pip install -U torch` silently installs cu130 and `torch.cuda.is_available()` returns False — ALWAYS verify it after install and pin DOWN to cu128 if needed
+- Launching a detached long run (avoid the tmux-log-misplacement and `pkill -f` self-match traps)
 - Switching Python versions in an existing venv
 
-## Pre-flight Dependency Smoke Test (CRITICAL before queuing N jobs)
+## Pre-flight Dependency Smoke Test
 
-**Before queuing a batch of N jobs via pueue / a job runner, smoke-test ONE end-to-end invocation per distinct script first.** Late-bound imports (`from X import Y` inside function bodies, or in code paths not exercised by `python -c "import script"`) hide missing deps until that codepath fires mid-execution. With pueue `--after` dependency chains, ONE late failure cascade-fails every queued task downstream.
-
-Quick checklist after `uv pip install -r requirements.txt` finishes on remote:
-
-```bash
-# 1. Module-level imports of every entry-point script
-for s in analyze_*.py evaluate_*.py train_*.py; do
-  python -c "import ast; ast.parse(open('$s').read())" || echo "syntax error in $s"
-done
-python -c "$(grep -hE '^(import |from )' analyze_*.py evaluate_*.py | sort -u)" 2>&1 \
-  | grep -i 'error\|no module' && echo "MISSING DEPS" || echo "module imports OK"
-
-# 2. ONE quick smoke run per distinct script type (no pueue dep chain yet)
-python evaluate_model_thermo.py --project P --group G --seed 42 --device cuda:0 \
-    --batch_size 8 --n_batches 1 --output /tmp/smoke.csv
-# … wait for it to finish (Success or fail). Repeat for each script type.
-
-# 3. ONLY THEN queue the full batch
-```
-
-The trap is *function-body imports* — a script that says `import torch` at the top but does `from scipy.optimize import curve_fit` inside `fit_oz_full_correlator()` will pass step 1 (module-level imports OK) and only fail when fit code runs. Step 2 catches this.
-
-Symptoms when you skip the smoke test:
-- All 24 thermo jobs succeed → first correlator job fires, dies on `ModuleNotFoundError`, all 17 dependents `Dependency failed`.
-- Cost: usually trivial (failures fire fast on import error) but the recovery overhead — pause queue, install dep, `pueue restart -i` for every cascade-failed task — is real and adds 10–30 min per cascade.
-
-Common stealth deps for ML/physics workflows (add to remote `uv pip install` line preemptively):
-- `scipy` — used by `scipy.optimize.curve_fit`, `scipy.stats`, `scipy.signal` in late-bound imports
-- `scikit-learn` — `sklearn.decomposition`, `sklearn.linear_model` in analysis helpers
-- `pandas` — usually OK at module level but worth verifying
-- `tqdm`, `rich`, `matplotlib`, `wandb` — some scripts assume these
-- `optuna` — only if HPO code path fires
-
-Minimal pattern:
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-cd /workspace/<project>
-rm -rf .venv
-uv python install 3.13
-uv venv --python 3.13
-source .venv/bin/activate
-uv pip install -U torch <other deps>   # CUDA wheel auto-picked
-```
+Before queuing N jobs (pueue / a job runner), smoke-test ONE end-to-end run per distinct script first. Late-bound imports (`from X import Y` inside a function body) pass `python -c "import script"` but die when that codepath fires mid-run, and a pueue `--after` chain cascade-fails every downstream task. Common stealth deps to install preemptively: `scipy`, `scikit-learn`, `pandas`, `tqdm`, `wandb`, `optuna`. Full checklist + setup pattern in `references/python-setup.md`.
 
 ## Additional Features
 
@@ -280,7 +255,7 @@ vastai copy INSTANCE_ID:/workspace/results ./local_results
 vastai destroy instance INSTANCE_ID
 ```
 
-**Contract expiration is a silent failure mode.** vast.ai enforces the host's `Max_Days` strictly — when `end_date` passes, the container moves to `exited / stopped`, billing stops, and you lose any in-container state not yet rsynced out. Symptoms: SSH refuses, `vastai show instance` reports `actual_status: exited` (often with `status_msg` still saying "running" — do not trust that field alone, always compare `end_date` to current time). Mitigation: (a) filter offers by `Max_Days` before renting, (b) keep rsync of checkpoints running to local, (c) set a reminder / script to poll `end_date` vs wall time.
+**Contract expiration is a silent failure mode.** When `end_date` (host `Max_Days`) passes, the container goes `exited`, billing stops, and unsynced in-container state is lost. SSH refuses and `actual_status: exited` (but `status_msg` may still say "running", so compare `end_date` to wall time, don't trust that field). Mitigate: filter by `Max_Days` before renting, keep checkpoints rsyncing to local, and poll `end_date` vs now.
 
 **Manage spot instances (cheaper but interruptible):**
 ```bash
