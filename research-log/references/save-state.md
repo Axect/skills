@@ -1,33 +1,58 @@
-# Forge Workflow: Save Current State
+# Workflow: Save Current Session State
 
-Use this workflow when the user asks to save working context, or before ending a work session.
+Use when the user asks to save working context, or at the end of a work session.
 
 ## Trigger examples
-- "현재 상태 저장해줘"
+
+- "Save current state"
 - "Update research-log state"
-- "세션 상태 남겨줘"
+- "Save session context before I stop"
+- "Checkpoint my progress"
 
 ## Steps
 
-1. Read `~/.research-log/dashboard.md`.
-2. Match the current working directory against Project Registry.
-3. If no project matches, explain briefly that the current directory is not registered.
-4. Acquire the project lock and read the current project file.
-5. Read the current `## State` section and preserve the old `Session` as the new `Last session`.
-6. Generate a concise new State section from the recent work:
-   - Session
-   - Last session
-   - Location
-   - Working on
-   - Current status
-   - Blocker
-   - Next step
-   - Compass link
-7. Replace only the `## State` section.
-8. Confirm the update.
+1. Read `~/.research/dashboard.md`; match CWD against Project Registry.
+   If no match, say briefly: "Current directory is not a registered project."
+   Stop — do not write anything.
+
+2. Acquire `~/.research/.locks/{slug}.lock`.
+
+3. Read `~/.research/projects/{slug}/state.md`; copy the current `Session` value into
+   `Last session`.
+
+4. Generate a concise new State from recent work. Populate all fields per the State schema in
+   `conventions.md`:
+   - `Session` — current datetime (YYYY-MM-DDTHH:MM)
+   - `Last session` — previous Session value (from step 3)
+   - `Location` — compass sub-goal reference (G?.?)
+   - `Working on` — what was being worked on
+   - `Current status` — brief status phrase
+   - `Blocker` — current blocker, or "None"
+   - `Next step` — the next concrete action
+   - `Compass link` — one sentence connecting this to the focused sub-goal
+
+5. **Overwrite** `state.md` with the new snapshot. Do not append; do not preserve previous
+   snapshots inside the file.
+
+---
+
+## DRIFT CHECK (M4)
+
+After writing state.md, compare the `Working on` field against the `← current focus` marker
+in `~/.research/projects/{slug}/compass.md`.
+
+If the recent work does not serve the focused sub-goal, emit one line:
+
+> Drift: working on G?.? ({topic}) but current focus is G?.?
+
+This is informational only. Do not alter compass.md or block the save.
+
+---
 
 ## Notes
 
-- Keep each field to one or two sentences.
-- Do not append multiple state snapshots.
-- State is a quick context-recovery summary.
+- Keep each field 1–2 sentences.
+- `state.md` is a quick context-recovery summary — not a history. A single snapshot only.
+- **Auto-save mode** (invoked by session-end hook, no interactive approval): perform steps 1–5
+  and the drift check silently. Write only `state.md`. Skip lesson extraction, journal writes,
+  and any prompts.
