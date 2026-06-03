@@ -2,6 +2,18 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-06-03
+
+### Added
+- Added the `research-portal` skill for building and serving a local MkDocs Material site over an existing folder of Typora/markdown notes. `docs_dir` points at the notes folder so original files are never modified. The skill scaffolds a `mkdocs.yml` with a project-grouped sidebar (mkdocs-literate-nav), full LaTeX rendering via pymdownx.arithmatex + MathJax 3, and safe project tagging and renaming operations that repair image links after a rename. `uv` is the only prerequisite; mkdocs-material and mkdocs-literate-nav are auto-installed by the scaffold script into an isolated environment on first run. Entry point: `research-portal/SKILL.md`.
+- Added the `proton-mail` skill for reading and searching Proton Mail through a locally running Proton Bridge. The skill connects read-only over STARTTLS IMAP on 127.0.0.1; it does not send, delete, or move messages. Bridge credentials (bridge username and bridge-specific IMAP password, not the main account password) are stored in `~/.proton-imap` (chmod 600). Entry point: `proton-mail/SKILL.md`. Requires Proton Bridge running locally before invocation.
+- Added the `workshop-paper-review` skill for producing OpenReview-ready peer reviews of ICML/NeurIPS/ICLR workshop submissions (4-8 page papers). The workflow covers PDF intake, evidence-grounded drafting with direct PDF citations, anti-anchoring score calibration (scores are assigned after drafting, not before), a parallel fact-check pass against the source PDF, AI-writing-pattern removal, and a Korean-draft to English-submission path for bilingual workflows. No external setup: PDF reading uses the local file, no API keys or CLIs required. Entry point: `workshop-paper-review/SKILL.md`.
+
+### Changed
+- Redesigned `research-log` from a write-heavy project diary into a decision-time advisor. The `query` workflow is now split into two focused operations: `check` (surfaces the lesson/rule corpus before a decision, warning against known anti-patterns from past projects) and `recall` (surfaces cross-project findings when stuck on a problem). Lessons and rules are now first-class objects in the workspace rather than free-form log entries. Project registration and session state-capture workflows are unchanged. The `~/.research-log/` workspace is auto-created as before.
+- Refined the `vastai` skill with GPU selection guidance by workload type (training, inference, experimentation), a preference for plain ubuntu+uv base images over pre-built ML images for reproducibility, and provisioning-safety notes (health-check before queuing long jobs). SSH connection guidance now documents both direct connection and proxy fallback for instances behind NAT.
+- Updated documentation across four touchpoints in `README.md` (skill table, requirements section, "Which skill to use?" picker, directory tree) and four touchpoints in `CLIENT_SETUP.md` (skill directory list, Claude Code and Codex install loops, Forge Option 2 tree, per-skill prerequisites section) to cover `research-portal`, `proton-mail`, and `workshop-paper-review`. Also backfilled `concept-explainer` into the `CLIENT_SETUP.md` directory list, install loops, Forge tree, and per-skill prerequisites, where it had been missing despite being listed in `README.md`.
+
 ## 2026-05-13
 
 ### Added

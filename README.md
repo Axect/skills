@@ -16,17 +16,20 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; Korean output is mirrored to `~/Dropbox/Magi/<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
-| `wide-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for wide cinematic 18:9 multi-panel infographic slides — six style variants: Friendly Whiteboard, Editorial Magazine, Engineering Blueprint, Swiss Minimalist, Dark Tech / Neon, Scientific Poster | `wide-slide-illustrator/SKILL.md` | None |
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
 | `overleaf-section-workflow` | Disciplined section-by-section workflow for Overleaf physics-paper drafts: Korean intermediate draft → user iteration → Opus-direct English LaTeX → out-of-tree build. Codifies non-negotiables (no em/en-dashes, no forward refs in background, citation content verified, scienceplots conventions, build never inside sync folder) and orchestrates `overleap`, `scienceplot-py`, `reference-search`, `bibtex-gen`, and `commit-triage` in turn. | `overleaf-section-workflow/SKILL.md` | TeX distribution (`pdflatex`, `bibtex`) + the companion skills it orchestrates |
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
+| `proton-mail` | Read and search Proton Mail through a locally running Proton Bridge (read-only IMAP over STARTTLS on 127.0.0.1); does not send, delete, or move messages | `proton-mail/SKILL.md` | Proton Bridge running locally + `~/.proton-imap` credentials file (chmod 600) |
 | `reference-search` | Search and curate academic references via domain-aware routing across InspireHEP, OpenAlex, and Semantic Scholar for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python; optional `S2_API_KEY` env var) |
-| `research-log` | Manage research-log workflows such as initialization, querying, review, and state capture | `research-log/SKILL.md` | `~/.research-log/` workspace (auto) |
+| `research-log` | Register projects and record decisions; surfaces the lesson/rule corpus at decision time (check step warns against past anti-patterns) and on cross-project recall when stuck | `research-log/SKILL.md` | `~/.research/` workspace (auto) |
+| `research-portal` | Build and manage a local MkDocs Material research portal over a folder of Typora/markdown notes: project-grouped sidebar via mkdocs-literate-nav, full LaTeX rendering via MathJax 3, and safe project tagging/renaming that repairs image links | `research-portal/SKILL.md` | `uv`; mkdocs-material and mkdocs-literate-nav are auto-installed by the scaffold script |
 | `research-report` | Create or revise structured research and experiment reports with plots, manifests, and validation helpers | `research-report/SKILL.md` | None (stdlib Python) |
 | `scienceplot-py` | Generate a Python matplotlib plot script following the user's mandatory `scienceplots` (`science`+`nature`) lab template, with parquet / CSV / NumPy data sources and four plot variants (single line, multi-line, scatter/errorbar, subplots). Writes the `.py` only — does not execute it. | `scienceplot-py/SKILL.md` | `matplotlib`, `scienceplots`, plus `pandas` / `numpy` as needed (in the user's runtime env) |
 | `vastai` | Search, create, and manage Vast.ai GPU cloud instances | `vastai/SKILL.md` | `vastai` CLI + API key |
+| `wide-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for wide cinematic 18:9 multi-panel infographic slides, six style variants: Friendly Whiteboard, Editorial Magazine, Engineering Blueprint, Swiss Minimalist, Dark Tech / Neon, Scientific Poster | `wide-slide-illustrator/SKILL.md` | None |
+| `workshop-paper-review` | Produce OpenReview-ready ~400-word peer reviews for ICML/NeurIPS/ICLR workshop papers (4-8 page submissions): PDF intake, evidence-grounded drafting, anti-anchoring scoring calibration, parallel fact-check against the source PDF, AI-writing-pattern removal, and a Korean-draft to English-submission workflow | `workshop-paper-review/SKILL.md` | None (PDF reading; stdlib) |
 | `xkcd-py` | Generate a Python matplotlib plot script following the user's mandatory xkcd lab template (`with plt.xkcd():`, `figsize=(10, 6)`, `dpi=300`), with parquet / CSV / NumPy data sources and four plot variants (single line, multi-line, scatter/errorbar, subplots). Writes the `.py` only — does not execute it. | `xkcd-py/SKILL.md` | `matplotlib`, plus `pandas` / `numpy` as needed (in the user's runtime env) |
 
 ## Quick start
@@ -184,6 +187,14 @@ Requires the `paperbanana` CLI and an env file at `~/.config/paperbanana/env`.
 - Or run `paperbanana setup` for the interactive wizard.
 - The skill always sources this env file before running commands, so do **not** hardcode keys elsewhere.
 
+### proton-mail
+
+Requires a locally running Proton Bridge instance and a credentials file at `~/.proton-imap` (chmod 600).
+
+- The `~/.proton-imap` file holds KEY=VALUE lines: `PROTON_IMAP_USER`, `PROTON_IMAP_PASS` (the bridge-specific password from the Bridge app, not your main Proton account password), `PROTON_IMAP_HOST=127.0.0.1`, and `PROTON_IMAP_PORT=1143`.
+- The skill connects read-only over STARTTLS on 127.0.0.1 at the port Proton Bridge exposes. It does not send, delete, or move messages.
+- Start Proton Bridge before invoking the skill; the bridge must remain running for the duration of the session.
+
 ### reference-search
 
 No external setup required. Uses Python standard library only and queries InspireHEP, OpenAlex, and Semantic Scholar via their public APIs.
@@ -195,10 +206,19 @@ No external setup required. Uses Python standard library only and queries Inspir
 
 ### research-log
 
-No external setup required. The skill creates and manages `~/.research-log/` on first use.
+No external setup required. The skill creates and manages `~/.research/` on first use. The redesign shifts focus from a write-heavy diary to an advisor: a `check` step surfaces relevant past lessons and rules before a decision, and a `recall` step surfaces cross-project findings when you are stuck. The workspace still holds per-project decision entries and session state.
 
-- The workspace holds per-project logs, decision entries, and the dashboard.
+- Workspace: `~/.research/` (auto-created on first use).
 - See `research-log/references/conventions.md` for the storage layout.
+
+### research-portal
+
+Requires `uv` on `PATH`. The mkdocs dependencies (mkdocs-material and mkdocs-literate-nav) are auto-installed by the skill's scaffold script into an isolated environment; no manual `pip install` is needed.
+
+- `docs_dir` points directly at your notes folder, so original files are never modified.
+- LaTeX is rendered via pymdownx.arithmatex + MathJax 3.
+- Project tagging and renaming operations repair image links automatically.
+- See `research-portal/SKILL.md` for the full scaffold and serve workflow.
 
 ### research-report
 
@@ -236,6 +256,14 @@ Requires the `vastai` CLI and a Vast.ai API key.
   The key is stored at `~/.vast_api_key`. Never commit or share it.
 - Verify access: `vastai show user`.
 
+### workshop-paper-review
+
+No external setup required. Uses PDF reading and Python standard library only; no API keys or CLIs needed.
+
+- The skill reads the source PDF to fact-check claims in the review draft, using only the local file.
+- AI-writing-pattern removal and anti-anchoring score calibration are built into the drafting workflow.
+- See `workshop-paper-review/SKILL.md` for the full review workflow and OpenReview submission checklist.
+
 ### xkcd-py
 
 Requires `matplotlib` in the runtime environment. The skill writes the `.py` file but does not run it; the user runs it themselves.
@@ -256,17 +284,20 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (Korean output mirrored to Dropbox).
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
-- Choose `wide-slide-illustrator` to compose image-generation prompts for wide cinematic 18:9 multi-panel infographic slides — pipeline diagrams, "how it works" figures, hero figures, paper figures, keynote backdrops. Six style variants by audience and target medium: Friendly Whiteboard (lab meeting), Editorial Magazine (Quanta / NYT paper hero), Engineering Blueprint (technical schematic), Swiss Minimalist (typographic poster on methodology content), Dark Tech / Neon (AI-lab keynote backdrop), Scientific Poster (Phys Rev / Nature journal figure).
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
 - Choose `overleaf-section-workflow` when you are drafting a physics paper section-by-section on Overleaf and want the disciplined Korean-draft → user-iteration → Opus-direct English-LaTeX → out-of-tree-build loop, with citation-content verification, scienceplots-grade plots, and em/en-dash-free output. This is the orchestration layer; `overleap` is just the sync primitive it builds on.
 - Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
+- Choose `proton-mail` to search or read Proton Mail messages and threads through a locally running Proton Bridge, useful for retrieving paper notifications, calendar invites, or collaboration emails without leaving the terminal.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
-- Choose `research-log` for project registration, experiment logs, status queries, and review workflows.
+- Choose `research-log` to register projects, record decisions, check past lessons before committing to a new approach (the `check` step warns against known anti-patterns), or recall cross-project findings when stuck (the `recall` step).
+- Choose `research-portal` to build a browsable, math-rendered MkDocs Material site over a folder of existing Typora/markdown notes without modifying the originals.
 - Choose `research-report` for generating or revising structured report artifacts from research or experiment outputs.
 - Choose `scienceplot-py` to scaffold a publication-style matplotlib script following the lab's `scienceplots` (`science`+`nature`) template — single line, multi-line + legend, scatter / errorbar, or multi-panel subplots from parquet / CSV / NumPy data.
 - Choose `vastai` for renting GPUs, searching offers, or managing remote compute instances.
+- Choose `wide-slide-illustrator` to compose image-generation prompts for wide cinematic 18:9 multi-panel infographic slides: pipeline diagrams, "how it works" figures, hero figures, paper figures, keynote backdrops. Six style variants by audience and target medium: Friendly Whiteboard (lab meeting), Editorial Magazine (Quanta / NYT paper hero), Engineering Blueprint (technical schematic), Swiss Minimalist (typographic poster on methodology content), Dark Tech / Neon (AI-lab keynote backdrop), Scientific Poster (Phys Rev / Nature journal figure).
+- Choose `workshop-paper-review` to write an OpenReview-ready peer review for a workshop paper submission (ICML/NeurIPS/ICLR, 4-8 pages): the skill handles PDF intake, evidence-grounded drafting, anti-anchoring score calibration, and AI-writing-pattern removal, with a Korean-draft to English-submission option.
 - Choose `xkcd-py` for a hand-drawn / sketch-style matplotlib script (`with plt.xkcd():`, wider canvas, dpi=300) — same data-source and plot-variant coverage as `scienceplot-py`.
 
 ## Structure
@@ -283,12 +314,15 @@ skills/
 ├── overleap/
 ├── overleaf-section-workflow/
 ├── paperbanana/
+├── proton-mail/
 ├── reference-search/
 ├── research-log/
+├── research-portal/
 ├── research-report/
 ├── scienceplot-py/
 ├── vastai/
 ├── wide-slide-illustrator/
+├── workshop-paper-review/
 └── xkcd-py/
 ```
 

@@ -16,18 +16,22 @@ Current skill directories in this repository:
 - `adversarial-review`
 - `bibtex-gen`
 - `commit-triage`
+- `concept-explainer`
 - `dropbox`
-- `wide-slide-illustrator`
 - `md2pdf-typora`
 - `morgen`
 - `overleap`
 - `overleaf-section-workflow`
 - `paperbanana`
+- `proton-mail`
 - `reference-search`
 - `research-log`
+- `research-portal`
 - `research-report`
 - `scienceplot-py`
 - `vastai`
+- `wide-slide-illustrator`
+- `workshop-paper-review`
 - `xkcd-py`
 
 > Several skills also need a one-time **external setup** (CLIs, API keys, credentials files) that is independent of the client. See the "Per-skill prerequisites" section near the end of this guide — do that before your first invocation.
@@ -81,7 +85,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review bibtex-gen commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap overleaf-section-workflow paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
+for skill in adversarial-review bibtex-gen commit-triage concept-explainer dropbox md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -129,7 +133,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review bibtex-gen commit-triage dropbox wide-slide-illustrator md2pdf-typora morgen overleap overleaf-section-workflow paperbanana reference-search research-log research-report scienceplot-py vastai xkcd-py; do
+for skill in adversarial-review bibtex-gen commit-triage concept-explainer dropbox md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -179,18 +183,22 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/
+├── concept-explainer/
 ├── dropbox/
 ├── md2pdf-typora/
 ├── morgen/
 ├── overleap/
 ├── overleaf-section-workflow/
 ├── paperbanana/
+├── proton-mail/
 ├── reference-search/
 ├── research-log/
+├── research-portal/
 ├── research-report/
 ├── scienceplot-py/
 ├── vastai/
 ├── wide-slide-illustrator/
+├── workshop-paper-review/
 └── xkcd-py/
 ```
 
@@ -231,6 +239,18 @@ If the orchestrator is invoked with bare `python3` (no `uv`) instead, `scholarly
 ### commit-triage — no setup required
 
 Uses only `git` inside the target repository. Install it in the same scope as the other skills and invoke it from any git working tree.
+
+### concept-explainer: matplotlib + scienceplots + TeX
+
+Requires `matplotlib` and `scienceplots` in the runtime that executes the generated plot scripts, plus a working system TeX install (LaTeX rendering is mandatory; the `no-latex` style is forbidden by this skill). The `md2pdf-typora` skill handles the PDF assembly step.
+
+- Install runtime deps:
+  ```bash
+  uv add matplotlib scienceplots numpy
+  ```
+- A system TeX distribution must be on `PATH` (e.g. TeX Live). Verify with `pdflatex --version` or `xelatex --version`.
+- Unlike `scienceplot-py`, this skill executes the plot scripts it generates (via `uv run`), because the PDF step depends on the PNGs existing.
+- Optionally install `wide-slide-illustrator` for Friendly Whiteboard schematic prompt generation, and `codex-image` if you want the prompts rendered automatically.
 
 ### dropbox — OAuth credentials
 
@@ -360,6 +380,24 @@ The skill is a workflow orchestrator. It needs a working TeX distribution on `PA
    Alternatively, run `paperbanana setup` for the interactive wizard.
 3. The skill always runs commands as `source ~/.config/paperbanana/env && paperbanana ...`, so never hardcode keys in invocations.
 
+### proton-mail: Proton Bridge + ~/.proton-imap
+
+Requires a locally running Proton Bridge instance and a credentials file.
+
+1. Install and configure Proton Bridge from https://proton.me/mail/bridge. Start it and let it finish syncing before invoking the skill.
+2. Create `~/.proton-imap` (chmod 600) with KEY=VALUE lines. Use the bridge-specific password shown in the Bridge app under "Mailbox details" (not your main Proton account password):
+   ```bash
+   cat > ~/.proton-imap << 'EOF'
+   PROTON_IMAP_USER=you@proton.me
+   PROTON_IMAP_PASS=<bridge-generated password>
+   PROTON_IMAP_HOST=127.0.0.1
+   PROTON_IMAP_PORT=1143
+   EOF
+   chmod 600 ~/.proton-imap
+   ```
+3. Verify Proton Bridge is running and accepting IMAP connections on 127.0.0.1:1143 (confirm the port in the Bridge app).
+4. The skill is read-only: it does not send, delete, or move messages.
+
 ### reference-search — no setup required
 
 Runs entirely on the Python standard library against the public OpenAlex API.
@@ -368,10 +406,18 @@ Runs entirely on the Python standard library against the public OpenAlex API.
 
 ### research-log — workspace auto-created
 
-The skill manages `~/.research-log/` automatically on first use. Nothing to install.
+The skill manages `~/.research/` automatically on first use. Nothing to install. The redesigned advisor mode adds a `check` step (surfaces relevant past lessons and rules before a decision) and a `recall` step (surfaces cross-project findings when stuck); both work from the same workspace with no extra config.
 
 - Register a new project via `/log-init` (or the skill's `initialize` workflow).
 - Storage layout: `research-log/references/conventions.md`.
+
+### research-portal: uv (mkdocs auto-installed)
+
+Requires `uv` on `PATH`. No other manual installs are needed.
+
+- The scaffold script auto-installs `mkdocs-material` and `mkdocs-literate-nav` into an isolated environment on first run.
+- `docs_dir` points at your notes folder; originals are never modified.
+- Verify `uv` is available: `uv --version`.
 
 ### research-report — no setup required
 
@@ -403,6 +449,13 @@ uv add matplotlib scienceplots pandas pyarrow numpy
    ```bash
    vastai show user
    ```
+
+### workshop-paper-review: no setup required
+
+No external CLIs, API keys, or credentials needed. The skill reads the source PDF locally for fact-checking and uses only Python standard library.
+
+- Make sure the paper PDF is accessible at a local path before invoking the skill.
+- The skill targets 4-8 page workshop submissions for ICML, NeurIPS, and ICLR; the review format follows OpenReview conventions.
 
 ### xkcd-py — Python deps in your runtime
 
