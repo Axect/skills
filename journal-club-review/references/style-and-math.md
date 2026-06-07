@@ -8,12 +8,21 @@ type: reference
 
 ## Output language (auto-detect)
 
-Match the review's language to the **source paper's language**, unless the user
-explicitly requests a language.
+Match the review's language to the **language the user wrote their request in**.
+The user's command language wins; the source paper's language is only a fallback.
 
-- Detect the dominant language of the extracted source text (the body, not just
-  metadata). English source -> English review. Korean source -> Korean review.
-- If the user says "in Korean" / "한국어로" / "in English", obey that instead.
+- If the user's request itself is in Korean (e.g. "이 논문 리뷰해줘", "발표자료로
+  정리해줘"), write the review in **Korean**, even when the source paper is in
+  English. Likewise a request written in English -> English review. Asking in a
+  language is an implicit request for that language; do not default to the
+  paper's language just because the body is English.
+- An explicit instruction always wins over everything: "in Korean" / "한국어로" /
+  "in English" / "영어로" overrides both the command language and the source.
+- Only when the request gives no language signal (e.g. invoked with just an
+  arXiv id and no surrounding prose) fall back to the **source paper's
+  language**: English source -> English review, Korean source -> Korean review.
+- Detect the dominant language of the extracted source text from the body, not
+  just metadata, when you need that fallback.
 - When you translate headings, use the KO column in
   `section-pipeline.md`. Keep these in their original form regardless of
   language: technical terms, model/dataset/method names, proper nouns,

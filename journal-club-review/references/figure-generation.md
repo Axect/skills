@@ -38,6 +38,9 @@ A brief is a small JSON-like structure you compose from the section content:
 - `method` brief: panels follow the pipeline left-to-right (input -> ... -> output).
 - `results` brief: panels show bars, comparison callouts, before/after, key numbers.
 - Panel `content` is a **visual** description (what to draw), not prose.
+- Phrase every label as a **hand-written note drawn beside the shape**, never a
+  pasted box or floating caption, so the image model integrates it into the one
+  drawing instead of compositing a separate (and easily broken) text layer.
 - **Panels are English-only and carry no formulas** even when the review body
   is in another language. Keep labels short (<= 6 words per line).
 
@@ -48,6 +51,16 @@ Concatenate the style block, the title bar, the panels, then the English guard.
 ### Canonical style block (use verbatim; adjust the panel-count line)
 
 ```
+SINGLE COHESIVE ILLUSTRATION (read first):
+- This is ONE flat hand-drawn whiteboard illustration. Every box, arrow,
+  lattice, bar, curve, label, number and equation is drawn by the same hand in
+  the same wavy marker stroke, as part of the one drawing.
+- Do NOT paste any text as a separate overlay, floating caption, UI label, text
+  box, or sticker layer on top of the artwork. There are NO compositing layers.
+  All words are hand-lettered directly into the drawing in the same ink and style
+  as the shapes around them. (gpt-image tends to break exactly the labels it
+  treats as a separate pasted layer, so forbid that explicitly.)
+
 OVERALL LOOK:
 - Clean off-white / warm cream background with a subtle dotted grid.
 - Modern flat-illustration style with a hand-drawn / whiteboard-sketch feel:
@@ -58,14 +71,14 @@ OVERALL LOOK:
 - Panels flow LEFT to RIGHT, separated by chunky chalk-style arrows with
   little motion lines, like a comic strip. Each panel has a numbered circular
   badge in its top-left corner.
-- Small playful touches: a tiny domain-relevant sticker doodle in one corner,
-  a sticky note pinned to a panel for a key takeaway. A research-group
-  whiteboard vibe, not childish.
+- Annotations are short hand-written notes drawn beside the relevant shape,
+  never floating boxes pasted on top. A small domain-relevant doodle drawn into
+  one corner is fine. Research-group whiteboard vibe, not childish.
 
-TYPOGRAPHY:
-- Headlines: bold geometric sans (Inter / Manrope feel).
-- Body labels: friendly humanist sans, slightly looser tracking.
-- Equations rendered cleanly, NOT as garbled math glyphs.
+TYPOGRAPHY (all hand-lettered into the drawing, not a system-font overlay):
+- Headlines: bold marker capitals (Inter / Manrope feel, but hand-drawn).
+- Body labels: friendly hand-written humanist sans, slightly looser tracking.
+- Equations drawn cleanly by hand, NOT garbled, NOT as a pasted text box.
 - All annotations short, never more than 6 words per line.
 
 COMPOSITION:
@@ -97,10 +110,11 @@ PANEL 2 - "<name>":
 ### English guard (append verbatim)
 
 ```
-IMPORTANT: every character on the canvas must be readable English. Render math
-with plain ASCII / Greek letters only (alpha beta sigma mu Sigma are fine); no
-decorative non-Latin script anywhere. No watermarks, no fake logos, no brand
-names.
+IMPORTANT: every character on the canvas must be readable English, hand-lettered
+as part of the illustration. Render math with plain ASCII / Greek letters only
+(alpha beta sigma mu Sigma are fine); no decorative non-Latin script anywhere.
+No watermarks, no fake logos, no brand names, and no separate text/sticker layers
+pasted over the drawing.
 ```
 
 ## Step 4: generate (run the two in parallel)
