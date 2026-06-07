@@ -22,3 +22,6 @@ outputs/
 
 # Failure archive is intentionally tracked in history — see commit-triage skill.
 !failure/
+
+# Per-skill uv virtualenvs
+**/.venv/

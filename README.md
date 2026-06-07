@@ -11,6 +11,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 
 | Skill | Primary use | Entry point | External setup |
 |---|---|---|---|
+| `academic-jobs` | Fetch valid (still-open, deadline-not-passed) academic job postings from Academic Jobs Online (AJO) via the `ajo` CLI: manage field presets (keywords + position-type + country filters), fetch and store postings judged valid from their detail-page effective deadline, flag what is new since the last check, and inspect a posting. Local SQLite store under `~/.local/share/academic-jobs/`. | `academic-jobs/SKILL.md` | `uv` (the bundled `ajo` uv project auto-installs `requests` + `beautifulsoup4` on first `uv run`) |
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
@@ -43,6 +44,15 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 ## Skill requirements & setup
 
 Several skills depend on external CLIs, API keys, or credential files. Install and configure them **once per machine** before invoking the skill.
+
+### academic-jobs
+
+Requires `uv` on `PATH`. The skill bundles a small uv project (`ajo`); `uv run --project <skill-dir> ajo …` auto-installs its dependencies (`requests`, `beautifulsoup4`) into an isolated environment on first run. No API keys.
+
+- State lives under `~/.local/share/academic-jobs/` (`jobs.db` + `config.toml`); override with the `AJO_DATA_DIR` env var. First run creates the data dir, the SQLite DB, and a default `physics-ml` preset.
+- Validity is judged from each posting's **detail page** (effective deadline = firm `Appl Deadline` if present, else the `listed until` date), not the list page. `--fast` skips detail pages but misses many valid postings; prefer the default detail mode for correctness.
+- The CLI uses one polite session with a real User-Agent, a small inter-request delay, and a per-run detail-fetch cap (reported in `stats`). Do not parallelise or hammer AJO.
+- See `academic-jobs/references/`: `fetch.md`, `presets.md`, `schema.md`.
 
 ### adversarial-review
 
@@ -289,6 +299,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 
 ## Which skill to use?
 
+- Choose `academic-jobs` to pull current, still-open academic job postings (postdoc / faculty / PhD) from Academic Jobs Online, filtered to postings whose application deadline has not passed, with field presets and "new since last check" tracking.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
@@ -315,6 +326,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 
 ```text
 skills/
+├── academic-jobs/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/

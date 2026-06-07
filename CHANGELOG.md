@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-06-08
+
+### Added
+- Added the `academic-jobs` skill for fetching **valid** (still-open, application-deadline-not-passed) academic job postings from Academic Jobs Online (academicjobsonline.org, AJO). The skill wraps a bundled `ajo` CLI that manages field presets (each preset bundles `keywords`, plus optional `position_types` and `countries` substring filters), fetches candidate postings, and judges validity from each posting's **detail page** rather than the list page: the effective deadline is the firm `Appl Deadline` if present, else the `listed until` date, so postings with no list-page deadline are not silently treated as open. Postings are stored in a local SQLite DB and flagged new since the last `mark-seen`. Commands: `ajo config` (presets), `ajo fetch` (with `--preset`/`--keyword`, `--fast` to skip detail pages, `--include-rolling` for no-deadline postings), `ajo list [--valid] [--new]`, `ajo show {id}`, `ajo mark-seen --all`, `ajo prune`. The CLI is a uv project (`pyproject.toml` + `uv.lock`, deps `requests` + `beautifulsoup4`); `uv run --project <skill-dir> ajo …` auto-provisions its environment on first run. State lives under `~/.local/share/academic-jobs/` (`jobs.db` + `config.toml`, override via `AJO_DATA_DIR`); first run seeds a default `physics-ml` preset. Etiquette is built in: one polite session with a real User-Agent, an inter-request delay, and a per-run detail-fetch cap reported in `stats`. Bundles `ajo/` (cli, config, db, fetch) and three reference docs (`fetch.md`, `presets.md`, `schema.md`). Entry point: `academic-jobs/SKILL.md`. Requires `uv`; no API keys.
+
+### Changed
+- Extended `.gitignore` to ignore per-skill uv virtualenvs (`**/.venv/`), since `academic-jobs` ships a uv project that materializes a local `.venv/` on use.
+- Updated `README.md` across the four standard touchpoints (skill table, "Skill requirements & setup" section, "Which skill to use?" picker, directory tree) and `CLIENT_SETUP.md` across its five touchpoints (skill directory list, Claude Code and Codex install loops, Forge Option 2 tree, per-skill prerequisites section) to cover `academic-jobs`, including its uv-project auto-install behavior, the detail-page validity model, and AJO request etiquette.
+
 ## 2026-06-04
 
 ### Added

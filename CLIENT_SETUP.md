@@ -13,6 +13,7 @@ Some skills also include helper assets such as:
 
 Current skill directories in this repository:
 
+- `academic-jobs`
 - `adversarial-review`
 - `bibtex-gen`
 - `commit-triage`
@@ -86,7 +87,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in adversarial-review bibtex-gen commit-triage concept-explainer dropbox journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -134,7 +135,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in adversarial-review bibtex-gen commit-triage concept-explainer dropbox journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -181,6 +182,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 
 ```text
 /absolute/path/to/skills/
+├── academic-jobs/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/
@@ -213,6 +215,19 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ## Per-skill prerequisites
 
 Installing a skill into your client's skill directory only makes it **discoverable** — some skills also need an external CLI, API key, or credentials file on your machine before they can actually run. Do this once per machine, regardless of which client you are using.
+
+### academic-jobs: uv (deps auto-installed)
+
+Requires `uv` on `PATH`; no API keys or credentials. The skill bundles a uv project (`ajo`) whose dependencies (`requests`, `beautifulsoup4`) are auto-installed into an isolated environment on first `uv run`.
+
+- Smoke-test the CLI (creates the data dir, DB, and default `physics-ml` preset on first run):
+  ```bash
+  uv run --project "$REPO/academic-jobs" ajo config
+  ```
+  Expected: the default preset's keywords and position-type / country filters printed as a table.
+- State lives under `~/.local/share/academic-jobs/` (`jobs.db` + `config.toml`); override with `AJO_DATA_DIR`.
+- Validity is judged from each posting's detail page (effective deadline = firm `Appl Deadline`, else `listed until`). `--fast` skips detail pages but misses many valid postings; prefer the default.
+- The CLI is polite by design (single session, real User-Agent, inter-request delay, per-run detail-fetch cap). Do not parallelise.
 
 ### adversarial-review — no setup required
 
