@@ -3,8 +3,9 @@
 A preset is a named search profile:
     [presets.physics-ml]
     keywords       = ["cosmology", "machine learning", "dark matter"]
-    position_types = ["postdoc"]          # substring match on AJO "Position Type"
-    countries      = []                   # substring match on institution string
+    position_types = ["postdoc"]          # substring match on AJO type / InspireHEP ranks
+    countries      = []                   # substring match on institution (+ region) string
+    sources        = ["ajo", "inspire"]   # which job boards to search
 
 Default preset 'physics-ml' is seeded on first run.
 """
@@ -17,6 +18,7 @@ from pathlib import Path
 from . import CONFIG_PATH
 
 DEFAULT_PRESET = "physics-ml"
+ALL_SOURCES = ["ajo", "inspire"]
 
 DEFAULT_CONFIG = {
     "default_preset": DEFAULT_PRESET,
@@ -30,6 +32,7 @@ DEFAULT_CONFIG = {
             ],
             "position_types": ["postdoc"],
             "countries": [],
+            "sources": list(ALL_SOURCES),
         }
     },
 }
@@ -43,7 +46,7 @@ def _dump_toml(cfg: dict) -> str:
     lines.append("")
     for name, p in cfg.get("presets", {}).items():
         lines.append(f"[presets.{_key(name)}]")
-        for field in ("keywords", "position_types", "countries"):
+        for field in ("keywords", "position_types", "countries", "sources"):
             vals = p.get(field, [])
             arr = ", ".join(f'"{_esc(v)}"' for v in vals)
             lines.append(f"{field} = [{arr}]")
@@ -85,6 +88,8 @@ def _normalize(cfg: dict) -> dict:
         p.setdefault("keywords", [])
         p.setdefault("position_types", [])
         p.setdefault("countries", [])
+        # presets predating multi-source support search both boards by default
+        p.setdefault("sources", list(ALL_SOURCES))
     return cfg
 
 
@@ -103,15 +108,24 @@ def set_preset(
     keywords: list[str] | None = None,
     position_types: list[str] | None = None,
     countries: list[str] | None = None,
+    sources: list[str] | None = None,
     make_default: bool = False,
 ) -> dict:
-    p = cfg["presets"].get(name, {"keywords": [], "position_types": [], "countries": []})
+    p = cfg["presets"].get(
+        name,
+        {"keywords": [], "position_types": [], "countries": [], "sources": list(ALL_SOURCES)},
+    )
     if keywords is not None:
         p["keywords"] = keywords
     if position_types is not None:
         p["position_types"] = position_types
     if countries is not None:
         p["countries"] = countries
+    if sources is not None:
+        invalid = [s for s in sources if s not in ALL_SOURCES]
+        if invalid:
+            raise ValueError(f"unknown source(s): {invalid}; valid: {ALL_SOURCES}")
+        p["sources"] = sources
     cfg["presets"][name] = p
     if make_default:
         cfg["default_preset"] = name

@@ -8,11 +8,16 @@ from pathlib import Path
 
 from . import DB_PATH
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
 
+DEFAULT_SOURCE = "ajo"
+
+# Postings are keyed by (source, id): both AJO and InspireHEP use integer ids that can
+# collide numerically, so the source namespaces them.
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
-    id               INTEGER PRIMARY KEY,
+    source           TEXT NOT NULL DEFAULT 'ajo',   -- 'ajo' | 'inspire'
+    id               INTEGER NOT NULL,
     code             TEXT,
     title            TEXT,
     institution      TEXT,
@@ -25,7 +30,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     matched_keywords TEXT,          -- comma-separated keywords/presets that matched
     first_seen       TEXT,
     last_fetched     TEXT,
-    is_new           INTEGER DEFAULT 1
+    is_new           INTEGER DEFAULT 1,
+    PRIMARY KEY (source, id)
 );
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
@@ -34,25 +40,58 @@ CREATE TABLE IF NOT EXISTS meta (
 """
 
 COLUMNS = [
-    "id", "code", "title", "institution", "position_type", "subject_areas",
+    "source", "id", "code", "title", "institution", "position_type", "subject_areas",
     "deadline_raw", "deadline_dt", "status", "url", "matched_keywords",
     "first_seen", "last_fetched", "is_new",
 ]
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:
-    """Open the DB (creating dir + schema on first use)."""
+    """Open the DB (creating dir + schema on first use, migrating older schemas)."""
     db_path = Path(path) if path else DB_PATH
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+    _migrate(conn)
     conn.executescript(_SCHEMA)
     conn.execute(
         "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
         (SCHEMA_VERSION,),
     )
+    conn.execute(
+        "UPDATE meta SET value = ? WHERE key = 'schema_version'", (SCHEMA_VERSION,)
+    )
     conn.commit()
     return conn
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """v1 -> v2: add the `source` column + composite PK, tagging existing rows as 'ajo'.
+
+    A pre-source `jobs` table has `id` as its sole primary key and no `source` column.
+    SQLite cannot alter a primary key in place, so rebuild: rename, recreate, copy with
+    source='ajo', drop. New databases (no `jobs` table yet) skip this untouched.
+    """
+    has_jobs = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='jobs'"
+    ).fetchone()
+    if not has_jobs:
+        return
+    cols = [r["name"] for r in conn.execute("PRAGMA table_info(jobs)").fetchall()]
+    if "source" in cols:
+        return  # already migrated
+
+    old_cols = [c for c in cols]  # everything the old table carried
+    conn.execute("ALTER TABLE jobs RENAME TO jobs_v1")
+    conn.executescript(_SCHEMA)
+    shared = [c for c in old_cols if c in COLUMNS]
+    collist = ", ".join(shared)
+    conn.execute(
+        f"INSERT INTO jobs (source, {collist}) "
+        f"SELECT 'ajo', {collist} FROM jobs_v1"
+    )
+    conn.execute("DROP TABLE jobs_v1")
+    conn.commit()
 
 
 def _now_iso() -> str:
@@ -60,7 +99,7 @@ def _now_iso() -> str:
 
 
 def upsert_job(conn: sqlite3.Connection, job: dict) -> bool:
-    """Insert or update a posting keyed by id.
+    """Insert or update a posting keyed by (source, id).
 
     Returns True if this was a genuinely new insert (is_new flagged), False on update.
     On update: refresh volatile fields, keep first_seen, and merge matched_keywords.
@@ -68,18 +107,22 @@ def upsert_job(conn: sqlite3.Connection, job: dict) -> bool:
     the incoming job actually carries them (so a cheap list fetch never wipes detail data).
     """
     now = _now_iso()
-    row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job["id"],)).fetchone()
+    source = job.get("source", DEFAULT_SOURCE)
+    row = conn.execute(
+        "SELECT * FROM jobs WHERE source = ? AND id = ?", (source, job["id"])
+    ).fetchone()
 
     if row is None:
         conn.execute(
             """INSERT INTO jobs
-               (id, code, title, institution, position_type, subject_areas,
+               (source, id, code, title, institution, position_type, subject_areas,
                 deadline_raw, deadline_dt, status, url, matched_keywords,
                 first_seen, last_fetched, is_new)
-               VALUES (:id, :code, :title, :institution, :position_type, :subject_areas,
+               VALUES (:source, :id, :code, :title, :institution, :position_type, :subject_areas,
                        :deadline_raw, :deadline_dt, :status, :url, :matched_keywords,
                        :first_seen, :last_fetched, 1)""",
             {
+                "source": source,
                 "id": job["id"],
                 "code": job.get("code"),
                 "title": job.get("title"),
@@ -116,8 +159,9 @@ def upsert_job(conn: sqlite3.Connection, job: dict) -> bool:
                url = :url,
                matched_keywords = :matched_keywords,
                last_fetched = :last_fetched
-           WHERE id = :id""",
+           WHERE source = :source AND id = :id""",
         {
+            "source": source,
             "id": job["id"],
             "code": job.get("code") or row["code"],
             "title": job.get("title") or row["title"],
@@ -142,11 +186,15 @@ def query_jobs(
     valid_only: bool = False,
     new_only: bool = False,
     keyword_like: str | None = None,
+    source: str | None = None,
     now: datetime | None = None,
 ) -> list[dict]:
     """Return stored postings. Validity is recomputed against `now` (default: real now)."""
     now = now or datetime.now()
-    rows = conn.execute("SELECT * FROM jobs").fetchall()
+    if source:
+        rows = conn.execute("SELECT * FROM jobs WHERE source = ?", (source,)).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM jobs").fetchall()
     out: list[dict] = []
     for r in rows:
         d = dict(r)
@@ -175,13 +223,27 @@ def _is_valid_now(d: dict, now: datetime) -> bool:
         return True
 
 
-def mark_seen(conn: sqlite3.Connection, ids: list[int] | None = None) -> int:
-    """Clear is_new for the given ids (or all when ids is None). Returns rows affected."""
-    if ids is None:
-        cur = conn.execute("UPDATE jobs SET is_new = 0 WHERE is_new = 1")
+def mark_seen(
+    conn: sqlite3.Connection,
+    ids: list[int] | None = None,
+    *,
+    source: str | None = None,
+) -> int:
+    """Clear is_new for the given ids (or all when ids is None), optionally scoped to a
+    single source. Returns rows affected. With ids set, `source` disambiguates the
+    composite key (ids alone are not unique across sources)."""
+    clauses, params = [], []
+    if ids is not None:
+        clauses.append(f"id IN ({','.join('?' * len(ids))})")
+        params.extend(ids)
     else:
-        qmarks = ",".join("?" * len(ids))
-        cur = conn.execute(f"UPDATE jobs SET is_new = 0 WHERE id IN ({qmarks})", ids)
+        clauses.append("is_new = 1")
+    if source:
+        clauses.append("source = ?")
+        params.append(source)
+    cur = conn.execute(
+        f"UPDATE jobs SET is_new = 0 WHERE {' AND '.join(clauses)}", params
+    )
     conn.commit()
     return cur.rowcount
 
@@ -190,18 +252,18 @@ def prune_expired(conn: sqlite3.Connection, now: datetime | None = None) -> int:
     """Delete postings whose deadline has passed. Rolling postings are kept."""
     now = now or datetime.now()
     rows = conn.execute(
-        "SELECT id, deadline_dt FROM jobs WHERE deadline_dt IS NOT NULL"
+        "SELECT source, id, deadline_dt FROM jobs WHERE deadline_dt IS NOT NULL"
     ).fetchall()
     expired = []
     for r in rows:
         try:
             if datetime.fromisoformat(r["deadline_dt"]) < now:
-                expired.append(r["id"])
+                expired.append((r["source"], r["id"]))
         except ValueError:
             continue
+    for source, jid in expired:
+        conn.execute("DELETE FROM jobs WHERE source = ? AND id = ?", (source, jid))
     if expired:
-        qmarks = ",".join("?" * len(expired))
-        conn.execute(f"DELETE FROM jobs WHERE id IN ({qmarks})", expired)
         conn.commit()
     return len(expired)
 

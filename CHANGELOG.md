@@ -2,6 +2,13 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-06-09
+
+### Changed
+- Extended the `academic-jobs` skill to search the **InspireHEP jobs board** (`inspirehep.net/jobs`) alongside Academic Jobs Online. `ajo fetch` now hits both boards with the same keyword presets by default and merges the results deadline-sorted. InspireHEP is fetched through its public JSON API (`/api/jobs`) with a server-side `status=open` filter and the structured `deadline_date` used directly, so no per-posting detail scrape is needed (the AJO `--fast` flag does not apply to it). The existing preset filters are reused: `position_types` is matched against the InspireHEP `ranks` (e.g. `postdoc` → `POSTDOC`) as well as the AJO Position Type, and `countries` is matched against the institution string plus the InspireHEP `regions`. New `--source ajo|inspire|both` flag on `fetch`/`list`/`show`/`mark-seen` and a new per-preset `sources` field (`ajo config --set-preset NAME --sources ajo,inspire`, default both) select which boards to use. `ajo show {id} --source inspire` additionally returns the cleaned job description and contact email from the API record.
+- Migrated the local SQLite store to key postings by the composite `(source, id)` because AJO and InspireHEP use overlapping integer ids. Bumped `schema_version` to `2`; a pre-existing v1 database (AJO-only, no `source` column) is migrated in place on first open, tagging all existing rows as `source='ajo'`. Added `ajo/inspire.py` (the InspireHEP fetch module, mirroring `fetch.search_valid`'s shape so the DB and rendering layers are reused unchanged). `fetch` stats are now reported per board under `stats.per_source`, and the table/JSON output carries a `source` column.
+- Updated `academic-jobs/SKILL.md`, its three reference docs (`fetch.md`, `presets.md`, `schema.md`), and `academic-jobs/README.md` to document the two-board model; updated the repository `README.md` across the four standard touchpoints (skill table, requirements section, "Which skill to use?" picker, directory tree) to note the InspireHEP integration.
+
 ## 2026-06-08
 
 ### Added
