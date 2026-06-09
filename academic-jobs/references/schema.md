@@ -22,10 +22,20 @@
 | `first_seen` | when first stored (ISO) |
 | `last_fetched` | last time a fetch touched it (ISO) |
 | `is_new` | 1 until `mark-seen` clears it |
+| `description` | full posting body text, captured when the detail page is fetched (AJO detail HTML or InspireHEP detail API); NULL until captured |
+| `contact` | contact email(s) parsed from the posting |
+| `country` | inferred ISO 3166-1 alpha-2 country code (e.g. `KR`, `DE`, `JP`), derived from the institution string via `ajo/classify.py` |
+| `region` | inferred region string: `Europe`, `Asia`, `North America`, `South America`, `Oceania`, `Africa`, or `Middle East` |
+| `flags` | comma-separated eligibility/caution flags detected in the body or title: `female-only`, `fresh-phd-limit`, `nationality-restricted`, `military-service-clause`, `funding-pending`, `senior:professor`, `date-mismatch(stale?)` |
+| `detail_fetched` | `0` by default; set to `1` once the body has been captured; drives `ajo enrich`, which targets rows still at `0` |
 
-A `meta` table holds `schema_version` (currently `2`) and `last_fetch_at`. Databases created by
-the pre-InspireHEP schema (v1, no `source` column) are migrated in place on first open: existing
-rows are tagged `source='ajo'` and the primary key is rebuilt as `(source, id)`.
+A `meta` table holds `schema_version` (currently `3`) and `last_fetch_at`. The v1-to-v2 migration
+(adding the `source` column and rebuilding the composite primary key) runs first when the database
+is still on v1, tagging existing rows as `source='ajo'`. The v2-to-v3 migration is purely additive:
+six `ALTER TABLE ADD COLUMN` statements append `description`, `contact`, `country`, `region`,
+`flags`, and `detail_fetched` to the `jobs` table without touching existing rows. `upsert_job` uses
+`COALESCE` for these fields so a cheap list-only pass never overwrites a previously captured
+description, contact block, or flags.
 
 `deadline_dt` stores the **effective** deadline (AJO firm deadline if present, otherwise the
 `listed until` date at end-of-day; InspireHEP `deadline_date` at end-of-day), so validity can be
@@ -69,14 +79,15 @@ kept. Safe housekeeping to keep the store to currently-relevant openings.
       "type": "Postdoctoral", "title": "...", "institution": "University of Michigan, ...",
       "url": "https://academicjobsonline.org/ajo/jobs/30572",
       "matched": "cosmology",
-      "raw": { ...full DB row... }
+      "country": "US", "region": "North America", "pref_tier": 0, "flags": "",
+      "raw": { ...full DB row, including description, contact, country, region, flags, detail_fetched... }
     }
   ],
   "stats": {
     "sources": ["ajo", "inspire"],
     "per_source": {
-      "ajo":     { "candidates": 50, "details_fetched": 50, "mode": "detail", "filtered_out": 4 },
-      "inspire": { "candidates": 45, "mode": "api", "filtered_out": 5 }
+      "ajo":     { "candidates": 50, "details_fetched": 50, "mode": "detail", "filtered_out": 4, "excluded": 3, "detail_cap": 100 },
+      "inspire": { "candidates": 45, "mode": "api", "filtered_out": 5, "excluded": 2 }
     },
     "new": 13, "stored": 91
   }

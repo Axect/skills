@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import DB_PATH
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 
 DEFAULT_SOURCE = "ajo"
 
@@ -28,6 +28,12 @@ CREATE TABLE IF NOT EXISTS jobs (
     status           TEXT,          -- 'valid' | 'rolling'
     url              TEXT,
     matched_keywords TEXT,          -- comma-separated keywords/presets that matched
+    description      TEXT,          -- full posting body (captured on detail fetch)
+    contact          TEXT,          -- contact email(s)
+    country          TEXT,          -- inferred ISO2 country code
+    region           TEXT,          -- inferred region (Europe / Asia / ...)
+    flags            TEXT,          -- comma-separated eligibility/caution flags
+    detail_fetched   INTEGER DEFAULT 0,  -- 1 once the detail body has been captured
     first_seen       TEXT,
     last_fetched     TEXT,
     is_new           INTEGER DEFAULT 1,
@@ -42,7 +48,14 @@ CREATE TABLE IF NOT EXISTS meta (
 COLUMNS = [
     "source", "id", "code", "title", "institution", "position_type", "subject_areas",
     "deadline_raw", "deadline_dt", "status", "url", "matched_keywords",
+    "description", "contact", "country", "region", "flags", "detail_fetched",
     "first_seen", "last_fetched", "is_new",
+]
+
+# columns added after v2; ensured via ALTER TABLE on existing databases
+_V3_COLUMNS = [
+    ("description", "TEXT"), ("contact", "TEXT"), ("country", "TEXT"),
+    ("region", "TEXT"), ("flags", "TEXT"), ("detail_fetched", "INTEGER DEFAULT 0"),
 ]
 
 
@@ -78,20 +91,30 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if not has_jobs:
         return
     cols = [r["name"] for r in conn.execute("PRAGMA table_info(jobs)").fetchall()]
-    if "source" in cols:
-        return  # already migrated
 
-    old_cols = [c for c in cols]  # everything the old table carried
-    conn.execute("ALTER TABLE jobs RENAME TO jobs_v1")
-    conn.executescript(_SCHEMA)
-    shared = [c for c in old_cols if c in COLUMNS]
-    collist = ", ".join(shared)
-    conn.execute(
-        f"INSERT INTO jobs (source, {collist}) "
-        f"SELECT 'ajo', {collist} FROM jobs_v1"
-    )
-    conn.execute("DROP TABLE jobs_v1")
-    conn.commit()
+    # v1 -> v2: introduce the `source` column + composite PK (rebuild the table)
+    if "source" not in cols:
+        old_cols = [c for c in cols]  # everything the old table carried
+        conn.execute("ALTER TABLE jobs RENAME TO jobs_v1")
+        conn.executescript(_SCHEMA)
+        shared = [c for c in old_cols if c in COLUMNS]
+        collist = ", ".join(shared)
+        conn.execute(
+            f"INSERT INTO jobs (source, {collist}) "
+            f"SELECT 'ajo', {collist} FROM jobs_v1"
+        )
+        conn.execute("DROP TABLE jobs_v1")
+        conn.commit()
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(jobs)").fetchall()]
+
+    # v2 -> v3: additive columns (description/contact/country/region/flags/detail_fetched)
+    added = False
+    for name, decl in _V3_COLUMNS:
+        if name not in cols:
+            conn.execute(f"ALTER TABLE jobs ADD COLUMN {name} {decl}")
+            added = True
+    if added:
+        conn.commit()
 
 
 def _now_iso() -> str:
@@ -117,9 +140,11 @@ def upsert_job(conn: sqlite3.Connection, job: dict) -> bool:
             """INSERT INTO jobs
                (source, id, code, title, institution, position_type, subject_areas,
                 deadline_raw, deadline_dt, status, url, matched_keywords,
+                description, contact, country, region, flags, detail_fetched,
                 first_seen, last_fetched, is_new)
                VALUES (:source, :id, :code, :title, :institution, :position_type, :subject_areas,
                        :deadline_raw, :deadline_dt, :status, :url, :matched_keywords,
+                       :description, :contact, :country, :region, :flags, :detail_fetched,
                        :first_seen, :last_fetched, 1)""",
             {
                 "source": source,
@@ -134,6 +159,12 @@ def upsert_job(conn: sqlite3.Connection, job: dict) -> bool:
                 "status": job.get("status"),
                 "url": job.get("url"),
                 "matched_keywords": job.get("matched_keywords", ""),
+                "description": job.get("description"),
+                "contact": job.get("contact"),
+                "country": job.get("country"),
+                "region": job.get("region"),
+                "flags": job.get("flags"),
+                "detail_fetched": 1 if job.get("description") else int(job.get("detail_fetched", 0) or 0),
                 "first_seen": now,
                 "last_fetched": now,
             },
@@ -146,6 +177,8 @@ def upsert_job(conn: sqlite3.Connection, job: dict) -> bool:
     incoming_kw = [k for k in (job.get("matched_keywords", "") or "").split(",") if k]
     merged_kw = existing_kw + [k for k in incoming_kw if k not in existing_kw]
 
+    # detail_fetched stays 1 once set; flips to 1 when this pass carries a description
+    detail_fetched = 1 if (job.get("description") or row["detail_fetched"]) else 0
     conn.execute(
         """UPDATE jobs SET
                code = :code,
@@ -158,6 +191,12 @@ def upsert_job(conn: sqlite3.Connection, job: dict) -> bool:
                status = :status,
                url = :url,
                matched_keywords = :matched_keywords,
+               description = COALESCE(:description, description),
+               contact = COALESCE(:contact, contact),
+               country = COALESCE(:country, country),
+               region = COALESCE(:region, region),
+               flags = COALESCE(:flags, flags),
+               detail_fetched = :detail_fetched,
                last_fetched = :last_fetched
            WHERE source = :source AND id = :id""",
         {
@@ -173,6 +212,12 @@ def upsert_job(conn: sqlite3.Connection, job: dict) -> bool:
             "status": job.get("status"),
             "url": job.get("url") or row["url"],
             "matched_keywords": ",".join(merged_kw),
+            "description": job.get("description"),
+            "contact": job.get("contact"),
+            "country": job.get("country"),
+            "region": job.get("region"),
+            "flags": job.get("flags"),
+            "detail_fetched": detail_fetched,
             "last_fetched": now,
         },
     )

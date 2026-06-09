@@ -31,6 +31,7 @@ from datetime import datetime
 
 import requests
 
+from . import classify as classifymod
 from .fetch import USER_AGENT, classify, _match_any
 
 API_URL = "https://inspirehep.net/api/jobs"
@@ -153,6 +154,8 @@ def search_valid(
     include_rolling: bool = False,
     position_types: list[str] | None = None,
     countries: list[str] | None = None,
+    excluded_countries: list[str] | None = None,
+    preferred_tiers: list | None = None,
     log=lambda _msg: None,
 ) -> tuple[list[dict], dict]:
     """Search each keyword on InspireHEP, keep valid postings, dedup, classify.
@@ -193,6 +196,7 @@ def search_valid(
         "keywords": keywords,
         "candidates": len(candidates),
         "filtered_out": 0,
+        "excluded": 0,
         "mode": "api",
     }
 
@@ -200,6 +204,11 @@ def search_valid(
     for r in candidates:
         status = classify(r.get("effective_dt"), now, include_rolling)
         if status is None:
+            continue
+        code, region = classifymod.infer_country(r.get("institution"), r.get("regions"))
+        r["country"], r["region_cc"] = code, region
+        if excluded_countries and classifymod.country_matches(code, region, excluded_countries):
+            stats["excluded"] += 1
             continue
         if position_types and r.get("position_type") is not None:
             if not _match_any(r.get("position_type"), position_types):
@@ -213,6 +222,11 @@ def search_valid(
                 stats["filtered_out"] += 1
                 continue
         r["status"] = status
+        r["pref_tier"] = classifymod.preference_tier(code, region, preferred_tiers)
+        # description not in the list response; flags from title/type now, refined on enrich
+        r["flags"] = classifymod.detect_flags(
+            r.get("title"), r.get("position_type"), None, r.get("effective_dt")
+        )
         kept.append(r)
     candidates = kept
 
@@ -235,6 +249,12 @@ def search_valid(
             "status": r.get("status"),
             "url": r.get("url"),
             "matched_keywords": ",".join(r.get("_kw", [])),
+            "country": r.get("country"),
+            "region": r.get("region_cc"),
+            "flags": ",".join(r.get("flags") or []) or None,
+            "pref_tier": r.get("pref_tier"),
         })
-    jobs.sort(key=lambda j: (j["deadline_dt"] is None, j["deadline_dt"] or ""))
+    jobs.sort(key=lambda j: (
+        j.get("pref_tier", 99), j["deadline_dt"] is None, j["deadline_dt"] or ""
+    ))
     return jobs, stats

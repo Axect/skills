@@ -24,6 +24,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from . import BASE_URL
+from . import classify as classifymod
 
 USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) academic-jobs-skill/0.1 "
@@ -206,6 +207,8 @@ def parse_detail_html(html: str) -> dict:
     # effective deadline: firm deadline if present, else the listed-until date
     effective = deadline_dt or listed_until
 
+    description, contact = _extract_description(soup)
+
     return {
         "institution": institution,
         "position_type": position_type,
@@ -215,7 +218,42 @@ def parse_detail_html(html: str) -> dict:
         "deadline_dt": deadline_dt,
         "listed_until": listed_until,
         "effective_deadline_dt": effective,
+        "description": description,
+        "contact": contact,
     }
+
+
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+
+
+def _extract_description(soup: BeautifulSoup) -> tuple[str | None, str | None]:
+    """Capture the free-text posting body and a contact email from an AJO detail page.
+
+    The body lives in <section class="bld"> (the "Position Description" block). Returns
+    (description, contact). Either may be None.
+    """
+    sec = soup.find("section", class_="bld")
+    if sec is None:
+        return None, None
+    text = sec.get_text(" ", strip=True).replace("\xa0", " ")
+    text = re.sub(r"\s+", " ", text).strip()
+    # drop the boilerplate label that precedes the actual body, if present
+    text = re.sub(r"^Position Description\s+", "", text, flags=re.IGNORECASE).strip()
+    if not text:
+        return None, None
+    # contact email: prefer a mailto link, else the last email mentioned in the body
+    contact = None
+    mailto = soup.select_one('a[href^="mailto:"]')
+    if mailto is not None:
+        href = str(mailto.get("href") or "")
+        m = _EMAIL_RE.search(href)
+        if m:
+            contact = m.group(0)
+    if contact is None:
+        emails = _EMAIL_RE.findall(text)
+        if emails:
+            contact = emails[-1]
+    return text, contact
 
 
 def _clean(v: str | None) -> str | None:
@@ -245,6 +283,9 @@ def search_valid(
     fetch_details: bool = True,
     position_types: list[str] | None = None,
     countries: list[str] | None = None,
+    excluded_countries: list[str] | None = None,
+    preferred_tiers: list | None = None,
+    detail_cap: int = DETAIL_FETCH_CAP,
     log=lambda _msg: None,
 ) -> tuple[list[dict], dict]:
     """Search each keyword, keep only valid (or rolling) postings, dedup, enrich, classify.
@@ -278,22 +319,25 @@ def search_valid(
         log(f"  {len(rows)} rows ({len(merged)} unique so far)")
 
     candidates = list(merged.values())
+    cap = detail_cap if detail_cap and detail_cap > 0 else DETAIL_FETCH_CAP
     stats = {
         "keywords": keywords,
         "candidates": len(candidates),
         "details_fetched": 0,
         "details_truncated": False,
+        "detail_cap": cap,
         "filtered_out": 0,
+        "excluded": 0,
         "mode": "detail" if fetch_details else "list-only (approximate)",
     }
 
-    # 2) enrich with detail pages (authoritative deadline + type/subject/institution)
+    # 2) enrich with detail pages (authoritative deadline + type/subject/institution/body)
     if fetch_details:
-        to_fetch = candidates[:DETAIL_FETCH_CAP]
-        if len(candidates) > DETAIL_FETCH_CAP:
+        to_fetch = candidates[:cap]
+        if len(candidates) > cap:
             stats["details_truncated"] = True
             log(
-                f"detail cap: fetching first {DETAIL_FETCH_CAP} of {len(candidates)} "
+                f"detail cap: fetching first {cap} of {len(candidates)} "
                 f"candidates; remainder judged by list deadline only"
             )
         for i, r in enumerate(to_fetch):
@@ -310,14 +354,21 @@ def search_valid(
             if det.get("deadline_raw"):
                 r["deadline_raw"] = det["deadline_raw"]
             r["deadline_dt"] = det.get("deadline_dt")
+            r["description"] = det.get("description")
+            r["contact"] = det.get("contact")
             if i < len(to_fetch) - 1:
                 time.sleep(DETAIL_DELAY_S)
 
-    # 3) classify by effective deadline + apply type/country filters
+    # 3) classify by effective deadline + apply type/country filters + exclusion
     kept = []
     for r in candidates:
         status = classify(r.get("effective_dt"), now, include_rolling)
         if status is None:
+            continue
+        code, region = classifymod.infer_country(r.get("institution"))
+        r["country"], r["region"] = code, region
+        if excluded_countries and classifymod.country_matches(code, region, excluded_countries):
+            stats["excluded"] += 1
             continue
         if position_types and r.get("position_type") is not None:
             if not _match_any(r.get("position_type"), position_types):
@@ -328,6 +379,10 @@ def search_valid(
                 stats["filtered_out"] += 1
                 continue
         r["status"] = status
+        r["pref_tier"] = classifymod.preference_tier(code, region, preferred_tiers)
+        r["flags"] = classifymod.detect_flags(
+            r.get("title"), r.get("position_type"), r.get("description"), r.get("effective_dt")
+        )
         kept.append(r)
     candidates = kept
 
@@ -351,8 +406,16 @@ def search_valid(
             "status": r.get("status"),
             "url": r.get("url"),
             "matched_keywords": ",".join(r.get("_kw", [])),
+            "description": r.get("description"),
+            "contact": r.get("contact"),
+            "country": r.get("country"),
+            "region": r.get("region"),
+            "flags": ",".join(r.get("flags") or []) or None,
+            "pref_tier": r.get("pref_tier"),
         })
-    jobs.sort(key=lambda j: (j["deadline_dt"] is None, j["deadline_dt"] or ""))
+    jobs.sort(key=lambda j: (
+        j.get("pref_tier", 99), j["deadline_dt"] is None, j["deadline_dt"] or ""
+    ))
     return jobs, stats
 
 

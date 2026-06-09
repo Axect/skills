@@ -32,9 +32,11 @@ boards use overlapping integer ids, so everything is keyed by `(source, id)`.
 | Intent | Command | Reference |
 |--------|---------|-----------|
 | Show / edit field presets | `ajo config [...]` | `references/presets.md` |
-| Fetch current open postings | `ajo fetch [--preset N \| --keyword K] [--source ajo\|inspire\|both]` | `references/fetch.md` |
+| Fetch current open postings | `ajo fetch [--preset N \| --keyword K] [--source ajo\|inspire\|both] [--preferred TIERS] [--excluded LIST] [--detail-cap N]` | `references/fetch.md` |
 | Show stored postings | `ajo list [--valid] [--new] [--source S]` | `references/schema.md` |
-| Inspect one posting | `ajo show {id} [--source ajo\|inspire]` | `references/fetch.md` |
+| Inspect one posting (stored-first) | `ajo show {id} [--source ajo\|inspire] [--refresh]` | `references/fetch.md` |
+| Fetch missing detail bodies | `ajo enrich [--source ajo\|inspire] [--detail-cap N] [--include-expired]` | `references/fetch.md` |
+| Emit curation skeleton | `ajo report [--source S] [--preferred TIERS] [--excluded LIST] [--out PATH]` | `references/curation.md` |
 | Mark postings as seen | `ajo mark-seen --all` | `references/fetch.md` |
 | Drop expired postings | `ajo prune` | `references/schema.md` |
 
@@ -50,6 +52,29 @@ where `<skill-dir>` is the directory containing this file. Add `--json` to any c
 when you (Claude) need to post-process the output; the default is a human table.
 
 First run auto-creates the data dir, the SQLite DB, and a default `physics-ml` preset.
+
+## Curation rule (read before writing a report)
+
+Before writing any postings report, you must deep-read every posting via `ajo show {id}`. After
+`ajo fetch` or `ajo enrich`, full description bodies are stored in the DB, so `ajo show` reads
+locally (no extra network calls). Never judge a posting from its title or keyword match alone.
+
+Every posting in a report must fill the mandatory 10-field schema:
+
+1. 직급/seniority
+2. 기관, 그룹, 국가
+3. 연구주제, PI
+4. 자격/eligibility
+5. 기간, 급여, 시작일
+6. 마감 체계 (hard/rolling/etc.)
+7. 지원 서류
+8. fit 근거 + 등급
+9. 신빙성/주의 플래그
+10. 출처 URL
+
+Use `ajo report` to generate a skeleton with data-backed fields pre-filled and blank placeholders
+for judgment fields. The full procedure is in `references/curation.md`. Reports are saved to
+`~/Dropbox/AJO/AJO_YYYY-MM-DD.md` in Korean.
 
 ## Core behaviour you must understand
 
@@ -90,11 +115,18 @@ All state lives under `~/.local/share/academic-jobs/` (override with `AJO_DATA_D
 - `config.toml` — field presets
 
 ### Typical flow for "show me current openings"
-1. `ajo fetch --json` (uses the default preset; fetches details; stores + flags new).
-2. Render the returned `jobs` as a table sorted by deadline ascending. Surface postings with
-   `"new": true` first or in a separate "New since last check" group.
+1. `ajo fetch --json [--preferred "KR,DE; JP,HK,GB,US"] [--excluded "IN,IL"] [--detail-cap 80]`
+   (uses the default preset; fetches details up to `--detail-cap`; stores + flags new).
+   Pass `--preferred`/`--excluded` to override the preset for this run without saving.
+   If AJO has more candidates than `--detail-cap`, the run is truncated; run `ajo enrich` in
+   a follow-up pass to capture the remaining detail bodies politely.
+2. Render the returned `jobs` as a table sorted by `pref_tier` then deadline. Surface postings
+   with `"new": true` first or in a separate "New since last check" group.
 3. After presenting, if the user has reviewed them, run `ajo mark-seen --all` so the next
    fetch only flags genuinely new postings.
+4. To inspect one posting: `ajo show {id} [--source ajo|inspire]`. It reads the stored row
+   (including the cached description body) first; it only hits the network when the row is
+   missing, has no stored body, or `--refresh` is given. A live fetch is written back to the DB.
 
 ### Output formatting
 - Sort by deadline ascending; show source, deadline, position type, title, institution, and
@@ -104,16 +136,39 @@ All state lives under `~/.local/share/academic-jobs/` (override with `AJO_DATA_D
   it is fine to interleave both boards by deadline; flag the source on each row.
 - When emitting a structured data table back to the user, prefer **TOON** over JSON
   (per the user's global preference): declare fields once, stream rows.
+- Each output row now carries `country` (ISO 2-letter code), `region`, `flags`, and
+  `pref_tier` (integer; 0 = top tier, higher = lower preference, null = not in any tier).
+  Results are sorted first by `pref_tier` ascending, then by deadline ascending within each
+  tier. Surface `pref_tier` and `country` when presenting results so the user can see the
+  preference grouping at a glance.
 - Per-board stats live under `stats.per_source` in the JSON. `--fast` runs and any AJO
-  detail-fetch cap truncation are reported there. Never present a truncated run as complete;
-  mention how many candidates were judged per board.
+  detail-fetch cap truncation are reported there. Each board entry also includes an `excluded`
+  count (postings dropped by `excluded_countries`). The AJO entry additionally reports
+  `detail_cap` (the cap used for that run). Never present a truncated run as complete; mention
+  how many candidates were judged per board and whether the detail cap was hit.
 
 ### Presets
 A preset bundles `keywords` (each runs a separate search per board, results deduped) plus
-optional `position_types` and `countries` substring filters, and a `sources` list selecting
-which boards to search (default both). Edit with
+optional `position_types`, `countries`, `sources`, `preferred_countries`, and
+`excluded_countries` fields. Edit with
 `ajo config --set-preset NAME --keywords a,b --types postdoc --sources ajo,inspire`. See
 `references/presets.md`.
+
+- `countries` (unchanged): hard INCLUDE substring filter matched against the institution string.
+  Only postings whose institution matches are kept.
+- `preferred_countries`: ordered list of tiers; each tier is a list of selectors. Tier 0 is
+  most preferred. This is a soft filter: it only reorders results (never drops). TOML example:
+  `preferred_countries = [["KR", "DE"], ["JP", "HK", "GB", "US"]]`. Set via CLI:
+  `ajo config --set-preset NAME --preferred "KR,DE; JP,HK,GB,US"` (`;` separates tiers,
+  `,` separates entries within a tier). Displayed in `ajo config` as
+  `[KR, DE] > [JP, HK, GB, US]`.
+- `excluded_countries`: flat list of selectors. Hard filter: matching postings are dropped at
+  fetch time. TOML example: `excluded_countries = ["IN", "IL", "Middle East"]`. Set via
+  `ajo config --set-preset NAME --excluded "IN,IL,Middle East"`.
+- Selectors for both `preferred_countries` and `excluded_countries` accept: an ISO 2-letter
+  code (`"KR"`), a country name (`"Korea"`), or a region alias (`"Europe"`, `"Asia"`,
+  `"North America"`, `"Middle East"`, `"EU"`, `"APAC"`, `"MENA"`).
+- `position_types` and `sources` work as before.
 
 ### Etiquette
 The CLI uses one polite session per board with a real User-Agent and small delays between
