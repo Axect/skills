@@ -33,7 +33,16 @@ The user's command language wins; the source paper's language is only a fallback
 Render every mathematical expression as LaTeX so it displays correctly in
 Markdown viewers (Typora, the PDF export, GitHub with math, etc.).
 
-- Inline math: `$...$`. Display equations: `$$...$$`.
+- Inline math: `$...$`. Display equations use **block form** with the `$$`
+  delimiters on their own separate lines, never `$$...$$` on a single line:
+
+  ```
+  $$
+  <equation>
+  $$
+  ```
+
+  This holds inside list items too (indent the `$$` lines to match the item).
 - Variables, symbols, units with powers/subscripts, and numeric ranges are math:
   - write `$10^{17}$--$10^{23}\,\mathrm{g}$`, not `10^17-10^23 g`
   - write `$M_\odot$`, not `M_sun`
