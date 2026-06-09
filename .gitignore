@@ -19,6 +19,7 @@ __pycache__/
 # Skill run outputs (paperbanana generations, adversarial-review reports,
 # research-report artifacts) — intentionally local.
 outputs/
+journal-club-review/reviews/
 
 # Failure archive is intentionally tracked in history — see commit-triage skill.
 !failure/
