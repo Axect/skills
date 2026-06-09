@@ -340,6 +340,7 @@ def search_valid(
             deadline_raw = f"listed until {eff.strftime('%Y/%m/%d')}"
         jobs.append({
             "id": r["id"],
+            "source": "ajo",
             "code": r.get("code"),
             "title": r.get("title"),
             "institution": r.get("institution"),
