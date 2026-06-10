@@ -17,6 +17,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; Korean output is mirrored to `~/Dropbox/Magi/<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
+| `hep-rumor-mill` | Analyze the HEP-theory postdoc rumor mill (a public Google Sheet) via the `prm` CLI: pull a year's offer list, resolve each offer-holder's InspireHEP record (plus OpenAlex by ORCID and Semantic Scholar by name for interdisciplinary people), and study what kind of profile lands where. Institute cohort profiles and self-benchmarking against the accepted cohort, with Korean report output. State in a local SQLite store under `~/.local/share/hep-rumor-mill/`. Self-reported data, treated as descriptive not predictive. | `hep-rumor-mill/SKILL.md` | `uv` (the bundled `prm` uv project auto-installs `requests` on first `uv run`) |
 | `journal-club-review` | Turn an arXiv id/URL, a PDF, or raw text into a journal-club paper presentation (nine sections: TL;DR, The Problem, Key Idea, How It Works, Key Results, Why It Matters, Strengths/Limitations/Open Questions, Discussion Questions, Takeaways) meant to help a reading group understand and discuss a paper, not produce a referee report. LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures (method + results). | `journal-club-review/SKILL.md` | `uv` (extractor deps auto-installed via PEP 723); logged-in bundled `codex` for figures (optional) |
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
@@ -98,6 +99,16 @@ Requires a Dropbox app and OAuth credentials stored at `~/.config/dropbox-skill/
   ```
   The script prompts for your app key, app secret, and an authorization code from the Dropbox OAuth URL.
   Required app permissions: `files.content.write`, `files.content.read`, `sharing.write`, `sharing.read`.
+
+### hep-rumor-mill
+
+Requires `uv` on `PATH`. The skill bundles a small uv project (`prm`); `uv run --project <skill-dir> prm …` auto-installs its one dependency (`requests`) into an isolated environment on first run. No API keys.
+
+- Public, no-auth data sources: the rumor-mill Google Sheet (CSV export), the InspireHEP author + literature REST API (primary record, keyed off the recid the sheet links per person), OpenAlex (cross-disciplinary augmentation by ORCID, for everyone), the ORCID public API (author-claimed work list, used to rescue people whose OpenAlex ORCID cluster is conflated), and Semantic Scholar (name-based fallback when a person has no ORCID).
+- State lives under `~/.local/share/hep-rumor-mill/rumor.db`; override with the `PRM_DATA_DIR` env var. `prm fetch` stores the year's entries, `prm enrich` resolves records and is resumable (`--limit N` caps a run, re-run to continue).
+- Two data-quality guards are built in and surfaced, not hidden: large-collaboration inflation (`n_large_collab`, InspireHEP papers with > 50 authors) and OpenAlex author-conflation (a shared-name ORCID cluster is dropped when contaminated with distant-field works). The rumor mill is self-reported and incomplete; the analysis is descriptive, never predictive.
+- The CLI paces InspireHEP requests and OpenAlex paging; Semantic Scholar rate-limits hard and is used for the no-ORCID author fallback and arXiv-only citation backfill. Optional: set `S2_API_KEY` (same env var `reference-search` uses) to raise the Semantic Scholar limit and make citation backfill reliable; unauthenticated works but is best-effort. Do not parallelise or hammer the APIs.
+- See `hep-rumor-mill/references/`: `sheets.md`, `metrics.md`, `analysis.md`, `schema.md`.
 
 ### wide-slide-illustrator
 
@@ -306,6 +317,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (Korean output mirrored to Dropbox).
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
+- Choose `hep-rumor-mill` to study the HEP-theory postdoc job market from the rumor mill: who got offers at which institutions, the publication profiles of the people who got them (citations, papers, venues, subfield, PhD-age, named fellowships, with OpenAlex cross-disciplinary augmentation for interdisciplinary candidates), and how your own InspireHEP profile sits against the accepted cohort. Self-reported data, descriptive not predictive.
 - Choose `journal-club-review` to turn an arXiv id/URL, a PDF, or raw text into a journal-club presentation (nine sections from TL;DR to Takeaways) meant to help a reading group understand and discuss a paper, with LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures. Use `workshop-paper-review` instead for an OpenReview referee report, or `adversarial-review` for a hostile pre-submission audit.
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
@@ -333,6 +345,7 @@ skills/
 ├── commit-triage/
 ├── concept-explainer/
 ├── dropbox/
+├── hep-rumor-mill/
 ├── journal-club-review/
 ├── md2pdf-typora/
 ├── morgen/
