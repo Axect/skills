@@ -98,7 +98,7 @@ When the user is drafting or revising a report:
    - `--source {auto|inspire|openalex|semscholar|all}`: force a source.
    - `--min-coverage 0`: disable the noise filter (useful when query is very short).
    - `--topic-id Txxxx`: pass an OpenAlex topic ID directly (repeatable).
-   - `--email ax2ct@outlook.com`: polite-pool User-Agent for OpenAlex / Semantic Scholar.
+   - `--email you@example.com`: polite-pool User-Agent for OpenAlex / Semantic Scholar.
    - `--format json`: structured output for downstream tools (see `bibtex-gen` below).
 
 4. **Broaden when results are sparse**
