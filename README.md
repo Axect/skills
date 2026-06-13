@@ -26,6 +26,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
 | `proton-mail` | Read and search Proton Mail through a locally running Proton Bridge (read-only IMAP over STARTTLS on 127.0.0.1); does not send, delete, or move messages | `proton-mail/SKILL.md` | Proton Bridge running locally + `~/.proton-imap` credentials file (chmod 600) |
 | `reference-search` | Search and curate academic references via domain-aware routing across InspireHEP, OpenAlex, and Semantic Scholar for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python; optional `S2_API_KEY` env var) |
+| `research-backup` | Mirror untracked research report directories (`outputs/`, `results/`, `report(s)/`) into the locally synced Dropbox folder with rsync, preserving the `<category>/<project>` layout so same-named projects never collide. `discover.sh` scans for candidate directories git does not track (ignored / untracked / outside any repo) and a registry under `~/.config/research-backup/` keeps the backup set explicit; backups are additive (no `--delete`), so local deletions never propagate. | `research-backup/SKILL.md` | `rsync` + the official Dropbox client syncing `~/Dropbox` locally |
 | `research-log` | Register projects and record decisions; surfaces the lesson/rule corpus at decision time (check step warns against past anti-patterns) and on cross-project recall when stuck | `research-log/SKILL.md` | `~/.research/` workspace (auto) |
 | `research-portal` | Build and manage a local MkDocs Material research portal over a folder of Typora/markdown notes: project-grouped sidebar via mkdocs-literate-nav, full LaTeX rendering via MathJax 3, and safe project tagging/renaming that repairs image links | `research-portal/SKILL.md` | `uv`; mkdocs-material and mkdocs-literate-nav are auto-installed by the scaffold script |
 | `research-report` | Create or revise structured research and experiment reports with plots, manifests, and validation helpers | `research-report/SKILL.md` | None (stdlib Python) |
@@ -236,6 +237,15 @@ No external setup required. Uses Python standard library only and queries Inspir
 - Optional: set `S2_API_KEY` env var to raise Semantic Scholar rate limits (unauthenticated works but is rate-limited).
 - Helper script: `reference-search/scripts/reference_search.py`.
 
+### research-backup
+
+Requires `rsync` and the official Dropbox client syncing a local folder (default destination: `~/Dropbox/ResearchBackup/`). No API keys: the skill only writes files under the synced folder and the daemon uploads them.
+
+- Config and registry live under `~/.config/research-backup/` (`config` + `registry`), both auto-created with defaults on first run; override the directory with `RESEARCH_BACKUP_CONFIG_DIR`.
+- Defaults: `SCAN_ROOT="$HOME/Documents/Project"`, `BACKUP_ROOT="$HOME/Dropbox/ResearchBackup"`, `DIR_NAMES="outputs results report reports"`. Add rsync exclude patterns via `RSYNC_EXCLUDES` (e.g. `"*.ckpt wandb"`).
+- Workflow: `discover.sh` scans and classifies candidates (NEW / REGISTERED / TRACKED / MISSING; git-tracked directories are never registered), `discover.sh --register` appends the NEW ones, `backup.sh --dry-run --all` previews, `backup.sh --all` (or a path filter like `backup.sh MyProject`) syncs.
+- Backups are additive by design: no `--delete` is ever passed, so files removed locally remain in Dropbox.
+
 ### research-log
 
 No external setup required. The skill creates and manages `~/.research/` on first use. The redesign shifts focus from a write-heavy diary to an advisor: a `check` step surfaces relevant past lessons and rules before a decision, and a `recall` step surfaces cross-project findings when you are stuck. The workspace still holds per-project decision entries and session state.
@@ -326,6 +336,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 - Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
 - Choose `proton-mail` to search or read Proton Mail messages and threads through a locally running Proton Bridge, useful for retrieving paper notifications, calendar invites, or collaboration emails without leaving the terminal.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
+- Choose `research-backup` to back up the untracked `outputs/` / `results/` / `report(s)/` directories of your research projects into the locally synced Dropbox folder, organized as `<category>/<project>` so nothing collides. Additive rsync mirroring, no API calls. Choose `dropbox` instead for one-off file upload/download/share through the API.
 - Choose `research-log` to register projects, record decisions, check past lessons before committing to a new approach (the `check` step warns against known anti-patterns), or recall cross-project findings when stuck (the `recall` step).
 - Choose `research-portal` to build a browsable, math-rendered MkDocs Material site over a folder of existing Typora/markdown notes without modifying the originals.
 - Choose `research-report` for generating or revising structured report artifacts from research or experiment outputs.
@@ -354,6 +365,7 @@ skills/
 ├── paperbanana/
 ├── proton-mail/
 ├── reference-search/
+├── research-backup/
 ├── research-log/
 ├── research-portal/
 ├── research-report/

@@ -19,6 +19,7 @@ Current skill directories in this repository:
 - `commit-triage`
 - `concept-explainer`
 - `dropbox`
+- `hep-rumor-mill`
 - `journal-club-review`
 - `md2pdf-typora`
 - `morgen`
@@ -27,6 +28,7 @@ Current skill directories in this repository:
 - `paperbanana`
 - `proton-mail`
 - `reference-search`
+- `research-backup`
 - `research-log`
 - `research-portal`
 - `research-report`
@@ -87,7 +89,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -135,7 +137,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -188,6 +190,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── commit-triage/
 ├── concept-explainer/
 ├── dropbox/
+├── hep-rumor-mill/
 ├── journal-club-review/
 ├── md2pdf-typora/
 ├── morgen/
@@ -196,6 +199,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── paperbanana/
 ├── proton-mail/
 ├── reference-search/
+├── research-backup/
 ├── research-log/
 ├── research-portal/
 ├── research-report/
@@ -285,6 +289,18 @@ Requires `matplotlib` and `scienceplots` in the runtime that executes the genera
    ```bash
    test -f ~/.config/dropbox-skill/credentials.json && echo "dropbox: ready"
    ```
+
+### hep-rumor-mill: uv (deps auto-installed)
+
+Requires `uv` on `PATH`; no API keys or credentials. The skill bundles a uv project (`prm`) whose single dependency (`requests`) is auto-installed into an isolated environment on first `uv run`.
+
+- Smoke-test the CLI:
+  ```bash
+  uv run --project "$REPO/hep-rumor-mill" prm --help
+  ```
+- State lives under `~/.local/share/hep-rumor-mill/rumor.db`; override with `PRM_DATA_DIR`.
+- Optional: set `S2_API_KEY` (same env var `reference-search` uses) to raise the Semantic Scholar rate limit and make citation backfill reliable.
+- The CLI paces InspireHEP and OpenAlex requests by design. Do not parallelise.
 
 ### journal-club-review: uv (+ optional codex for figures)
 
@@ -432,6 +448,21 @@ Requires a locally running Proton Bridge instance and a credentials file.
 Runs entirely on the Python standard library against the public OpenAlex API.
 
 - Optional: pass `--email you@example.com` to `reference-search/scripts/openalex_search.py` to use OpenAlex's polite pool.
+
+### research-backup: rsync + locally synced Dropbox folder
+
+Requires `rsync` on `PATH` and the official Dropbox client syncing a local folder on this machine. No API keys or credentials: the skill only writes files under the synced folder (default `~/Dropbox/ResearchBackup/`) and the daemon uploads them.
+
+- Verify the prerequisites:
+  ```bash
+  command -v rsync && test -d ~/Dropbox && echo "research-backup: ready"
+  ```
+- Config and registry are auto-created under `~/.config/research-backup/` on first run; override the directory with `RESEARCH_BACKUP_CONFIG_DIR`. Defaults: `SCAN_ROOT="$HOME/Documents/Project"`, `BACKUP_ROOT="$HOME/Dropbox/ResearchBackup"`.
+- Smoke-test (read-only scan, prints a `STATE GIT PATH` table):
+  ```bash
+  bash "$REPO/research-backup/scripts/discover.sh"
+  ```
+- Backups are additive (`rsync` without `--delete`); local deletions never propagate to Dropbox.
 
 ### research-log — workspace auto-created
 

@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-06-13
+
+### Added
+- Added the `research-backup` skill for backing up the report directories research projects keep outside git (`outputs/`, `results/`, `report/`, `reports/`) into the locally synced Dropbox folder. The skill writes under `BACKUP_ROOT` (default `~/Dropbox/ResearchBackup/`) with `rsync` and lets the Dropbox daemon handle the upload, so no API credentials are involved; sources are mirrored relative to `SCAN_ROOT` (default `~/Documents/Project`), preserving the `<category>/<project>/<dir>` layout so same-named projects in different categories never collide. `scripts/discover.sh` scans for candidate directories and classifies each against git (`ignored` / `untracked` / `no-git` are candidates; directories with git-tracked files are reported as `TRACKED` and never registered), comparing the result with a registry at `~/.config/research-backup/registry`; `--register` appends the new candidates. `scripts/backup.sh` syncs registry entries (all of them via `--all`, or a case-insensitive path-substring filter), with `--dry-run` as the status/preview mode. Backups are deliberately additive: `--delete` is never passed, so files removed locally stay in Dropbox, and the SKILL.md forbids adding it without explicit user confirmation. Config (`SCAN_ROOT`, `BACKUP_ROOT`, `DIR_NAMES`, `RSYNC_EXCLUDES`) and registry are auto-created on first run; `RESEARCH_BACKUP_CONFIG_DIR` overrides the location for testing. Entry point: `research-backup/SKILL.md`. Requires `rsync` plus the official Dropbox client syncing this machine. Distinct from the `dropbox` skill, which does one-off file upload/download/share through the HTTP API.
+
+### Changed
+- Updated `README.md` across the four standard touchpoints (skill table, "Skill requirements & setup" section, "Which skill to use?" picker, directory tree) and `CLIENT_SETUP.md` across its five touchpoints (skill directory list, Claude Code and Codex install loops, Forge Option 2 tree, per-skill prerequisites section) to cover `research-backup`. Also backfilled `hep-rumor-mill` into all five `CLIENT_SETUP.md` touchpoints, where it had been missing since the skill was added.
+
 ## 2026-06-09
 
 ### Changed
