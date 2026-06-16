@@ -14,6 +14,7 @@ Some skills also include helper assets such as:
 Current skill directories in this repository:
 
 - `academic-jobs`
+- `academic-slides`
 - `adversarial-review`
 - `bibtex-gen`
 - `commit-triage`
@@ -89,7 +90,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -137,7 +138,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -185,6 +186,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ```text
 /absolute/path/to/skills/
 ├── academic-jobs/
+├── academic-slides/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/
@@ -232,6 +234,18 @@ Requires `uv` on `PATH`; no API keys or credentials. The skill bundles a uv proj
 - State lives under `~/.local/share/academic-jobs/` (`jobs.db` + `config.toml`); override with `AJO_DATA_DIR`.
 - Validity is judged from each posting's detail page (effective deadline = firm `Appl Deadline`, else `listed until`). `--fast` skips detail pages but misses many valid postings; prefer the default.
 - The CLI is polite by design (single session, real User-Agent, inter-request delay, per-run detail-fetch cap). Do not parallelise.
+
+### academic-slides: Node + pnpm (Slidev) + matplotlib/scienceplots/TeX
+
+Two toolchains. Slidev (Node) builds and exports the deck; the scienceplots pipeline (Python) renders the figures. No API keys.
+
+- Install Node.js and `pnpm`. From a deck folder, `pnpm install`, then `pnpm exec playwright install chromium` (Chromium is used only by `slidev export` for the PDF).
+- Figures need `matplotlib` + `scienceplots` and a system TeX distribution on `PATH`:
+  ```bash
+  uv add matplotlib scienceplots numpy
+  pdflatex --version
+  ```
+- If `pnpm install` leaves `esbuild` / `vue-demi` unbuilt, run `pnpm rebuild esbuild vue-demi`; if `slidev export` prompts for a theme, `pnpm add @slidev/theme-default`.
 
 ### adversarial-review — no setup required
 

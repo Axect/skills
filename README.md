@@ -12,6 +12,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | Skill | Primary use | Entry point | External setup |
 |---|---|---|---|
 | `academic-jobs` | Fetch valid (still-open, deadline-not-passed) academic job postings from Academic Jobs Online (AJO) and the InspireHEP jobs board via the `ajo` CLI: searches both boards by the same field presets (keywords + position-type + country filters + which sources), fetches and stores postings judged valid from their effective deadline, flags what is new since the last check, and inspects a posting. Postings keyed by `(source, id)` in a local SQLite store under `~/.local/share/academic-jobs/`. | `academic-jobs/SKILL.md` | `uv` (the bundled `ajo` uv project auto-installs `requests` + `beautifulsoup4` on first `uv run`) |
+| `academic-slides` | Scaffold a clean, modern academic presentation deck (Slidev) from a fixed design system: house style (IBM Plex Sans + Inter + IBM Plex Mono), deep-blue gradient section dividers, figure-card / step-card / minimal-table layouts, plus a scienceplots figure pipeline (`science`+`nature`, no in-figure titles) and the battle-tested mdc-math / footer / layout rules that keep the recurring Slidev rendering bugs from coming back. | `academic-slides/SKILL.md` | Node.js + `pnpm` (Slidev + playwright-chromium for PDF export); Python + `matplotlib` + `scienceplots` + system TeX for figures |
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
@@ -56,6 +57,15 @@ Requires `uv` on `PATH`. The skill bundles a small uv project (`ajo`); `uv run -
 - AJO validity is judged from each posting's **detail page** (effective deadline = firm `Appl Deadline` if present, else the `listed until` date), not the list page; `--fast` skips AJO detail pages but misses many valid postings. InspireHEP is queried with `status=open` and uses the structured `deadline_date` directly (no detail fetch, `--fast` does not apply).
 - The CLI uses one polite session per board with a real User-Agent, a small inter-request delay, and a per-run AJO detail-fetch cap (reported under `stats.per_source`). Do not parallelise or hammer either board.
 - See `academic-jobs/references/`: `fetch.md`, `presets.md`, `schema.md`.
+
+### academic-slides: Node + pnpm (Slidev) + matplotlib/scienceplots/TeX
+
+Two toolchains: Slidev (Node) builds and exports the deck, and the scienceplots pipeline (Python) renders the figures. No API keys.
+
+- Slidev runs from the deck folder via `pnpm`: `pnpm install`, then `pnpm exec playwright install chromium` (Chromium is needed only by `slidev export` for the PDF). If the `esbuild` / `vue-demi` build scripts are blocked, `pnpm rebuild esbuild vue-demi`; if the default theme is missing at export, `pnpm add @slidev/theme-default`.
+- Figures need `matplotlib` + `scienceplots` and a system TeX install (real LaTeX, never `no-latex`); verify with `pdflatex --version`.
+- The design system (`style.css`, `global-top.vue`, `global-bottom.vue`, `package.json`, `deck_style.py`) is copied verbatim into each deck; do not restyle ad hoc.
+- See `academic-slides/references/`: `design-system.md`, `gotchas.md`, `figures.md`, `build-verify.md`.
 
 ### adversarial-review
 
@@ -322,6 +332,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 ## Which skill to use?
 
 - Choose `academic-jobs` to pull current, still-open academic job postings (postdoc / faculty / PhD) from Academic Jobs Online **and the InspireHEP jobs board** (searched together by default), filtered to postings whose application deadline has not passed, with field presets and "new since last check" tracking.
+- Choose `academic-slides` to build a polished academic talk deck (Slidev) for a paper, result, or project: a consistent house style with section dividers, figure-card and step-card layouts, a scienceplots figure pipeline, and the mdc-math / footer / layout rules baked in so the usual Slidev rendering traps never resurface.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
@@ -351,6 +362,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 ```text
 skills/
 ├── academic-jobs/
+├── academic-slides/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/

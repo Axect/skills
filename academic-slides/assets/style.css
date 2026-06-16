@@ -1,0 +1,260 @@
+/* ============================================================
+   Modern academic design system (IBM Plex Sans + Inter)
+   ============================================================ */
+:root {
+  --ink: #101b33;
+  --ink-soft: #33415c;
+  --muted: #7c879b;
+  --accent: #2f5cc7;
+  --accent-deep: #1c3c84;
+  --accent-soft: #eaf0fb;
+  --green: #0c7a42;
+  --red: #c92518;
+  --amber: #99650a;
+  --line: #e7ebf2;
+  --bg: #ffffff;
+}
+
+/* ---- base ---- */
+.slidev-layout {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--ink-soft);
+  background: var(--bg);
+  padding: 2.7rem 3.8rem 3.9rem;
+  line-height: 1.55;
+  --slidev-code-font-size: 0.8em;
+}
+
+/* ---- headings ---- */
+.slidev-layout h1 {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  font-size: 2.05rem;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  line-height: 1.08;
+  margin-bottom: 1.15rem;
+}
+/* Default theme fades the first paragraph after an h1 (subtitle opacity); cancel it
+   so a `<p class="lead">` directly under the title is full-strength, not washed out. */
+.slidev-layout h1 + p { margin-top: -0.3rem; opacity: 1; }
+.slidev-layout:not(.is-cover):not(.is-section) h1 + p { color: var(--ink-soft); }
+.slidev-layout:not(.is-cover):not(.is-section) h1 + p.lead { color: var(--ink); }
+/* accent tick under content-slide h1 */
+.slidev-layout:not(.is-cover):not(.is-section) h1::after {
+  content: "";
+  display: block;
+  width: 2.4rem;
+  height: 3px;
+  margin-top: 0.7rem;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), #5b8def);
+}
+.slidev-layout h2 {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  color: var(--accent-deep);
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+.slidev-layout h3 {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+/* ---- kicker eyebrow ---- */
+.kicker {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 0.55rem;
+}
+
+/* ---- body ---- */
+.slidev-layout p,
+.slidev-layout li {
+  font-size: 0.96rem;
+  color: var(--ink-soft);
+}
+.slidev-layout .lead { font-size: 1.12rem; color: var(--ink); line-height: 1.45; font-weight: 600; }
+.slidev-layout strong { color: var(--ink); font-weight: 700; }
+.slidev-layout em { color: var(--accent); font-style: normal; font-weight: 700; }
+.slidev-layout ul { margin: 0.4rem 0; padding-left: 1.1rem; }
+.slidev-layout li { margin: 0.4rem 0; padding-left: 0.15rem; }
+.slidev-layout ul li::marker { color: var(--accent); }
+.slidev-layout .muted { color: var(--muted); }
+.slidev-layout .tiny { font-size: 0.74rem; line-height: 1.4; }
+.slidev-layout .cite { font-size: 0.82em; color: var(--muted); font-weight: 400; }
+.slidev-layout .cite strong { font-size: inherit; color: var(--muted); font-weight: 600; }
+.slidev-layout .figcite { font-size: 0.6rem; color: var(--muted); font-weight: 400; line-height: 1.3; }
+.slidev-layout .ok { color: var(--green); font-weight: 700; }
+.slidev-layout .bad { color: var(--red); font-weight: 700; }
+.slidev-layout .warn { color: var(--amber); font-weight: 700; }
+
+/* ---- tables: minimal modern ---- */
+.slidev-layout table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.1rem 0;
+  font-size: 0.85rem;
+}
+.slidev-layout th {
+  text-align: left;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--ink);
+  padding: 0.55rem 0.95rem;
+}
+/* Header uppercase must NOT transform rendered KaTeX glyphs (e.g. xi -> Xi). */
+.slidev-layout th .katex,
+.slidev-layout th .katex * { text-transform: none; }
+.slidev-layout td {
+  padding: 0.55rem 0.95rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.slidev-layout tbody tr:last-child td { border-bottom: none; }
+.slidev-layout tbody tr:hover { background: var(--accent-soft); }
+
+/* ---- figures ---- */
+.slidev-layout img {
+  border-radius: 10px;
+}
+.fig-card { display: flex; justify-content: center; align-items: center; }
+.fig-card img {
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 34px -16px rgba(20, 40, 90, 0.34);
+  background: #fff;
+  max-height: 300px;
+  max-width: 100%;
+  width: auto;
+}
+.fig-wide img {
+  max-height: 300px;
+  max-width: 100%;
+  width: auto;
+  display: block;
+  margin: 0.3rem auto;
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 34px -16px rgba(20, 40, 90, 0.34);
+}
+/* full-width wide figures (aspect >= ~1.7): fill the slide width, cap height */
+.fig-full { display: flex; justify-content: center; align-items: center; }
+.fig-full img {
+  max-width: 100%;
+  max-height: 290px;
+  width: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 34px -16px rgba(20, 40, 90, 0.34);
+}
+.fig-cap {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 0.5rem;
+  letter-spacing: 0.02em;
+}
+.two-col-img { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; align-items: center; }
+.two-col-img img { max-height: 300px; max-width: 100%; width: auto; margin: 0 auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 28px -16px rgba(20,40,90,0.3); }
+
+/* callout box (math renders because the styling lives in a class, not a raw block div) */
+.callout {
+  border-left: 4px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  color: var(--ink);
+  font-size: 1.1rem;
+}
+/* step cards (logical-chain rows in a grid; math renders inside the grid cells) */
+.step-card {
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 10px;
+  padding: 0.8rem 0.9rem;
+  font-size: 0.92rem;
+}
+.step-card strong:first-child {
+  display: block;
+  color: var(--accent-deep);
+  font-family: 'IBM Plex Sans', sans-serif;
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.01em;
+}
+
+/* ---- cover + section: deep gradient ---- */
+.is-cover,
+.is-section {
+  background: radial-gradient(125% 125% at 0% 0%, #244a96 0%, #163571 52%, #0b2350 100%) !important;
+  color: #cfdcf2;
+  padding: 3.6rem 4.2rem;
+}
+.is-cover h1,
+.is-section h1 {
+  color: #ffffff;
+  font-size: 2.9rem;
+  letter-spacing: -0.028em;
+  line-height: 1.04;
+}
+.is-cover h1::after,
+.is-section h1::after { display: none; }
+.is-cover .kicker,
+.is-section .kicker { color: #8fb4ee; }
+.is-cover p,
+.is-section p { color: #b9cdec; }
+.is-cover .lead,
+.is-section .lead { color: #d8e6f8; font-weight: 500; }
+.is-cover strong,
+.is-section strong { color: #fff; }
+
+/* ---- cover author block ---- */
+.is-cover .author { font-size: 1.0rem; line-height: 1.4; }
+.is-cover .author strong { color: #ffffff; font-weight: 600; font-family: 'IBM Plex Sans', sans-serif; }
+.is-cover .author .affil { color: #9fbdea; font-size: 0.86rem; }
+
+/* ---- thin top accent bar (global-top) ---- */
+.deck-topbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #2f5cc7 0%, #5b8def 60%, #79c0d6 100%);
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* ---- footer ---- */
+.deck-footer {
+  position: absolute;
+  bottom: 0.85rem; left: 3.8rem; right: 3.8rem;
+  display: flex; align-items: center; gap: 0.6rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem; letter-spacing: 0.07em;
+  color: #a7b1c2; text-transform: uppercase;
+  z-index: 55;
+  pointer-events: none;
+}
+.deck-footer .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.deck-footer .spacer { flex: 1; }
+
+/* KaTeX sizing harmony */
+.slidev-layout .katex { font-size: 1.02em; }
+
+/* Goto dialog leak fix: this fuse.js returns all slides on an empty query,
+   so the closed (-top-20) dialog renders the full slide list and it hangs
+   into view permanently. The input is disabled only while the dialog is
+   closed, so hide the whole dialog in that state; pressing `g` to open it
+   re-enables the input and restores it. */
+#slidev-goto-dialog:has(#slidev-goto-input:disabled) { display: none !important; }

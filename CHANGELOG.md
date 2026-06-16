@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-06-16
+
+### Added
+- Added the `academic-slides` skill for building clean, modern academic presentation decks with Slidev. It scaffolds a deck folder from a fixed design system (IBM Plex Sans + Inter + IBM Plex Mono, deep-blue gradient section dividers, figure-card / step-card / minimal-table layouts) shipped as verbatim assets (`style.css`, `global-top.vue`, `global-bottom.vue`, `package.json`) plus a shared scienceplots figure helper (`deck_style.py`: `science`+`nature`, no in-figure titles, raw-string LaTeX, one `save()` path). The substance of the skill is four reference docs that front-load the recurring Slidev / mdc / KaTeX / layout traps: math renders only in markdown and never inside raw block HTML, a visible class after trailing math must sit on its own line, `$...$` immediately before a digit fails to close, layout is chosen by figure aspect ratio rather than a blanket 50/50, figure heights are capped so content clears the footer, and a build-and-verify loop exports to PDF then greps for em-dashes and unrendered `$math$` and re-renders changed pages to PNG to eyeball them. Entry point: `academic-slides/SKILL.md`. Requires Node.js + `pnpm` (Slidev, with playwright-chromium for PDF export) and Python + `matplotlib` + `scienceplots` + a system TeX install for the figure pipeline.
+
+### Changed
+- Updated `README.md` across the four standard touchpoints (skill table, "Skill requirements & setup" section, "Which skill to use?" picker, directory tree) and `CLIENT_SETUP.md` across its five touchpoints (skill directory list, Claude Code and Codex install loops, Forge Option 2 tree, per-skill prerequisites section) to cover `academic-slides`.
+
 ## 2026-06-13
 
 ### Added
