@@ -179,7 +179,21 @@ cp -R "$REPO/research-report" ~/forge/skills/research-report
 cp -R "$REPO/vastai" ~/forge/skills/vastai
 ```
 
-#### Option 2: make this repository the active Forge skills collection
+#### Option 2: install the whole collection into `~/forge/skills`
+
+Use this when you want every skill in this repository available in Forge. This mirrors the Claude Code and Codex whole-collection installs, but copies real directories instead of symlinking (Forge may not detect symlinked skill directories).
+
+```bash
+mkdir -p ~/forge/skills
+for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+  rm -rf ~/forge/skills/$skill
+  cp -R "$REPO/$skill" ~/forge/skills/$skill
+done
+```
+
+The per-skill `rm -rf` before `cp -R` ensures a clean overwrite, so an outdated copy is fully replaced rather than merged. This loop only touches the skill names listed above, so any unrelated skill already living in `~/forge/skills` (for example `create-slides` or `pytorch-*`) is left untouched.
+
+#### Option 3: make this repository the active Forge skills collection
 
 Use this when your local Forge setup allows the skill root itself to be configured.
 
@@ -217,6 +231,26 @@ Use this when your local Forge setup allows the skill root itself to be configur
 - Forge behavior still depends on the launcher or wrapper that starts it.
 - If Forge caches the available skills at session start, open a new session after changing `~/forge/skills`.
 - If this repository is already mirrored or copied into `~/forge/skills`, you only need to keep the installed directories up to date.
+
+### Keeping the Forge copy in sync with this repository
+
+Because Forge needs real directories (not symlinks), edits made in this repository do **not** appear in Forge automatically — you must re-copy. The whole-collection loop in Option 2 is idempotent and safe to re-run whenever you change a skill in this repo:
+
+```bash
+REPO=/absolute/path/to/skills
+for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+  rm -rf ~/forge/skills/$skill
+  cp -R "$REPO/$skill" ~/forge/skills/$skill
+done
+```
+
+Verify the copy is current against the repository:
+
+```bash
+diff -rq "$REPO" ~/forge/skills --exclude=.git --exclude=.gitignore
+```
+
+A clean install shows no differences except the repository's own `.git` / `.gitignore`.
 
 ## Per-skill prerequisites
 
@@ -567,4 +601,4 @@ If a skill loads but fails at runtime:
 
 ## Repository maintenance tip
 
-If you are actively developing skills in this repository, keep one canonical checkout. For Claude Code and Codex, symlinking from the client into that checkout can keep updates simple. For Forge, copy the real skill directories into `~/forge/skills` instead of symlinking, because symlinked skills may not be detected.
+If you are actively developing skills in this repository, keep one canonical checkout. For Claude Code and Codex, symlinking from the client into that checkout can keep updates simple. For Forge, copy the real skill directories into `~/forge/skills` instead of symlinking, because symlinked skills may not be detected — re-run the whole-collection copy loop under "Keeping the Forge copy in sync with this repository" after any change.
