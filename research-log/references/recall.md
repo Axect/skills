@@ -36,8 +36,11 @@ searches:
 intent: '<one-sentence description of what the user wants to find>'
 ```
 
-**Fallback (QMD unavailable):** grep over `~/.research/lessons/*.md` (all fields) and
-`~/.research/projects/*/journal.md` for the key terms from the question.
+**Fallback (QMD unavailable):** grep over `~/.research/lessons/*.md` (all fields) and the
+project journals — the active `~/.research/projects/*/journal.md` PLUS every sibling archive
+file (`journal-archive.md`, `journal-*.md`) — for the key terms from the question. Recall
+MUST search active and archived regions together; an entry that lives only in an archive
+file is still a valid hit. (See conventions.md → Archive Rules.)
 
 ### 3. Read Core Documents (if present)
 

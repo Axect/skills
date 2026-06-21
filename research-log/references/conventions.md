@@ -24,7 +24,9 @@ treat it as read-only backup until migration is confirmed; do not write to it.
 │   └── {slug}/
 │       ├── compass.md           # Main Goal / Sub-goals + % / Why / Biggest Risk / current focus
 │       ├── state.md             # Session pointer (overwritten on each save)
-│       └── journal.md           # Decision Log, append-only, newest-first, kept VERBATIM
+│       ├── journal.md           # Decision Log, append-only, newest-first, kept VERBATIM
+│       └── journal-archive.md   # (optional) size-cap overflow, newest-first, verbatim;
+│                                 #   searched alongside journal.md by recall/record/review
 ├── lessons/
 │   └── {lesson-id}.md           # First-class Lesson object (one principle per file)
 ├── wiki/                        # Thesis narratives, concept definitions, method descriptions
@@ -250,10 +252,16 @@ Regenerated whenever a lesson is promoted (during record or review).
 ## Archive Rules
 
 - Trigger: a project's `journal.md` exceeds 30 entries OR 500 lines.
-- Review proposes archiving; the user approves before changes.
-- Entries older than 6 months move to a clearly marked archive region at the bottom of
-  `journal.md` (or a sibling `journal-{year}.md`), preserved verbatim.
-- Queries and recall search both the active and archived regions.
+- Archiving may be proposed at review (user-approved) or performed automatically by a
+  companion extension (e.g. the pi `research-guardrail` extension moves overflow on
+  `session_start` to keep journals cheap to search). Either way entries are preserved
+  verbatim and never deleted.
+- Overflow entries move to a sibling archive file. Supported names: `journal-archive.md`
+  (all-time overflow, newest-first) or `journal-{year}.md`. The active `journal.md` keeps
+  the newest entries; the archive holds the older tail, still newest-first within the batch.
+  (A bottom-of-file archive region inside `journal.md` is also acceptable for small spills.)
+- Queries and recall MUST search the active `journal.md` and every sibling archive file
+  together. An entry that lives only in an archive file is still a valid match.
 - Lessons and rules are never archived.
 
 ## Concurrency

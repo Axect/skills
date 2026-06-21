@@ -91,12 +91,20 @@ review.
 ### 7. Archive management
 
 For each project:
-- Count journal entries and total line count in `journal.md`.
-- If entries > 30 OR lines > 500: propose moving entries older than 6 months to a clearly
-  marked archive region at the bottom of `journal.md` or to a sibling `journal-{year}.md`,
-  preserved verbatim.
-- Apply only after user approval. Lessons and `rules.md` are never archived.
-- After archiving, recall and QMD search must cover both active and archived regions.
+- Count journal entries and total line count in `journal.md`. The size/entry caps below
+  apply to the active `journal.md` only; entries already in a sibling archive file
+  (`journal-archive.md`, `journal-*.md`) are retained for search, not recounted toward
+  the trigger.
+- If entries > 30 OR lines > 500: propose moving the oldest entries to a sibling archive
+  file (`journal-archive.md` for all-time overflow, or `journal-{year}.md`), or to a
+  clearly marked archive region at the bottom of `journal.md` for small spills. Move
+  verbatim, newest-first within the archive.
+- Apply only after user approval (the pi `research-guardrail` extension does this
+  automatically on `session_start` with a git pre/post commit safety net; in that case
+  review should still verify the archive file, not re-trigger). Lessons and `rules.md`
+  are never archived.
+- After archiving, recall and QMD search must cover both active `journal.md` and every
+  sibling archive file (`journal-archive.md`, `journal-*.md`).
 
 ## Reporting
 
