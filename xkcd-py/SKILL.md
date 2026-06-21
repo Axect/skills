@@ -1,22 +1,18 @@
 ---
 name: xkcd-py
 description: >
-  Generate a Python matplotlib plot script that follows the user's mandatory
-  xkcd style — `with plt.xkcd():` context, the `pparam = dict(...)` axis-config
-  pattern, raw-string LaTeX labels, wide xkcd-canvas (`figsize=(10, 6)`), and
-  `dpi=300` savefig. Supports parquet, CSV, and NumPy (`.npy` / `.npz`) data
-  sources, and four plot variants: single line, multi-line + legend, scatter /
-  errorbar, and multi-panel subplots. Produces the `.py` file only — does NOT
-  execute it. The user runs it themselves (typically with `uv run`).
-  Use when the user asks to: write an xkcd-style matplotlib script, draft a
-  hand-drawn / sketch-style figure, plot data in xkcd style from parquet /
-  CSV / `.npy`, scaffold a quick xkcd line / scatter / errorbar / subplot
-  script, or set up an xkcd plot matching their lab template.
-  Triggers on: "xkcd plot", "xkcd matplotlib", "xkcd style", "hand-drawn plot",
-  "sketch plot", "plt.xkcd", "comic style plot",
-  "xkcd 플롯", "xkcd 그래프", "손그림 그래프", "스케치 스타일 플롯",
-  "xkcd 스크립트", "xkcd 코드".
-allowed-tools: Read, Write, Edit, Glob, Grep
+  Generate a Python matplotlib plot script following the user's mandatory xkcd
+  style — `with plt.xkcd():` context, `pparam = dict(...)` axis-config, raw-string
+  LaTeX labels, wide canvas (`figsize=(10, 6)`), `dpi=300` savefig. Supports
+  parquet / CSV / NumPy (`.npy`, `.npz`) and four variants: single line, multi-line
+  + legend, scatter / errorbar, multi-panel subplots. Writes the `.py` only — does
+  NOT execute it; the user runs it (typically `uv run`).
+  Use when asked to write an xkcd-style / hand-drawn / sketch-style matplotlib
+  script, plot data in xkcd style from parquet / CSV / `.npy`, scaffold an xkcd
+  line / scatter / errorbar / subplot script, or match the lab's xkcd template.
+  Triggers on: xkcd plot, xkcd matplotlib, xkcd style, hand-drawn / sketch plot,
+  plt.xkcd, comic-style plot; xkcd 플롯, xkcd 그래프, 손그림 그래프, 스케치
+  스타일 플롯, xkcd 스크립트, xkcd 코드.
 ---
 
 # xkcd-py — Matplotlib Script Generator (xkcd / hand-drawn style)

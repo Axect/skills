@@ -1,7 +1,6 @@
 ---
 name: md2pdf-typora
 description: Convert Markdown to PDF using Typora's Whitey theme via pandoc + Chrome headless, replicating Typora's PDF export appearance
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent
 ---
 
 # Markdown to PDF (Typora-style)

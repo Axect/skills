@@ -1,6 +1,6 @@
 ---
 name: proton-mail
-description: Read and search Proton Mail through the local Proton Bridge (IMAP over STARTTLS on 127.0.0.1). Use when the user mentions Proton Mail, proton-bridge, asks to check/list/search their Proton inbox, read a specific Proton email, or list unread mail. Read-only: it does not send, delete, or move mail. Credentials live at `~/.proton-imap`.
+description: "Read and search Proton Mail through the local Proton Bridge (IMAP over STARTTLS on 127.0.0.1). Use when the user mentions Proton Mail, proton-bridge, asks to check/list/search their Proton inbox, read a specific Proton email, or list unread mail. Read-only: it does not send, delete, or move mail. Credentials live at `~/.proton-imap`."
 ---
 
 # Proton Mail (via Proton Bridge)

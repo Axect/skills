@@ -11,8 +11,6 @@ description: >
   on: Academic Jobs Online, AJO, InspireHEP jobs, Inspire HEP 공고, academic job postings,
   postdoc openings, faculty positions, job listings, valid 공고, 학술 잡, 교수 공고,
   포닥 공고, 채용 공고, 잡 마켓.
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Skill
-user-invocable: true
 ---
 
 # Academic Jobs Skill

@@ -11,8 +11,6 @@ description: >
   job-market strategy report. Triggers on: rumor mill, postdoc rumor, HEP rumor mill, hep-th
   job market, theory postdoc offers, who got offers, offer holders, 루머밀, 포닥 루머,
   잡마켓 분석, 오퍼 받은 사람, 합격자 실적 분석, 포닥 전략, InspireHEP 프로필 분석.
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Skill
-user-invocable: true
 ---
 
 # HEP Rumor Mill Skill
