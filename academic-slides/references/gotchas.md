@@ -69,3 +69,16 @@ Subagent reports describe intent, not reality. After any figure or slide change:
 
 ## 10. Data integrity
 Pull every number from the user's files; never invent. Don't mix model/build versions in one figure (a stale "recovered" point hid in a months-old table and contradicted the rest of the deck until it was overridden with the latest value). When citing, verify published-vs-preprint and the correct first author via CrossRef/WebSearch — a paper "with only an arXiv number" is often already in a journal.
+
+## 11. Inline code (backticks) is invisible unless you override prism.css
+The theme ships `prism.css`, which sets the `--prism-background` of **every** `code` element to a dark editor-panel color. That is correct for a fenced multi-line code block (` ``` `) — a dark panel is expected — but the same rule also hits **inline** `` `code` ``, so backtick tokens render as a black rectangle with charcoal text on top: effectively invisible, on every slide that uses them.
+
+This fails silently: `pdftotext` still extracts the text (so the §1/§3 grep checks pass), and the deck "looks fine" to a text-only review. You only notice by *rendering the page and looking*.
+
+- BAD: a table cell `| opencode | `anomalyco/opencode` |` → the repo path is an unreadable black box.
+- GOOD: the shipped `style.css` overrides inline code (selectors `:not(pre) > code`, and `p/li/td/th > code`) to a light `--accent-soft` chip with `--accent-deep` text. Backticks now read as small blue tags.
+
+**Rule:** never delete the inline-code override block in `style.css` (the one guarded by the `:not(pre) > code` selector). It leaves fenced ``` code blocks dark (correct) and fixes inline code. If you restyle inline code, keep the `:not(pre)` guard or you will turn every code panel black-text-on-black.
+
+**Verify:** render a slide that uses backticks and eyeball it: the tokens must be light-blue chips, not black blocks. A pixel check: a 12×12-tile scan of a backtick-heavy region should show zero tiles with >55% near-black density in the table body (solid-dark tiles there are the broken-chip signature).
+

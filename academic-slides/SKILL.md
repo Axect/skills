@@ -54,5 +54,6 @@ A self-contained folder `outputs/<slug>/` (or a path the user gives) containing:
 5. **Layout by aspect ratio, not 50/50.** Wide figures (w/h ≳ 1.7: 3-panels, P(E) overlays) → full-width `.fig-full` + one line of text below. Square figures (≈1.1–1.5) → `two-cols-header` with `.fig-card` left, text right.
 6. **Footer overlap is structural.** Figure heights are capped in `style.css` (`.fig-card` 300, `.fig-full` 290, `.two-col-img` 300px); a full-width fig + 3+ lines of text still overflows — shrink that image inline (`style="max-height:250px"`) and/or trim text. The footer lives at the bottom ~30px; content must clear it.
 7. **Verify, don't trust** (subagents, your own edits). Re-render and eyeball; grep the PDF.
+8. **Inline code (backticks) is invisible by default.** The theme's `prism.css` paints inline `` `code` `` with its dark code-block background, so every backtick token renders black-on-black. The shipped `style.css` overrides this with a light accent chip (`:not(pre) > code`); **never remove that rule**, and if you restyle, keep the `:not(pre)` guard so fenced ``` code blocks stay dark. Verify by rendering a backtick slide and looking — `pdftotext` will still extract the text, so the grep checks do not catch it.
 
-The `style.css` already ships the `#slidev-goto-dialog` leak fix and `pointer-events:none` on the decorative top-bar/footer — keep them.
+The `style.css` already ships the `#slidev-goto-dialog` leak fix, the inline-code chip fix, and `pointer-events:none` on the decorative top-bar/footer — keep them.

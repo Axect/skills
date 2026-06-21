@@ -252,6 +252,27 @@
 /* KaTeX sizing harmony */
 .slidev-layout .katex { font-size: 1.02em; }
 
+/* Inline code (backticks): keep readable. The theme's prism.css paints
+   inline `code` with the dark --prism-background, so any backtick token
+   renders as an invisible black-on-black block. Override inline code
+   (anything NOT inside a fenced <pre> code block, which is meant to be a
+   dark editor panel) to a light accent chip with readable text.
+   See gotchas §11; do not remove this rule or all inline code vanishes. */
+.slidev-layout :not(pre) > code,
+.slidev-layout p > code,
+.slidev-layout li > code,
+.slidev-layout td > code,
+.slidev-layout th > code {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 0.08em 0.38em;
+  border-radius: 4px;
+  font-size: 0.84em;
+  font-family: 'IBM Plex Mono', monospace;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
 /* Goto dialog leak fix: this fuse.js returns all slides on an empty query,
    so the closed (-top-20) dialog renders the full slide list and it hangs
    into view permanently. The input is disabled only while the dialog is
