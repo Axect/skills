@@ -1,6 +1,6 @@
 # Client Setup Guide
 
-This document explains how to use the skills in this repository from different clients, with a focus on Claude Code, Codex, and Forge-style local setups.
+This document explains how to use the skills in this repository from different clients, with a focus on Claude Code, Codex, Forge-style local setups, and Pi.
 
 ## What this repository provides
 
@@ -251,6 +251,63 @@ diff -rq "$REPO" ~/forge/skills --exclude=.git --exclude=.gitignore
 ```
 
 A clean install shows no differences except the repository's own `.git` / `.gitignore`.
+
+## Pi
+
+Pi is a terminal coding harness. It implements the Agent Skills standard and recursively scans skill directories for `SKILL.md` files.
+
+### Supported locations
+
+- Global: `~/.pi/agent/skills/<skill-name>/SKILL.md`
+- Shared global: `~/.agents/skills/<skill-name>/SKILL.md` (also visible to other Agent-Skills-compatible harnesses)
+- Project: `.pi/skills/<skill-name>/SKILL.md` and `.agents/skills/` (loaded only after the project is trusted)
+
+### Option 1: register the whole collection via settings (recommended)
+
+Pi reads a `skills` array in `~/.pi/agent/settings.json` (global) or `.pi/settings.json` (project). Point it at this repository and every `SKILL.md` is discovered recursively — no copying or symlinking, and a `git pull` is the only update step. Pi expands `~`, so for this checkout the value is `"~/Documents/Project/AI_Project/skills"`.
+
+```json
+{
+  "skills": ["~/Documents/Project/AI_Project/skills"]
+}
+```
+
+### Option 2: symlink the collection into `~/.pi/agent/skills`
+
+```bash
+mkdir -p ~/.pi/agent/skills
+for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+  ln -s "$REPO/$skill" "$HOME/.pi/agent/skills/$skill"
+done
+```
+
+### Option 3: symlink into the shared `~/.agents/skills` location
+
+This location is shared by every harness that follows the Agent Skills standard, so a single symlink set is visible to Pi and other compatible clients at once.
+
+```bash
+mkdir -p ~/.agents/skills
+for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py; do
+  ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
+done
+```
+
+### Invoking a skill
+
+- Auto-load: just describe the task. Pi injects skill descriptions into the system prompt and reads the matching `SKILL.md` on demand.
+- Explicit: `/skill:<name>` (for example `/skill:bibtex-gen`) loads the skill immediately.
+
+### Notes on frontmatter
+
+- Pi validates skills against the Agent Skills standard and warns (but still loads) on issues such as a description over 1024 characters or unrecognized fields.
+- The optional `allowed-tools` field is space-delimited and experimental in Pi. This repo intentionally omits it so a single `SKILL.md` works across Claude Code, Codex, Forge, and Pi without per-harness tool-name conflicts.
+
+### Quick verification
+
+After installation, start Pi and either:
+
+- run `/skill:<name>` for an installed skill, or
+- ask for a task that should naturally trigger the skill.
 
 ## Per-skill prerequisites
 

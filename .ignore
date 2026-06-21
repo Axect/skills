@@ -1,0 +1,6 @@
+# Repo-level documentation, not skills. Exclude from pi skill discovery
+# (these files have no SKILL frontmatter/description). Only affects skill
+# discovery and ripgrep/fd searches at this root; files stay tracked in git.
+README.md
+CLIENT_SETUP.md
+CHANGELOG.md
