@@ -36,6 +36,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `wide-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for wide cinematic 18:9 multi-panel infographic slides, six style variants: Friendly Whiteboard, Editorial Magazine, Engineering Blueprint, Swiss Minimalist, Dark Tech / Neon, Scientific Poster | `wide-slide-illustrator/SKILL.md` | None |
 | `workshop-paper-review` | Produce OpenReview-ready ~400-word peer reviews for ICML/NeurIPS/ICLR workshop papers (4-8 page submissions): PDF intake, evidence-grounded drafting, anti-anchoring scoring calibration, parallel fact-check against the source PDF, AI-writing-pattern removal, and a Korean-draft to English-submission workflow | `workshop-paper-review/SKILL.md` | None (PDF reading; stdlib) |
 | `xkcd-py` | Generate a Python matplotlib plot script following the user's mandatory xkcd lab template (`with plt.xkcd():`, `figsize=(10, 6)`, `dpi=300`), with parquet / CSV / NumPy data sources and four plot variants (single line, multi-line, scatter/errorbar, subplots). Writes the `.py` only — does not execute it. | `xkcd-py/SKILL.md` | `matplotlib`, plus `pandas` / `numpy` as needed (in the user's runtime env) |
+| `zai-web-search` | Search the live web via z.ai's `web_search_prime` MCP server (included with the GLM Coding Plan, so no separate API recharge): a single stdlib-Python3 script (`scripts/web_search.py`) does the MCP streamable-HTTP handshake, SSE parsing, and multiply-escaped-JSON handling, reading the z.ai key at runtime from pi's `~/.pi/agent/auth.json` (single source of truth — the same key pi uses for the default model). Returns title / link / snippet per result, with optional `--domain` restriction and `--json` for piping. Complementary to `reference-search` (InspireHEP / OpenAlex / Semantic Scholar): use this for recent trends, news, blogs, docs, and anything outside academic databases. | `zai-web-search/SKILL.md` | None (stdlib Python3; z.ai key from `~/.pi/agent/auth.json` via GLM Coding Plan login) |
 
 ## Quick start
 
@@ -329,6 +330,17 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 - savefig DPI is **300** with `figsize=(10, 6)` — a wider canvas than the matplotlib default, needed for the hand-drawn font and stroke widths to read cleanly.
 - Plot variants and data-loader patterns: see `xkcd-py/references/` (same four templates as `scienceplot-py`, plus `data_loaders.md`).
 
+### zai-web-search
+
+Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — the same key pi already uses for the default model, included with the GLM Coding Plan login. No `pip install`: `scripts/web_search.py` is stdlib Python3 and handles the MCP streamable-HTTP handshake, SSE parsing, and multiply-escaped JSON inline.
+
+- Verify the key is present:
+  ```bash
+  test -f ~/.pi/agent/auth.json && python3 -c "import json;print(json.load(open('/home/axect/.pi/agent/auth.json'))['zai-coding-cn']['key'])" >/dev/null && echo OK
+  ```
+- The MCP endpoint (`web_search_prime`) is covered by the Coding Plan — no separate API recharge. Do **not** duplicate the key into a second file; `auth.json` is the single source of truth.
+- Distinct from `reference-search`: this skill searches the live web (news, blogs, docs, repos, trends). Use `reference-search` for academic papers, metadata, and BibTeX, and run both when a claim needs a primary source plus current context.
+
 ## Which skill to use?
 
 - Choose `academic-jobs` to pull current, still-open academic job postings (postdoc / faculty / PhD) from Academic Jobs Online **and the InspireHEP jobs board** (searched together by default), filtered to postings whose application deadline has not passed, with field presets and "new since last check" tracking.
@@ -356,6 +368,7 @@ Requires `matplotlib` in the runtime environment. The skill writes the `.py` fil
 - Choose `wide-slide-illustrator` to compose image-generation prompts for wide cinematic 18:9 multi-panel infographic slides: pipeline diagrams, "how it works" figures, hero figures, paper figures, keynote backdrops. Six style variants by audience and target medium: Friendly Whiteboard (lab meeting), Editorial Magazine (Quanta / NYT paper hero), Engineering Blueprint (technical schematic), Swiss Minimalist (typographic poster on methodology content), Dark Tech / Neon (AI-lab keynote backdrop), Scientific Poster (Phys Rev / Nature journal figure).
 - Choose `workshop-paper-review` to write an OpenReview-ready peer review for a workshop paper submission (ICML/NeurIPS/ICLR, 4-8 pages): the skill handles PDF intake, evidence-grounded drafting, anti-anchoring score calibration, and AI-writing-pattern removal, with a Korean-draft to English-submission option.
 - Choose `xkcd-py` for a hand-drawn / sketch-style matplotlib script (`with plt.xkcd():`, wider canvas, dpi=300) — same data-source and plot-variant coverage as `scienceplot-py`.
+- Choose `zai-web-search` for live web search via z.ai (recent trends, news, blogs, docs, repos) when the need is clearly outside academic databases; the bundled script reads the key from pi's `auth.json` and the MCP endpoint is covered by the GLM Coding Plan. Complementary to `reference-search` — run both and merge when a claim needs a primary source plus current context.
 
 ## Structure
 
@@ -385,7 +398,8 @@ skills/
 ├── vastai/
 ├── wide-slide-illustrator/
 ├── workshop-paper-review/
-└── xkcd-py/
+├── xkcd-py/
+└── zai-web-search/
 ```
 
 ## License

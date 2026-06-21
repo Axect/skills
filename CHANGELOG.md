@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-06-22
+
+### Added
+- Added the `zai-web-search` skill for searching the live web through z.ai's `web_search_prime` MCP server, included with the GLM Coding Plan (no separate API recharge). A single stdlib-Python3 script (`scripts/web_search.py`) handles the MCP streamable-HTTP handshake, SSE parsing, and the multiply-escaped JSON response, reading the z.ai key at runtime from pi's `~/.pi/agent/auth.json` (single source of truth — the same key pi uses for the default model; no second credential file). Returns title / link / snippet per result with optional `--domain` restriction and `--json` output for piping; exit codes distinguish auth failures (2/3) from search-side (4) and network (5) errors, and auth errors are never auto-retried. Complementary to `reference-search` (InspireHEP / OpenAlex / Semantic Scholar): use `zai-web-search` for recent trends, news, blogs, docs, repos, and anything outside academic databases, and run both when a claim needs a primary source plus current context. Bundles `references/protocol_notes.md` (why MCP-not-REST, the streamable-HTTP handshake, SSE + multiply-escaped-JSON gotchas). Entry point: `zai-web-search/SKILL.md`. Requires only the GLM Coding Plan login (no `pip install`).
+
+### Changed
+- Updated `README.md` across the four standard touchpoints (skill table, "Skill requirements & setup" section, "Which skill to use?" picker, directory tree) and `CLIENT_SETUP.md` across its five touchpoints (skill directory list, Claude Code and Codex install loops, Forge Option 2 tree, per-skill prerequisites section) to cover `zai-web-search`.
+
 ## 2026-06-16
 
 ### Added
