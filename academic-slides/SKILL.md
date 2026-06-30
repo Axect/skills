@@ -5,7 +5,7 @@ description: Build a clean, modern academic presentation deck (Slidev) for any r
 
 # academic-slides
 
-Generate a polished academic Slidev deck in a consistent house style (IBM Plex Sans headings + Inter body + IBM Plex Mono accents, deep-blue gradient section dividers, minimal tables, figure cards, step-card chains). The hard part of a deck like this is not the content, it is the dozen small Slidev/mdc/LaTeX/layout traps that silently corrupt a slide. This skill front-loads all of them.
+Generate a polished academic Slidev deck in a consistent house style (Geist headings on light content slides + Source Serif 4 titles on the dark cover/section slides + Inter body + JetBrains Mono accents, deep-blue gradient section dividers, blue/amber/slate emphasis, minimal tables, figure cards, step-card chains). The hard part of a deck like this is not the content, it is the dozen small Slidev/mdc/LaTeX/layout traps that silently corrupt a slide. This skill front-loads all of them.
 
 ## When to use
 - "Make slides / a deck / a talk for <project / paper / result>."
@@ -16,7 +16,7 @@ Generate a polished academic Slidev deck in a consistent house style (IBM Plex S
 A self-contained folder `outputs/<slug>/` (or a path the user gives) containing:
 - `slides.md` — the deck (Slidev markdown).
 - `style.css`, `global-top.vue`, `global-bottom.vue`, `package.json` — copied verbatim from `assets/` (the design system; do not rewrite them).
-- `public/` — every figure PNG, referenced as `/<name>.png`.
+- `public/` — every figure PNG, referenced as `/<name>.png`, plus `logo-fudan.svg` + `logo-riken.png` (institution marks).
 - `figscripts/` — `deck_style.py` (shared scienceplots style) + one `g_*.py` per figure group.
 - `deck.pdf` — exported.
 - `registry.toml` — provenance: each figure/number → data + script (see `references/build-verify.md`).
@@ -29,6 +29,7 @@ A self-contained folder `outputs/<slug>/` (or a path the user gives) containing:
    ```bash
    mkdir -p outputs/<slug>/public outputs/<slug>/figscripts
    cp <skill>/assets/{style.css,global-top.vue,global-bottom.vue,package.json} outputs/<slug>/
+   cp <skill>/assets/logos/{logo-fudan.svg,logo-riken.png} outputs/<slug>/public/   # institution marks (cover chips + corner)
    cp <skill>/assets/deck_style.py outputs/<slug>/figscripts/
    cp <skill>/assets/slides.template.md outputs/<slug>/slides.md   # then rewrite
    cd outputs/<slug> && pnpm install && pnpm exec playwright install chromium

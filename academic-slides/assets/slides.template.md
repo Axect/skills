@@ -4,8 +4,8 @@ title: DECK TITLE
 titleTemplate: '%s'
 fonts:
   sans: Inter
-  serif: 'IBM Plex Sans'
-  mono: 'IBM Plex Mono'
+  serif: 'Geist'
+  mono: 'JetBrains Mono'
   weights: '400,500,600,700'
 layout: cover
 class: is-cover
@@ -28,20 +28,10 @@ mdc: true
 <span style="color:#8fb4ee">Collaborated with</span>&nbsp; <strong>Name One</strong> <span class="affil">(Inst)</span> &nbsp;·&nbsp; <strong>Name Two</strong> <span class="affil">(Inst)</span>
 </div>
 
----
-class: text-left
----
-
-<div class="kicker">The one-line story</div>
-
-# What this talk argues
-
-<p class="lead">The single most important sentence, with <span class="ok">a good</span> and <span class="bad">a bad</span> clause.</p>
-
-A second framing sentence with inline math like $x$ and $x_c$, placed as an mdc paragraph. {.lead.mt-2}
-
-- <strong>Point one</strong>: short claim with math $\theta$.
-- <strong>Point two</strong>: another claim.
+<div class="cover-logos">
+<span class="logo-chip"><img src="/logo-fudan.svg" alt="Fudan University" /></span>
+<span class="logo-chip"><img src="/logo-riken.png" alt="RIKEN" /></span>
+</div>
 
 ---
 layout: section
@@ -98,8 +88,11 @@ One or two lines describing the wide figure go here, as an mdc paragraph; keep i
 
 ---
 layout: two-cols-header
-layoutClass: gap-8
+layoutClass: gap-8 cols-5545
 ---
+
+<!-- cols-5545 gives the figure column ~55% and the text ~45%. Swap to cols-4555
+     when the text needs more room, or drop the class for a 50/50 split. -->
 
 <div class="kicker">A square figure (aspect ~1.2)</div>
 
@@ -111,7 +104,7 @@ layoutClass: gap-8
 <img src="/square_figure.png" />
 </div>
 
-<div class="figcite mt-1">Ground truth: exact / MCMC source, Author et al., Journal Year.</div>
+<div class="figcite">Ground truth: exact / MCMC source, Author et al., Journal Year.</div>
 
 ::right::
 
@@ -164,6 +157,111 @@ The punch line, as a lead on its own line so the class applies to the whole para
 class: text-left
 ---
 
+<div class="kicker">Headline numbers</div>
+
+# Lead with the numbers
+
+<div class="stat-grid">
+<div>
+<div class="stat-num">10<span class="unit">&times;</span></div>
+<div class="stat-label">faster than the MCMC baseline</div>
+<div class="stat-sub">wall-clock, single GPU</div>
+</div>
+<div>
+<div class="stat-num">0.98</div>
+<div class="stat-label">overlap with the exact distribution</div>
+<div class="stat-sub">median over 12 systems</div>
+</div>
+<div>
+<div class="stat-num">3</div>
+<div class="stat-label">orders of magnitude fewer evaluations</div>
+<div class="stat-sub">to reach the same error</div>
+</div>
+</div>
+
+One sentence tying the numbers back to the claim.
+{.lead.mt-8}
+
+---
+class: text-left
+---
+
+<div class="kicker">Before vs after</div>
+
+# Comparison: highlighted winner
+
+<div class="cmp-grid">
+<div class="cmp-card cmp-prior">
+<span class="cmp-tag">Prior approach</span>
+<div class="cmp-title">MCMC sampling</div>
+<ul>
+<li>Mixing slows near criticality.</li>
+<li>Cost grows with the correlation length.</li>
+</ul>
+</div>
+<div class="cmp-card cmp-this">
+<span class="cmp-tag">This work</span>
+<div class="cmp-title">Learned sampler</div>
+<ul>
+<li>Constant cost per sample.</li>
+<li>Captures long-range correlations directly.</li>
+</ul>
+</div>
+</div>
+
+The one-line takeaway, with the winner doing the talking.
+{.lead.mt-6}
+
+---
+class: text-left
+---
+
+<div class="kicker">Feature comparison</div>
+
+# Comparison: feature table
+
+<div class="cmp-table">
+<div class="ct-row ct-head"><span>Criterion</span><span>MCMC</span><span>This work</span></div>
+<div class="ct-row"><span>Cost near criticality</span><span class="ct-x">&#10007;</span><span class="ct-ok">&#10003;</span></div>
+<div class="ct-row"><span>Long-range correlations</span><span class="ct-x">&#10007;</span><span class="ct-ok">&#10003;</span></div>
+<div class="ct-row"><span>Per-sample cost</span><span class="ct-mid">grows</span><span class="ct-ok">constant</span></div>
+<div class="ct-row"><span>Tuning required</span><span class="ct-mid">heavy</span><span class="ct-ok">minimal</span></div>
+</div>
+
+One sentence reading the table for the audience.
+{.lead.mt-4}
+
+---
+class: text-left
+---
+
+<div class="kicker">The one thing</div>
+
+<div class="hero-statement">
+<div class="big">If the model can reach the <em>free-energy basin</em>, the rest of the analysis follows.</div>
+<div class="sub">One short line of support, kept brief so the statement dominates the slide.</div>
+</div>
+
+---
+class: text-left
+---
+
+<div class="kicker">Framing</div>
+
+# Pull-quote slide
+
+<div class="pull-quote">
+<div class="q">"The free energy is the only quantity that is at once tractable and tight."</div>
+<div class="by">Variational principle, as used throughout this talk</div>
+</div>
+
+A sentence of context under the quote, in normal body text.
+{.mt-2}
+
+---
+class: text-left
+---
+
 <div class="kicker">Cross-system</div>
 
 # A minimal table
@@ -171,7 +269,7 @@ class: text-left
 | Category | Case(s) | scale $x_c$ |
 |---|---|---|
 | <span class="ok">type A</span> | case 1 | 48 |
-| <span style="color:#2f5cc7">type B</span> | case 2, case 3 | ~64 |
+| <span class="warn">type B</span> | case 2, case 3 | ~64 |
 | <span class="bad">type C</span> | case 4 | &gt;128 |
 
 One interpretive sentence under the table, ending in text not math so the class applies cleanly.
