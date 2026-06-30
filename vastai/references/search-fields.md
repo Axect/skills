@@ -26,6 +26,7 @@ GPU names use underscores for spaces (e.g., `RTX_4090`, `A100_SXM4`, `RTX_3090`,
 | `dph` | float | Cost per hour in USD |
 | `external` | bool | Include external (non-verified) offers |
 | `flops_usd` | float | TFLOPs per dollar |
+| `geolocation` | string | Two-letter host country code. Operators: `=`, `!=`, `in`, `notin` |
 | `gpu_name` | string | GPU model name (underscores for spaces) |
 | `gpu_ram` | float | Per-GPU VRAM in GB |
 | `gpu_total_ram` | float | Total VRAM across all GPUs in GB |
@@ -59,6 +60,20 @@ for o in offers[:10]:
 "
 ```
 
+## Geolocation Filtering (avoid setup failures)
+
+`geolocation` matches the host's two-letter country code and supports the set operators `in` and `notin` with a bracketed list, in addition to `=` / `!=`.
+
+```bash
+# Exclude China-region hosts
+vastai search offers 'gpu_name=RTX_4090 reliability>0.99 geolocation notin [CN]' -o 'dph'
+
+# Restrict to a set of countries
+vastai search offers 'reliability>0.99 num_gpus=4 geolocation in [TW,SE,US]'
+```
+
+Mainland China hosts (`CN`) sit behind the Great Firewall, so the provisioning phase intermittently fails: the `uv` installer at `astral.sh`, PyPI, and GitHub clones time out, leaving an instance that bills but never finishes setup. Default to `geolocation notin [CN]` on every search. Extend the list if another region blocks your package sources (e.g. `geolocation notin [CN,HK]`). Codes are standard ISO 3166-1 alpha-2 (`CN` China, `HK` Hong Kong, `US` United States, `TW` Taiwan, `SE` Sweden, etc.).
+
 ## Search Command Options
 
 | Flag | Description |
@@ -78,6 +93,9 @@ for o in offers[:10]:
 ```bash
 # Cheapest single RTX 4090
 vastai search offers 'gpu_name=RTX_4090 num_gpus=1 reliability>0.95' -o 'dph'
+
+# Same, but skip China-region hosts (GFW breaks uv/pip/github setup)
+vastai search offers 'gpu_name=RTX_4090 num_gpus=1 reliability>0.95 geolocation notin [CN]' -o 'dph'
 
 # Multi-GPU A100 setups for large model training
 vastai search offers 'gpu_name=A100_SXM4 num_gpus>=4 reliability>0.98 inet_down>500' -o 'dph'

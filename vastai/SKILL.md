@@ -44,7 +44,12 @@ vastai search offers 'gpu_ram>=24 dph<0.5 reliability>0.95' -o 'dph'
 
 # Datacenter-only machines with fast internet
 vastai search offers 'datacenter=true inet_down>500 inet_up>500'
+
+# Exclude China-region hosts (GFW blocks uv/pip/github during setup)
+vastai search offers 'gpu_name=RTX_4090 reliability>0.99 geolocation notin [CN]' -o 'dph'
 ```
+
+**Exclude China-region hosts to avoid setup failures.** Hosts physically in mainland China (`geolocation=CN`) sit behind the Great Firewall, so the setup phase intermittently fails: the `uv` installer (`astral.sh`), PyPI, and GitHub clones time out or hang, leaving a billing-but-unusable instance. Add `geolocation notin [CN]` to every search query before renting. The `geolocation` filter takes a two-letter country code and accepts `in` / `notin` with a bracketed list, so extend it if you hit other blocked regions (e.g. `geolocation notin [CN,HK]`). This is the single most reliable guard against the "uv install just won't run" problem.
 
 **Key search fields** (see `references/search-fields.md` for full list):
 
@@ -63,6 +68,7 @@ vastai search offers 'datacenter=true inet_down>500 inet_up>500'
 | `compute_cap` | CUDA compute capability (e.g., 800 = 8.0) |
 | `inet_down` / `inet_up` | Network speed in Mb/s |
 | `datacenter` | Datacenter-only flag (true/false) |
+| `geolocation` | Two-letter country code of the host. Operators: `=`, `!=`, `in`, `notin` (e.g. `geolocation notin [CN]`) |
 | `dlperf` | Deep learning performance score |
 | `gpu_max_power` | Host's GPU power limit in W (a capped value, e.g. 180 on a 3090, means a throttled, slower card) |
 | `cuda_max_good` | Max CUDA version the host DRIVER supports (gates the torch wheel you can run, see python-setup.md) |
@@ -218,13 +224,14 @@ vastai search offers 'gpu_name=RTX_4090' --curl
 
 **Find the cheapest GPU for a given task:**
 ```bash
-vastai search offers 'gpu_ram>=24 reliability>0.98 inet_down>200' -o 'dph'
+vastai search offers 'gpu_ram>=24 reliability>0.98 inet_down>200 geolocation notin [CN]' -o 'dph'
 ```
 
 **Deploy a training job:**
 ```bash
 # 1. Find an offer — inspect Max_Days from formatted output
-vastai search offers 'gpu_name=A100_SXM4 num_gpus=1 reliability>0.99' -o 'dph'
+#    geolocation notin [CN] keeps the GFW from breaking uv/pip/github during setup
+vastai search offers 'gpu_name=A100_SXM4 num_gpus=1 reliability>0.99 geolocation notin [CN]' -o 'dph'
 
 # 1a. CRITICAL for jobs > 24h: verify Max_Days >= 1.5 × expected_hours / 24
 #     The formatted table shows Max_Days in the price row (far right).
