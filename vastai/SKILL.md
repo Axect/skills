@@ -135,10 +135,11 @@ vastai ssh-url ID
 # View logs
 vastai logs ID --tail 100
 
-# Stop (preserves data, stops GPU billing)
+# Stop — DANGER: releases the GPU; `start` may never succeed. See IRON RULE under "Destroy When Done".
+# Do NOT use stop to "park" an instance you still need — prefer keeping it running, or destroy.
 vastai stop instance ID
 
-# Start a stopped instance
+# Start a stopped instance — only works if that exact GPU is still free (often it is NOT)
 vastai start instance ID
 
 # Reboot without losing GPU priority
@@ -165,6 +166,12 @@ vastai cloud copy --src cloud_service:path --dst instance_id:/path --transfer "C
 
 **Warning**: Never copy to `/root` or `/` as destination — this corrupts SSH permissions.
 
+**IRON RULE — verify every retrieved artifact before trusting it. `scp`/`vastai copy` can exit 0 on a TRUNCATED or corrupted file.** A successful exit code does NOT mean the bytes arrived intact. This has caused real loss: a 29 MB model checkpoint pulled back at exit 0 was 182 KB short, was not a valid zip, and `torch.load` failed with "failed finding central directory" — after the source instance had already been destroyed, so the result was unrecoverable and the whole run had to be repeated. After EVERY pull of an important artifact (model checkpoint, results archive, dataset):
+1. **Compare byte size** remote vs local: `ssh ... "stat -c%s REMOTE"` vs `stat -c%s LOCAL` — they must be exactly equal.
+2. **Compare a checksum** remote vs local: `ssh ... "sha256sum REMOTE"` vs `sha256sum LOCAL` — they must match. (Size match alone is necessary but not sufficient.)
+3. **Load/parse test** the artifact locally when cheap: `python -c "import torch; torch.load(PATH, map_location='cpu', weights_only=True)"`, `tar tzf archive.tgz >/dev/null`, `python -c "import zipfile; assert zipfile.is_zipfile(PATH)"`, etc.
+4. For large or flaky transfers, prefer **`rsync -P --append-verify` over a manual ssh tunnel with retries** instead of plain `scp`/`vastai copy`; rsync re-checks and resumes, and `--append-verify` rechecksums the whole file. Re-pull on any mismatch.
+
 ### 5. Destroy When Done
 
 ```bash
@@ -176,6 +183,10 @@ vastai destroy instances ID1 ID2 ID3 -y
 ```
 
 `vastai destroy instance` prompts `Are you sure...? [y/N]` on stdin and aborts if not attached to a TTY (piping `yes` does not work — it reads from the terminal). **Always pass `-y` (or `--yes`) from non-interactive contexts** such as Claude tool calls, scripts, or CI.
+
+**IRON RULE — destroy is irreversible, so NEVER destroy until every artifact you need is integrity-verified on local disk.** Destroy is the point of no return: once gone, the instance's disk (and any model/result not yet correctly copied off) is lost forever. Gate every `destroy` behind the checklist above (size match + checksum match + load/parse test). Do NOT treat "file exists and size > 0" as sufficient — that check passed on the truncated checkpoint that was later unloadable. Order of operations is always: (1) pull artifact, (2) verify size + checksum + load, (3) only then destroy. If you cannot verify, keep the instance **running** and re-pull (rsync with retries) until the local copy passes — do NOT `stop` it.
+
+**IRON RULE — NEVER `vastai stop` an instance you still need. `stop` is worse than `destroy`, not a safe pause.** A stopped instance releases the GPU back to the pool; `start` only succeeds if that exact GPU is still free, which for popular cards it usually is NOT ("Required resources are currently unavailable, state change queued" — it may never resume). Meanwhile you keep paying storage for a box you cannot use. So `stop` gives you the worst of both: ongoing cost AND no compute, with no guaranteed way back. Treat the choices as binary: either keep the instance **running** (verify/re-pull, finish the work) or `destroy` it. Do not use `stop` as a "park it for later" move — there is no reliable later.
 
 Always destroy instances when done to stop storage charges.
 
