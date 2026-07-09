@@ -1,7 +1,8 @@
 # Mathematics Domain Notes
 
 ## Tone & framing
-- Theorem–proof structure where applicable: state theorem, give the proof or proof sketch, then discuss consequences.
+- Give the idea of the result and of the proof before the formal machinery: what is true, and morally why, in one or two sentences (§2 of the template). The reader should see the shape of the argument before the epsilon-delta.
+- Theorem-proof structure where applicable: state theorem, give the proof or proof sketch, then discuss consequences.
 - State all assumptions up front. Do not bury preconditions inside the proof.
 - Distinguish "we prove" from "we conjecture" from "we observe numerically".
 

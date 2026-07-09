@@ -1,21 +1,39 @@
 ---
 name: research-report
-description: Create or revise a structured markdown research or experiment report with integrated plots, optional literature/reference support, plot manifest tracking, report version history, and report-body validation inside a single Harness without external Codex or Gemini calls. Use when you need to generate `report.md`, inventory or validate plots, create `plots/plot_manifest.json`, manage `report_versions.json`, connect report sections to supporting references, or turn an experiment or output directory into a reusable report workflow.
+description: Create or revise a markdown research or experiment report that makes the work UNDERSTANDABLE (why it matters, what the core idea is, what it achieved), backed by traceable evidence, integrated plots, optional literature support, plot manifest tracking, and version history, inside a single Harness without external Codex or Gemini calls. Use when you need to generate `report.md`, explain a result or method so a colleague can understand it, inventory or validate plots, create `plots/plot_manifest.json`, manage `report_versions.json`, connect report sections to supporting references, or turn an experiment or output directory into a reusable report workflow.
 ---
 
 # Research Report
 
 Use this skill to produce a self-contained research or experiment report from an output directory that may contain notes, source code, tests, metrics, tables, and plots. The skill is **harness-only**: it never calls external Gemini or Codex MCP tools. Where the magi-researchers pipeline uses BALTHASAR (Gemini) and CASPER (Codex) reviewers, this skill spawns Claude subagents with cognitive-style framing instead.
 
+## What this report is for
+
+A research report here is a document that makes the work **understandable**, not a lab audit log. When it is done, the target reader (a sharp colleague new to this specific problem, and future-you months from now) should be able to answer three questions without asking you:
+
+1. **Why does this matter?** What was blocked, wrong, or impossible before, and what opens up now.
+2. **What is it?** The core idea, explained intuition-first, before any formalism.
+3. **What did it achieve?** The findings, stated in plain words and then earned with evidence.
+
+Everything else (plots, manifests, validators, versioning) is supporting infrastructure that keeps those three answers honest and reproducible. It must never become the point of the report. A report that faithfully logs every artifact but leaves the reader unable to explain the idea back to you has failed, even if every validator passes.
+
+Two habits carry the whole skill:
+
+- **Intuition before formalism.** Give the one-sentence version and the mental model first; the equation, the config, and the proof come after the reader already sees the shape of the thing. (Borrow the `concept-explainer` skill's discipline here.)
+- **Meaning before evidence.** State what a finding *means* in plain words, then show the number or figure that earns it. Evidence supports a claim the reader already understands; it does not replace the claim.
+
 ## Inputs to confirm
 
 Ask for only what is missing:
 - target output directory
 - report title
-- domain or audience (used to load `references/domains/<domain>.md`; default: `general`)
+- the reader this is written for (default: a sharp colleague new to this problem, and future-you) and how much they already know
+- the core idea in one sentence, if the user can state it (if not, deriving it from the materials is part of the job)
+- why this work matters (the gap it closes or what it unblocks)
+- domain (used to load `references/domains/<domain>.md`; default: `general`)
 - whether existing plots already exist in `plots/`
 - whether a lightweight plot metadata file should be supplied for better captions or section mapping
-- whether section-level reference support is needed for background, methodology, baseline comparisons, benchmark context, or claim-heavy passages
+- whether section-level reference support is needed for motivation, the core idea, methodology, baseline comparisons, benchmark context, or claim-heavy passages
 
 ## Expected directory shape
 
@@ -92,33 +110,36 @@ Before drafting prose, audit every plot generation script for compliance with th
    ```
    Treat errors as blockers. Treat warnings as items to fix or explicitly mention in the report.
 
-### Step 3 — Map evidence to sections
+### Step 3 — Map evidence to the narrative
 
-- Background: problem, context, assumptions, prior notes, and literature context.
-- Analysis or discovery summary: exploratory findings, trade-offs, or problem framing.
-- Methodology: approach, algorithms, data flow, experimental design, and method citations when external grounding matters.
-- Implementation or setup: architecture, components, environment, constraints.
-- Results and visualization: quantitative outcomes, comparisons, plots, tables, and baseline or benchmark context when needed.
-- Validation: tests, checks, edge cases, failure modes, limitations, and benchmark-protocol references when they clarify interpretation.
-- Conclusion: contributions, limitations, next steps.
+The report follows a understanding-first arc (see `references/report_template.md`). Sort every piece of raw material into the section whose *question* it answers, not into a generic bucket:
+
+- **TL;DR**: the 30-second version: problem, what you did, headline result, what it means. Write it last, place it first.
+- **§1 Why this matters**: the gap, the stakes, who feels it, why it is hard. Prior notes and literature that establish tension belong here, not a background data dump.
+- **§2 The core idea**: the central concept explained intuition-first: the one-sentence version, the mental model or analogy, then the formal statement. Method citations that establish lineage ("this extends X") go here.
+- **§3 How it works**: the mechanism, subordinate to §2. Data/materials, procedure, and the setup a reader needs to trust the result. Exhaustive configs go to the appendix.
+- **§4 What we found**: quantitative outcomes, comparisons, plots, and tables, each stated as a finding-in-plain-words before its evidence. Baseline/benchmark context when needed.
+- **§5 So what**: significance, implications, scope of the claim; pays off the stakes from §1.
+- **§6 Limits & open questions**: failure modes actually observed, edge cases, and concretely-answerable open questions.
+- **Appendix**: reproduction notes, source/test/artifact inventories, plot manifest summary. Optional; never the body.
 
 **Plot → section mapping** uses the manifest's `section_hint`:
 
 | `section_hint` | Report section |
 |----------------|----------------|
-| `methodology` | §3 Methodology |
-| `results` | §5.1 Primary Results |
-| `comparison` | §5.2 Comparative or Ablation Findings |
-| `validation` | §6 Validation |
-| `testing` | §6 Validation |
+| `methodology` | §3 How it works |
+| `results` | §4.1 Headline finding |
+| `comparison` | §4.2 Supporting and comparative findings |
+| `validation` | §4 What we found or §6 Limits (whichever the figure argues for) |
+| `testing` | §6 Limits & open questions |
 
 ### Step 4 — Attach literature support where needed
 
 - Use the companion `reference-search` skill whenever a section depends on prior work, external benchmark framing, method lineage, or an externally grounded claim that cannot be supported by local artifacts alone.
 - Typical mappings:
-  - background or introduction → `background` or `survey`
-  - methodology rationale → `method`
-  - comparison targets → `baseline`
+  - §1 stakes / why the gap is real → `background` or `survey`
+  - §2 core-idea lineage ("this extends X") and method rationale → `method`
+  - §4 comparison targets → `baseline`
   - dataset, metric, or benchmark protocol context → `evaluation`
   - standalone factual claims → `claim-support`
 - Prefer weaving only the strongest 2–5 references into the report prose instead of dumping long bibliographies.
@@ -178,6 +199,19 @@ The most frequent silent failures when generating research plots. The shared `_p
 
 ### Step 6 — Draft the report
 
+Draft for understanding first. The structure exists to force three payoffs: the reader should finish §1 wanting the answer, finish §2 able to explain the idea back to you, and finish §5 seeing why §1's stakes are now settled. Before writing a section, ask what question it answers for the target reader; if it answers none, cut it.
+
+**Understanding-first drafting principles:**
+
+- **Lead §1 with tension, not background.** Open on what was blocked, wrong, or impossible, not on a literature tour. A reader should feel the gap before you name the method.
+- **§2 is the section a reader remembers.** Give the one-sentence idea, then the mental model or analogy, then the formalism, in that order. If the equation appears before the intuition, reorder. Say why this idea beats the obvious alternative.
+- **State the meaning before the number.** Every finding in §4 opens with what it *means* in plain words; the figure or metric follows as the thing that earns it. A paragraph that starts with a number and never says why it matters is a metrics dump.
+- **§5 must pay off §1.** Return to the exact stakes you opened with and say what changed. If §5 introduces a brand-new concern instead of settling §1's, the arc is broken.
+- **Prose carries the argument; bullets only itemize.** Each section needs at least one paragraph a reader can follow linearly. A section that is only bullets forces the reader to reverse-engineer the argument.
+- **Analogy is allowed; hand-waving is not.** An analogy that builds intuition is good. A vague claim with no number, citation, or mechanism behind it is not, no matter how confident it sounds.
+
+**Evidence discipline (unchanged from the old skill, still mandatory):**
+
 - Use `references/report_template.md` as the starting structure.
 - Embed each plot inline near the paragraph that interprets it. Never write a "list of figures" appendix table — that is an anti-pattern.
 - Never use passive references such as "as shown in the figure below" or "see Figure X" without an accompanying concrete quantitative observation in the same paragraph (e.g., specific deltas, percentages, R², slope, p-values, runtime). The figure earns its space by being interpreted.
@@ -227,13 +261,25 @@ The validator (`validate_artifacts.py`) flags single-line `$$..$$` and unicode m
 
 ### Step 7 — Coverage & gap-detection loop
 
-After the first complete draft, walk every section and answer this checklist before presenting the draft.
+After the first complete draft, walk every section and answer this checklist before presenting the draft. The first block guards understanding; the second guards evidence. A draft that passes the evidence block but fails the understanding block is not done.
+
+**Understanding checks (does the reader actually get it?):**
+
+| Question | If the answer is bad |
+|----------|---------------------|
+| Could the target reader explain the core idea back in one sentence after reading §2? | Rewrite §2 intuition-first: one-liner, then mental model, then formalism |
+| Does §1 make the stakes felt before any method appears (tension, not a background tour)? | Reopen §1 on what was blocked/wrong/impossible; move background trivia out |
+| Does every finding in §4 state its meaning in plain words before its number/figure? | Add the plain-words claim; demote the metric to evidence for it |
+| Does §5 return to and settle the exact stakes raised in §1? | Rewrite §5 to pay off §1; delete off-topic new concerns |
+| Does the formalism in §2/§3 arrive only after the intuition it formalizes? | Reorder so the equation follows the picture, never precedes it |
+
+**Evidence checks (is every claim earned?):**
 
 | Question | If the answer is bad |
 |----------|---------------------|
 | Does every quantitative claim point to a number, a table cell, a CSV column, or a figure? | Add the missing artifact, weaken the claim, or remove the claim |
 | Does every figure get at least one paragraph that quotes specific numbers from it? | Either add the interpretation, or remove the figure |
-| Does the methodology cite the canonical reference for any non-trivial method? | Use `reference-search` and weave the citation into the prose |
+| Does §2/§3 cite the canonical reference for any non-trivial method or prior idea it builds on? | Use `reference-search` and weave the citation into the prose |
 | Do comparisons report uncertainty (CI, std, error bars) or at least say why they don't? | Add error bars or an explicit caveat |
 | Could a reader regenerate every figure from `plots/data/*.csv` + the script in `plots/`? | Restore the data file, point `source_script` at the right file, or remove the figure |
 | Are limitations honest and specific (not "may not generalize")? | Rewrite with the specific failure modes you actually observed |
@@ -250,26 +296,30 @@ If a gap requires data the workspace does not have, **do not fabricate**. Add an
 
 ### Step 8 — Dual-subagent traceability review
 
-Spawn two Claude subagents simultaneously (single message, two `Agent` tool uses, `subagent_type: general-purpose`). They must run independently — neither sees the other's output. This is the harness-only equivalent of magi's BALTHASAR + CASPER pair.
+Spawn two Claude subagents simultaneously (single message, two `Agent` tool uses, `subagent_type: general-purpose`). They must run independently — neither sees the other's output. This is the harness-only equivalent of magi's BALTHASAR + CASPER pair. One reviewer guards understanding; the other guards evidence and visualization. Both matter: a report can be crystal-clear and unsupported, or airtight and incomprehensible.
 
-**Subagent A — Scientific Rigor (Creative-Divergent framing):**
+**Subagent A, Understanding & Narrative (does a new colleague get it?):**
 
-> Prompt template: "Use the Read tool to read `{output_dir}/report.md` and `{output_dir}/plots/plot_manifest.json`. Review for claim–evidence integrity and identify, per issue, the section, the problematic text or figure, and a concrete fix.
-> 1. **Orphaned claims** — text assertions without a supporting figure, table, metric, or citation.
-> 2. **Orphaned plots** — figures embedded but never discussed.
-> 3. **Weak links** — a claim references a figure that does not actually support the claim.
-> 4. **Caption quality** — captions must be precise, quantitative, publication-ready (state what the figure shows in numbers, not just `Comparison of methods`).
-> 5. **Math rendering** — flag any unicode math symbol or single-line `$$..$$` you encounter.
+> Prompt template: "Use the Read tool to read `{output_dir}/report.md`. You are a sharp colleague seeing this problem for the first time. Review whether the report makes the work understandable, and identify, per issue, the section, the problematic text, and a concrete fix.
+> 1. **Core-idea test**: after reading §2, can you state the central idea in one sentence? If not, say exactly where the explanation loses you and whether intuition was skipped or buried under formalism.
+> 2. **Stakes test**: does §1 make you *want* the answer (real tension: something blocked, wrong, or impossible), or is it a background tour? Flag background trivia that should be cut.
+> 3. **Intuition-before-formalism**: flag any place an equation, config, or proof appears before the intuition it formalizes.
+> 4. **Meaning-before-evidence**: flag findings in §4 that open with a number and never say what it *means* in plain words (metrics dumps).
+> 5. **Payoff test**: does §5 return to and settle the exact stakes raised in §1? Flag a §5 that drifts to unrelated concerns.
+> 6. **Bullet-only sections**: flag any section that is only bullets with no connecting prose.
 > Return structured text. Do not save to a file."
 
-**Subagent B — Visualization Quality (Analytical-Convergent framing):**
+**Subagent B, Evidence Integrity & Visualization (is every claim earned?):**
 
-> Prompt template: "Use the Read tool to read `{output_dir}/report.md`, `{output_dir}/plots/plot_manifest.json`, and any `{output_dir}/plots/*.py` scripts. Review for visualization correctness and identify, per issue, the section, the figure, and a concrete fix.
-> 1. **Missing visualizations** — quantitative claims that would benefit from a chart but have none.
-> 2. **Plot–narrative mismatch** — caption or surrounding text does not match what the plot shows.
-> 3. **Chart-type fixes** — better encodings (bar→box, linear→log, grouped bars→error-bar dot plot) for clarity.
-> 4. **Reproducibility gaps** — plots without a `source_script` or `source_context` in the manifest.
-> 5. **Style compliance** — every script must import `_plot_style` (or scienceplots) and call `apply_style()`; no per-script `font.*` overrides; PNG@300dpi + PDF; Nature widths; Okabe-Ito palette.
+> Prompt template: "Use the Read tool to read `{output_dir}/report.md`, `{output_dir}/plots/plot_manifest.json`, and any `{output_dir}/plots/*.py` scripts. Review for claim–evidence integrity and visualization correctness, and identify, per issue, the section, the figure or text, and a concrete fix.
+> 1. **Orphaned claims**: text assertions without a supporting figure, table, metric, or citation.
+> 2. **Orphaned plots**: figures embedded but never discussed.
+> 3. **Weak links**: a claim references a figure that does not actually support it.
+> 4. **Caption quality**: captions must state what the figure shows in numbers (`AdamW lowers val NLL 0.94→0.71`), not just `Comparison of methods`.
+> 5. **Missing / mis-encoded visualizations**: quantitative claims that need a chart but have none; better encodings (bar→box, linear→log, grouped bars→error-bar dot plot).
+> 6. **Reproducibility gaps**: plots without `source_script` or `source_context` in the manifest.
+> 7. **Style compliance**: every script imports `_plot_style` (or scienceplots) and calls `apply_style()`; no per-script `font.*` overrides; PNG@300dpi + PDF; Nature widths; Okabe-Ito palette.
+> 8. **Math rendering**: flag any unicode math symbol or single-line `$$..$$`.
 > Return structured text. Do not save to a file."
 
 After both reviews return, synthesize:
@@ -277,6 +327,10 @@ After both reviews return, synthesize:
 1. **Consensus issues** (flagged by both subagents) → fix first.
 2. **Divergent suggestions** → evaluate on merit; apply when defensible.
 3. Apply revisions:
+   - buried core idea → rewrite §2 intuition-first (one-liner, mental model, then formalism),
+   - weak stakes → reopen §1 on the real tension; move background out,
+   - metrics dump → add the plain-words meaning, demote the number to evidence,
+   - broken payoff → rewrite §5 to settle §1's stakes,
    - orphaned claim → add a supporting plot/table/citation OR weaken the claim,
    - orphaned plot → add an interpretation paragraph OR remove the figure,
    - weak link → strengthen the connecting prose or replace with a more apt figure,
@@ -324,6 +378,18 @@ Maximum 3 feedback iterations per entry into the loop without explicit user re-a
 
 ## Anti-patterns (flag and fix on sight)
 
+**Understanding anti-patterns (the ones this redesign targets):**
+
+- Opening §1 with a literature tour or definitions instead of the stakes. The reader should feel what is at risk before meeting the method.
+- Burying the core idea under formalism: an equation, loss function, or config block in §2 before any one-sentence version or intuition. Intuition first, always.
+- A §4 finding written as a bare number ("val NLL was 0.71") with no plain-words statement of what it means or why it matters. State the meaning, then show the number.
+- A §5 that restates the results instead of settling the stakes from §1, or that raises a brand-new concern the report never set up.
+- Sections that are only bullet lists with no connecting prose, forcing the reader to reverse-engineer the argument.
+- Confident hand-waving: a sweeping claim with no number, citation, or mechanism behind it. Analogy that builds intuition is fine; a vague assertion is not.
+- Treating the report as an artifact log: cataloguing what was produced (files, runs, tests) without ever explaining why it matters, what the idea is, or what it achieved.
+
+**Evidence and formatting anti-patterns (still enforced):**
+
 - Ending the report with a "List of Figures" or "Figure Inventory" table that re-lists already-embedded plots. Every figure should be embedded inline beside its interpretation.
 - "As shown in the figure below" / "see Figure X" / "the plot illustrates" without a quantitative observation in the same paragraph. Replace with concrete numbers.
 - Captions that name only the chart type (`Bar chart of metrics`). Captions must state the takeaway in numbers (`AdamW lowers val NLL from 0.94 to 0.71 at 200 steps; SGD plateaus at 1.02`).
@@ -367,6 +433,10 @@ Use a JSON object keyed by plot stem or plot id when default inference is not en
 
 ## Quality bar
 
+- The report succeeds only if the target reader can answer, unprompted: why it matters, what the core idea is, and what it achieved. Everything below serves that.
+- The core idea is explained intuition-first: one-sentence version, then mental model, then formalism.
+- Every finding states its meaning in plain words before the number or figure that earns it.
+- §5 pays off the exact stakes raised in §1.
 - Prefer concrete quantitative statements over vague summaries.
 - Keep every file path relative to the report root.
 - Never fabricate data for missing plots.
@@ -379,10 +449,12 @@ Use a JSON object keyed by plot stem or plot id when default inference is not en
 
 ## When sections are missing
 
-Adapt rather than apologizing:
-- no brainstorming artifacts → rename to `Analysis Summary` or `Problem Framing`
-- no tests → use `Validation & Limitations`
-- no implementation code → use `Experimental Setup` or `Materials`
+Adapt rather than apologizing. The narrative arc still holds even when material is thin:
+- can't state a crisp core idea yet → §2 becomes the honest working hypothesis and why you believe it, not a hollow placeholder
+- no formal derivation → keep §2.1/§2.2 (one-liner + intuition), mark §2.3 as "empirical / no closed form"
+- no tests → fold verification evidence into §4 and honest boundaries into §6
+- no implementation code → §3.3 becomes the experimental setup or materials that make the result trustworthy
+- nothing surprised you → delete §4.3; never fabricate surprise
 
 ## Outputs
 
