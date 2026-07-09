@@ -1,8 +1,10 @@
 # AI / ML Domain Notes
 
 ## Tone & framing
+- Explain the idea before the machinery: what is the model/method *doing* and why should it work, in one sentence and a mental picture, before the loss function or the architecture diagram (§2 of the template).
 - Frame the contribution as either a new method, a new application, or a new evaluation. State which up front.
 - Position against current SOTA. Name the baselines explicitly; do not say "compared to prior work" without naming it.
+- Report a headline number as a finding with meaning ("matches SOTA at a tenth of the compute"), not as a lone metric.
 
 ## Reproducibility (mandatory)
 - Fix random seeds. Report the seed(s) used and whether results are averaged over multiple seeds.

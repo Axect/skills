@@ -1,8 +1,9 @@
 # Physics Domain Notes
 
 ## Tone & framing
-- Lead with physical intuition before mathematics. What is the system, what are the relevant length / energy / time scales?
+- Lead with physical intuition before mathematics (this is exactly §2 of the template: the picture first, the equation after). What is the system, what are the relevant length / energy / time scales?
 - State which limit (weak / strong coupling, low / high energy, classical / quantum, ...) you are operating in.
+- Open the report on the physics at stake (what is unexplained, what regime is unreached), not on formalism.
 
 ## Mandatory checks
 - **Dimensional analysis**: every equation must be dimensionally consistent. Flag any mismatch immediately.

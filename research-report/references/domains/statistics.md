@@ -1,8 +1,10 @@
 # Statistics Domain Notes
 
 ## Tone & framing
+- Say what question the analysis answers and why it matters before the machinery of the test. The core idea (§2) is the inferential logic in plain words: what would count as evidence, and for what.
 - State the inferential target precisely: estimation, hypothesis test, prediction, decision. Each carries different reporting standards.
 - Distinguish between population-level claims and sample-level observations.
+- Report an effect as a finding with meaning ("the treatment shifts the mean by 0.4 SD"), then the test statistic and p-value as the evidence for it, not the other way around.
 
 ## Mandatory reporting
 - **Sample sizes** for every group / split.

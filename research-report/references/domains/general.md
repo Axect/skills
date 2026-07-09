@@ -3,7 +3,10 @@
 Use this when no specialized domain template applies.
 
 ## Tone
-- Academic-but-accessible. Third-person, declarative. Avoid hedging language ("may", "could perhaps").
+- Write for a sharp colleague new to this problem, and for future-you. The report should leave them able to say why it matters, what the core idea is, and what it achieved.
+- Intuition before formalism: the one-sentence idea and the mental model come before any equation or config (§2 of the template).
+- State a finding's meaning in plain words before the number that earns it.
+- Academic-but-accessible. Third-person, declarative. Avoid hedging language ("may", "could perhaps"), but do not confuse confidence with hand-waving: a claim still needs a number, citation, or mechanism.
 - Lead each paragraph with the takeaway sentence; supporting detail follows.
 
 ## Quantitative discipline
