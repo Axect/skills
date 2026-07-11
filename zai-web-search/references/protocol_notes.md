@@ -13,7 +13,9 @@ z.ai exposes web search two ways:
 | **REST** | `POST https://api.z.ai/api/paas/v4/web_search` | Pay-as-you-go `paas` balance | Returns `429 {code:1113, "Insufficient balance or no resource package"}` unless the account is recharged separately |
 | **MCP** | `POST https://api.z.ai/api/mcp/web_search_prime/mcp` | **Bundled with GLM Coding Plan** | Works with the same Coding Plan key pi already uses |
 
-The skill uses the **MCP** endpoint exclusively. The Coding Plan key in
+The skill uses the **MCP** endpoint exclusively. The wrapper retries transient
+HTTP/TLS connection failures twice, restarting the complete MCP handshake for
+each retry. The Coding Plan key in
 `~/.pi/agent/auth.json` (`zai-coding-cn.key`) is authorized for MCP but the REST
 endpoint reports insufficient balance — so calling REST would mislead the user
 into thinking they need to recharge, when in fact their subscription already
@@ -68,7 +70,10 @@ The script normalizes to `{title, link, snippet, site}`.
 `web_search_prime` accepts (from the server's `inputSchema`):
 
 - `search_query` (required, ≤70 chars recommended)
-- `search_domain_filter` (optional) — whitelist a single domain
+- `search_domain_filter` (optional) — whitelist a single domain. The upstream
+  service may still return off-domain results, so the wrapper applies a local
+  hostname check after parsing the response; the requested domain and its
+  subdomains are accepted.
 - others may exist; the schema is the source of truth. The skill exposes only
   `search_query` and `search_domain_filter` (`--domain`).
 

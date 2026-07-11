@@ -51,7 +51,7 @@ Do **not** create a second credential file. Do **not** ask the user to paste the
 Arguments:
 - `query` (positional or `--query` / `-q`): the search query. MCP recommends ≤70 chars; the script hard-rejects >200.
 - `--limit` / `-n` (default 8): max results.
-- `--domain` : restrict to a domain (e.g. `arxiv.org`, `nature.com`). Optional.
+- `--domain` : restrict to a domain (e.g. `arxiv.org`, `nature.com`). Optional. Results are also checked locally because the upstream filter may return off-domain items.
 - `--json` : machine-readable output for piping into another script. Default is human-readable `[i] title / link / snippet`.
 - `--auth` (default `~/.pi/agent/auth.json`): override the credential path (rarely needed).
 
@@ -83,7 +83,7 @@ Resolve the script path relative to this `SKILL.md` (skill dir + `scripts/web_se
 | 2 | `auth.json` missing or no `zai-coding-cn.key` | user must (re-)configure pi login |
 | 3 | auth rejected (HTTP 401 / MCP -401) | key invalid or expired → re-login via pi |
 | 4 | search-side error (429, 5xx, MCP error) | surface the message; retry once after a short wait for transient 429 |
-| 5 | network or parse failure | show stderr; check connectivity |
+| 5 | network or parse failure | transient HTTP/TLS failures are retried twice; then show stderr and check connectivity |
 | 64 | usage error | show `--help` |
 
 Do not auto-retry on auth errors (exit 2/3). For 429, a single retry after 20–60s is reasonable; persistent 429 means either rate-limit or (for the REST endpoint) insufficient balance — but the MCP endpoint used here is covered by the Coding Plan, so persistent 429 on MCP is a rate-limit, not a billing issue.
@@ -91,6 +91,7 @@ Do not auto-retry on auth errors (exit 2/3). For 429, a single retry after 20–
 ## Limits and honest use
 
 - Snippets are short and may truncate; do not over-claim what a page says from the snippet alone.
+- The upstream domain filter is not always strict; `--domain` therefore applies a client-side hostname check (the requested domain and its subdomains are accepted).
 - Web search can return stale or SEO-heavy results — cross-check claims that matter.
 - This is a discovery tool. Pair with `reference-search` for citation-grade literature and with direct page reads (curl / a reader tool) when you need to quote.
 

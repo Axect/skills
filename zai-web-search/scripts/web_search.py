@@ -14,12 +14,16 @@ import json
 import os
 import re
 import sys
+import time
+from urllib.parse import urlsplit
 
 DEFAULT_AUTH = os.path.expanduser("~/.pi/agent/auth.json")
 MCP_HOST = "api.z.ai"
 MCP_PATH = "/api/mcp/web_search_prime/mcp"
 PROTO = "2024-11-05"
 TOOL = "web_search_prime"
+NETWORK_RETRIES = 2
+RETRY_DELAYS = (1.0, 3.0)
 
 
 def die(code, msg):
@@ -104,6 +108,32 @@ def unpack_items(result_obj):
     return items
 
 
+def domain_matches(link, domain):
+    """Return whether link belongs to domain or one of its subdomains."""
+    if not domain:
+        return True
+
+    wanted = domain.strip().lower()
+    if "://" in wanted:
+        wanted = urlsplit(wanted).hostname or ""
+    else:
+        wanted = wanted.split("/", 1)[0]
+    wanted = wanted.rstrip(".")
+    if wanted.startswith("*."):
+        wanted = wanted[2:]
+    if not wanted:
+        return False
+
+    try:
+        host = urlsplit(link).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    host = host.lower().rstrip(".")
+    return host == wanted or host.endswith("." + wanted)
+
+
 def search(key, query, limit, domain=None):
     # 1) initialize -> capture session id from response header
     _, sid, status = mcp_post(
@@ -152,7 +182,12 @@ def search(key, query, limit, domain=None):
         if ecode == -401 or status == 401:
             die(3, f"auth rejected (MCP {ecode}): {emsg}")
         die(4, f"MCP error {ecode}: {emsg}")
-    return unpack_items(obj["result"])[:limit]
+    items = unpack_items(obj["result"])
+    if domain:
+        # The MCP server may return off-domain results despite accepting the
+        # search_domain_filter argument, so enforce the whitelist locally too.
+        items = [it for it in items if domain_matches(normalize(it)["link"], domain)]
+    return items[:limit]
 
 
 def normalize(it):
@@ -190,8 +225,28 @@ def main():
     key = load_key(args.auth)
     try:
         items = search(key, query, args.limit, args.domain)
-    except (http.client.HTTPException, OSError) as e:
-        die(5, f"network error: {e}")
+    except (http.client.HTTPException, OSError) as first_error:
+        # TLS connections to the MCP endpoint can fail transiently with EOF.
+        # Retry the complete MCP handshake, but never retry auth/search errors
+        # that are converted to exit codes inside search().
+        last_error = first_error
+        for attempt, delay in enumerate(RETRY_DELAYS, start=1):
+            print(
+                f"[web_search] transient network error; retrying "
+                f"({attempt}/{NETWORK_RETRIES}) in {delay:g}s: {last_error}",
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+            try:
+                items = search(key, query, args.limit, args.domain)
+                break
+            except (http.client.HTTPException, OSError) as retry_error:
+                last_error = retry_error
+        else:
+            die(
+                5,
+                f"network error after {NETWORK_RETRIES + 1} attempts: {last_error}",
+            )
 
     rows = [normalize(it) for it in items]
     if args.json:
