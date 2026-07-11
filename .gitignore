@@ -8,6 +8,7 @@
 **/.env.*
 
 # Local scratch and scan outputs
+.pi/
 *.log
 *.tmp
 *.out
