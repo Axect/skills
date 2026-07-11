@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-07-11
+
+### Added
+- Added the `handdrawn-schematic` skill: a standalone generator for a single friendly hand-drawn whiteboard schematic on a **pure white background** (#FFFFFF, no cream/beige tint) that explains a concept, pipeline, architecture, or algorithm at a glance with wavy marker strokes, numbered circular panel badges flowing left to right, chunky chalk-style arrows, and short hand-written notes lettered beside the shapes. It is the reusable single-figure generator extracted from `journal-club-review`, retuned from the cream friendly-whiteboard look to white and generalized from the fixed method/results pair to any schema via a flexible 3-6 panel figure brief (headline, subtitle, panels; English-only labels <= 6 words, charts kept hand-drawn). By default it renders a PNG through the bundled `codex` `image_generation` tool (ChatGPT OAuth, no API key) and falls back to emitting the copy-paste prompt when codex is unavailable. The load-bearing style block lives in `references/style-block.md` (used verbatim). Entry point: `handdrawn-schematic/SKILL.md`. Distinct from `wide-slide-illustrator` (prompt-only composer across six other styles), `journal-club-review` (the paired method+results figures inside a paper walkthrough), and `scienceplot-py` / `xkcd-py` (real matplotlib data plots); the description cross-links them to avoid trigger overlap.
+
+### Changed
+- Updated `README.md` across the four standard touchpoints (skill table, "Skill requirements & setup" section, "Which skill to use?" picker, directory tree) and `CLIENT_SETUP.md` across its five touchpoints (skill directory list, Claude Code and Codex install loops, Forge Option 2 tree, per-skill prerequisites section) to cover `handdrawn-schematic`.
+
 ## 2026-06-22
 
 ### Added
