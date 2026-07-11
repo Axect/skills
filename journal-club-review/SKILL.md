@@ -103,7 +103,27 @@ if codex is not logged in (then say so and keep the review text-only).
   `<out_dir>/figures/`: real figures in `figures/paper/`, infographics in
   `figures/`).
 - Tell the user the path and give a 1-2 line summary.
-- If the review is Korean, offer to export a PDF with the `md2pdf-typora` skill.
+
+### 6. Export PDF and file into the JournalClub archive (default)
+
+Every finished review is exported to PDF and mirrored into the user's
+`~/Dropbox/JournalClub` archive. Do this automatically, do not wait to be asked.
+
+1. **Export the PDF** with the `md2pdf-typora` skill on `<out_dir>/review.md`,
+   producing `<out_dir>/review.pdf`. (This runs regardless of the review
+   language; the Whitey theme handles Korean and English both.)
+2. **Pick the topic folder.** The archive is organised as
+   `~/Dropbox/JournalClub/<Topic>/reviews/<slug>/`. List the existing topics
+   (`ls ~/Dropbox/JournalClub`) and choose the one that fits the paper. If none
+   fits, ask the user which topic to use or whether to create a new one (e.g.
+   `SpectralGeometry`, `InverseProblem`); create it only after they confirm the
+   name. Do not silently invent a topic.
+3. **Copy the artifacts** into
+   `~/Dropbox/JournalClub/<Topic>/reviews/<slug>/`: `review.md`, `review.pdf`,
+   `source.md`, and the `figures/` directory (both `figures/paper/` real figures
+   and the generated `figures/*.png` infographics). Match the existing layout in
+   sibling review folders.
+4. **Confirm** the destination path and file sizes to the user.
 
 ## Notes
 
