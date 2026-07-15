@@ -5,18 +5,20 @@ description: >
   style: with plt.style.context(["science", "nature"]), pparam = dict(...),
   raw-string LaTeX labels, and fig.savefig(..., dpi=300,
   bbox_inches='tight'). Support parquet, CSV, NPY/NPZ data and single-line,
-  multi-line, scatter/errorbar, or subplot variants. Write the script only; do
-  not execute it. Use for publication-style plot scripts, science/nature
-  figures, plot-from-data scaffolds, and Korean or English requests for
-  matplotlib graph scripts.
+  multi-line, scatter/errorbar, or subplot variants. Generate both the
+  reproducible plotting script and the requested PNG/PDF/SVG figure by
+  default. Use for publication-style plot scripts, science/nature figures,
+  plot-from-data scaffolds, and Korean or English requests for matplotlib
+  graph scripts.
 ---
 
-# scienceplot-py — Matplotlib Script Generator (scienceplots / science+nature)
+# scienceplot-py — Matplotlib Plot + Figure Generator (scienceplots / science+nature)
 
 Generate a Python plotting script that **always** follows the user's lab
-template shape. The skill writes a `.py` file and returns its path; it does
-not run the script. The user executes it themselves (the user prefers
-`uv run <path>` per their global preferences).
+template shape, execute it, and verify the rendered figure artifact. The skill
+returns both the `.py` path and the generated figure path(s). The default
+workflow is script plus figure generation; use script-only mode only when the
+user explicitly requests a script without execution.
 
 The canonical template lives at
 `~/Socialst/Templates/PyPlot_Template/pq_plot.py`. Every variant in this
@@ -66,9 +68,26 @@ Every generated script MUST keep these load-bearing patterns intact. Do not
    snippets.
 4. Substitute column names, label strings, title, output filename. Preserve
    every invariant from the section above.
-5. Write the `.py` file with the Write tool. **Do not execute it.**
-6. Print the output path and a one-line "run with `uv run <path>`" hint.
-   Do not invoke `uv` / `python` from this skill.
+5. Write the `.py` file with the Write tool. Preserve the requested output
+   location in the script rather than relying on an accidental current working
+   directory.
+6. Render the figure by executing the generated script from the project root.
+   Prefer `uv run <path>` when the current project is the active uv project;
+   when the project environment is in a subdirectory, use
+   `uv run --project <project-dir> python <script-path>`. Do not install
+   packages automatically: if `scienceplots`, matplotlib, pandas, or numpy is
+   missing, report the dependency error and the command needed after the user
+   fixes the environment.
+7. Verify that every requested output file exists and is non-empty. For report
+   figures, generate the requested raster output (normally PNG) and a PDF or
+   SVG companion, each with `dpi=300` and `bbox_inches='tight'`. If the figure
+   is available to the harness, inspect it for clipped labels, missing glyphs,
+   empty axes, and accidental transparent backgrounds.
+8. Return the script path, generated figure path(s), the exact render command,
+   and a short render-status summary.
+
+If the user explicitly requests **script-only**, stop after step 5 and return
+an execution hint instead of running the script.
 
 ## Data sources
 
@@ -97,13 +116,15 @@ then Write the result to the user's chosen path.
 
 ## What this skill does NOT do
 
-- It does not run the generated script. The user runs it (preferred:
-  `uv run <path>`).
 - It does not install `scienceplots` / `matplotlib` / `pandas` / `numpy`.
-  Assume they are already available in the target environment.
+  Assume they are already available in the target environment; dependency
+  installation remains the user's or project's responsibility.
 - It does not produce methodology / architecture / pipeline diagrams. For
   those, use the `paperbanana` skill or `wide-slide-illustrator`.
 - It does not change the style invariants. If the user asks for a different
   style (e.g., `seaborn`, `ggplot`, plain matplotlib), tell them this skill
   is specifically for the science+nature template and offer to write the
   alternative as a plain script outside the skill.
+- It does not silently treat a successful Python exit as proof of a valid
+  figure: output existence and basic visual sanity checks are part of the
+  rendering workflow.
