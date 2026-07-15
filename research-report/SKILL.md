@@ -42,6 +42,7 @@ The skill works best when the target directory looks roughly like this:
 ```text
 {output_dir}/
   report.md
+  report.pdf
   report_versions.json
   plots/
     *.png
@@ -360,6 +361,35 @@ After both reviews return, synthesize:
 - Re-run the JSON-artifact validator and the plot-script auditor.
 - Report file locations, plot count, validation findings, thin sections, missing figure references, sections that still need stronger literature support, and any known caveats.
 
+### Step 10 — Export PDF and archive to Dropbox (automatic)
+
+Every finished report is exported to PDF and mirrored into the user's
+`~/Dropbox/ResearchReport` archive, organised by category. Do this
+automatically, do not wait to be asked. The category archive is a reading
+collection, separate from the `research-backup` skill which mirrors the full
+project tree (including `src/` code) — only the report-facing artifacts travel
+here.
+
+1. **Export the PDF** with the `md2pdf-typora` skill on `{output_dir}/report.md`,
+   producing `{output_dir}/report.pdf`. This runs regardless of report language;
+   the Whitey theme handles Korean and English both.
+2. **Pick the category folder.** The archive is organised as
+   `~/Dropbox/ResearchReport/<Category>/<report_slug>/` (the `report_slug` is
+   the basename of `{output_dir}`). List the existing categories
+   (`ls ~/Dropbox/ResearchReport`) and choose the one that fits the report. If
+   none fits, ask the user which category to use or whether to create a new one
+   (reuse the JournalClub topic vocabulary — `InverseProblem`, `NeuralOperators`,
+   `PBH`, `SMEFT`, `Unfolding`, ... — when sensible); create it only after they
+   confirm the name. Do not silently invent a category.
+3. **Copy the artifacts** into
+   `~/Dropbox/ResearchReport/<Category>/<report_slug>/`: `report.md`,
+   `report.pdf`, `report_versions.json`, and the `plots/` directory (PNG + PDF
+   + scripts + data, including `plot_manifest.json` and `_plot_style.py`). Do
+   **not** copy `src/`, `tests/`, or other code — `research-backup` already
+   mirrors those from the project tree. Match the existing layout in sibling
+   report folders.
+4. **Confirm** the destination path and file sizes to the user.
+
 ## User-feedback loop (Tier 1 / 2 / 3)
 
 When the user reviews `report.md` and asks for changes, classify the request before applying it. The classification keywords mirror magi's tiered feedback loop.
@@ -459,9 +489,11 @@ Adapt rather than apologizing. The narrative arc still holds even when material 
 ## Outputs
 
 - `report.md`
+- `report.pdf`
 - `report_versions.json`
 - `plots/plot_manifest.json`
 - optional archived reports: `report_v{N}.md`
 - optional section-level reference support notes only when the user requests saved citation outputs or the project already uses a references directory
+- category archive at `~/Dropbox/ResearchReport/<Category>/<report_slug>/` (report.md + report.pdf + report_versions.json + plots/)
 
 After creating or updating this skill, suggest starting a new session so the new skill is discoverable from session start.
