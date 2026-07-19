@@ -12,13 +12,13 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | Skill | Primary use | Entry point | External setup |
 |---|---|---|---|
 | `academic-jobs` | Fetch valid (still-open, deadline-not-passed) academic job postings from Academic Jobs Online (AJO) and the InspireHEP jobs board via the `ajo` CLI: searches both boards by the same field presets (keywords + position-type + country filters + which sources), fetches and stores postings judged valid from their effective deadline, flags what is new since the last check, and inspects a posting. Postings keyed by `(source, id)` in a local SQLite store under `~/.local/share/academic-jobs/`. | `academic-jobs/SKILL.md` | `uv` (the bundled `ajo` uv project auto-installs `requests` + `beautifulsoup4` on first `uv run`) |
-| `academic-slides` | Scaffold a clean, modern academic presentation deck (Slidev) from a fixed design system: house style (IBM Plex Sans + Inter + IBM Plex Mono), deep-blue gradient section dividers, figure-card / step-card / minimal-table layouts, plus a scienceplots figure pipeline (`science`+`nature`, no in-figure titles) and the battle-tested mdc-math / footer / layout rules that keep the recurring Slidev rendering bugs from coming back. | `academic-slides/SKILL.md` | Node.js + `pnpm` (Slidev + playwright-chromium for PDF export); Python + `matplotlib` + `scienceplots` + system TeX for figures |
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; Korean output is mirrored to `~/Dropbox/Magi/<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `hep-rumor-mill` | Analyze the HEP-theory postdoc rumor mill (a public Google Sheet) via the `prm` CLI: pull a year's offer list, resolve each offer-holder's InspireHEP record (plus OpenAlex by ORCID and Semantic Scholar by name for interdisciplinary people), and study what kind of profile lands where. Institute cohort profiles and self-benchmarking against the accepted cohort, with Korean report output. State in a local SQLite store under `~/.local/share/hep-rumor-mill/`. Self-reported data, treated as descriptive not predictive. | `hep-rumor-mill/SKILL.md` | `uv` (the bundled `prm` uv project auto-installs `requests` on first `uv run`) |
+| `hermes-tweet-signal` | Build read-only X/Twitter signal briefs through an installed Hermes Tweet plugin with endpoint discovery first and action tools off by default. | `hermes-tweet-signal/SKILL.md` | Hermes Tweet plugin + `XQUIK_API_KEY` |
 | `handdrawn-schematic` | Generate a single friendly hand-drawn whiteboard schematic (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) on a **pure white background** that explains a concept, pipeline, architecture, or algorithm at a glance. Composes the load-bearing style block + a 3-6 panel figure brief and by default renders a PNG via the bundled `codex` image_generation tool (ChatGPT OAuth); falls back to emitting the copy-paste prompt when codex is unavailable. The reusable single-figure generator extracted from `journal-club-review`, retuned from cream to white. | `handdrawn-schematic/SKILL.md` | Logged-in bundled `codex` for rendering (optional; prompt-only without it) |
 | `journal-club-review` | Turn an arXiv id/URL, a PDF, or raw text into a journal-club paper presentation (nine sections: TL;DR, The Problem, Key Idea, How It Works, Key Results, Why It Matters, Strengths/Limitations/Open Questions, Discussion Questions, Takeaways) meant to help a reading group understand and discuss a paper, not produce a referee report. LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures (method + results). | `journal-club-review/SKILL.md` | `uv` (extractor deps auto-installed via PEP 723); logged-in bundled `codex` for figures (optional) |
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
@@ -59,15 +59,6 @@ Requires `uv` on `PATH`. The skill bundles a small uv project (`ajo`); `uv run -
 - AJO validity is judged from each posting's **detail page** (effective deadline = firm `Appl Deadline` if present, else the `listed until` date), not the list page; `--fast` skips AJO detail pages but misses many valid postings. InspireHEP is queried with `status=open` and uses the structured `deadline_date` directly (no detail fetch, `--fast` does not apply).
 - The CLI uses one polite session per board with a real User-Agent, a small inter-request delay, and a per-run AJO detail-fetch cap (reported under `stats.per_source`). Do not parallelise or hammer either board.
 - See `academic-jobs/references/`: `fetch.md`, `presets.md`, `schema.md`.
-
-### academic-slides: Node + pnpm (Slidev) + matplotlib/scienceplots/TeX
-
-Two toolchains: Slidev (Node) builds and exports the deck, and the scienceplots pipeline (Python) renders the figures. No API keys.
-
-- Slidev runs from the deck folder via `pnpm`: `pnpm install`, then `pnpm exec playwright install chromium` (Chromium is needed only by `slidev export` for the PDF). If the `esbuild` / `vue-demi` build scripts are blocked, `pnpm rebuild esbuild vue-demi`; if the default theme is missing at export, `pnpm add @slidev/theme-default`.
-- Figures need `matplotlib` + `scienceplots` and a system TeX install (real LaTeX, never `no-latex`); verify with `pdflatex --version`.
-- The design system (`style.css`, `global-top.vue`, `global-bottom.vue`, `package.json`, `deck_style.py`) is copied verbatim into each deck; do not restyle ad hoc.
-- See `academic-slides/references/`: `design-system.md`, `gotchas.md`, `figures.md`, `build-verify.md`.
 
 ### adversarial-review
 
@@ -122,6 +113,14 @@ Requires `uv` on `PATH`. The skill bundles a small uv project (`prm`); `uv run -
 - Two data-quality guards are built in and surfaced, not hidden: large-collaboration inflation (`n_large_collab`, InspireHEP papers with > 50 authors) and OpenAlex author-conflation (a shared-name ORCID cluster is dropped when contaminated with distant-field works). The rumor mill is self-reported and incomplete; the analysis is descriptive, never predictive.
 - The CLI paces InspireHEP requests and OpenAlex paging; Semantic Scholar rate-limits hard and is used for the no-ORCID author fallback and arXiv-only citation backfill. Optional: set `S2_API_KEY` (same env var `reference-search` uses) to raise the Semantic Scholar limit and make citation backfill reliable; unauthenticated works but is best-effort. Do not parallelise or hammer the APIs.
 - See `hep-rumor-mill/references/`: `sheets.md`, `metrics.md`, `analysis.md`, `schema.md`.
+
+### hermes-tweet-signal
+
+Requires Hermes Tweet installed in the Hermes runtime and `XQUIK_API_KEY` configured where Hermes executes tools. Leave `HERMES_TWEET_ENABLE_ACTIONS` unset unless a user explicitly approves an action-capable workflow.
+
+- Use `tweet_explore` first to find supported public read routes.
+- Use `tweet_read` only for public read-only endpoints returned by discovery.
+- Do not call `tweet_action` for monitoring, research, launch reaction, incident, feedback, or community-chatter briefs.
 
 ### wide-slide-illustrator
 
@@ -355,13 +354,13 @@ Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — t
 ## Which skill to use?
 
 - Choose `academic-jobs` to pull current, still-open academic job postings (postdoc / faculty / PhD) from Academic Jobs Online **and the InspireHEP jobs board** (searched together by default), filtered to postings whose application deadline has not passed, with field presets and "new since last check" tracking.
-- Choose `academic-slides` to build a polished academic talk deck (Slidev) for a paper, result, or project: a consistent house style with section dividers, figure-card and step-card layouts, a scienceplots figure pipeline, and the mdc-math / footer / layout rules baked in so the usual Slidev rendering traps never resurface.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (Korean output mirrored to Dropbox).
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `hep-rumor-mill` to study the HEP-theory postdoc job market from the rumor mill: who got offers at which institutions, the publication profiles of the people who got them (citations, papers, venues, subfield, PhD-age, named fellowships, with OpenAlex cross-disciplinary augmentation for interdisciplinary candidates), and how your own InspireHEP profile sits against the accepted cohort. Self-reported data, descriptive not predictive.
+- Choose `hermes-tweet-signal` to produce read-only X/Twitter signal briefs through an installed Hermes Tweet plugin. Use `tweet_explore` before `tweet_read`, keep action routes disabled, and stop for explicit approval before any posting or engagement workflow.
 - Choose `handdrawn-schematic` to generate a single friendly hand-drawn whiteboard schematic on a **pure white background** (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) that explains a concept, pipeline, architecture, or algorithm at a glance. Renders a PNG by default via the bundled `codex` image_generation tool, or emits the copy-paste prompt when codex is unavailable. Use `wide-slide-illustrator` instead for a prompt-only composer across six other styles, `journal-club-review` for the paired method+results figures inside a paper walkthrough, and `scienceplot-py` / `xkcd-py` for real matplotlib data plots.
 - Choose `journal-club-review` to turn an arXiv id/URL, a PDF, or raw text into a journal-club presentation (nine sections from TL;DR to Takeaways) meant to help a reading group understand and discuss a paper, with LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures. Use `workshop-paper-review` instead for an OpenReview referee report, or `adversarial-review` for a hostile pre-submission audit.
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
@@ -387,7 +386,6 @@ Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — t
 ```text
 skills/
 ├── academic-jobs/
-├── academic-slides/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/
@@ -395,6 +393,7 @@ skills/
 ├── dropbox/
 ├── handdrawn-schematic/
 ├── hep-rumor-mill/
+├── hermes-tweet-signal/
 ├── journal-club-review/
 ├── md2pdf-typora/
 ├── morgen/

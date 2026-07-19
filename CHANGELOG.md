@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-07-18
+
+### Added
+- Added the `hermes-tweet-signal` skill for read-only X/Twitter research through the Hermes Tweet plugin. The workflow discovers public read routes with `tweet_explore`, uses only returned routes through `tweet_read`, and keeps `tweet_action` disabled for signal briefs. Entry point: `hermes-tweet-signal/SKILL.md`. Requires Hermes Tweet and `XQUIK_API_KEY`.
+
+### Changed
+- Updated `README.md` and `CLIENT_SETUP.md` across their skill indexes, setup guidance, install loops, selection guidance, and directory trees.
+- Removed stale `academic-slides` references after its skill directory was deleted, preventing the documented bulk-install commands from creating broken links or copying a missing directory.
+
 ## 2026-07-11
 
 ### Added

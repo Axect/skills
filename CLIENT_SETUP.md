@@ -14,7 +14,6 @@ Some skills also include helper assets such as:
 Current skill directories in this repository:
 
 - `academic-jobs`
-- `academic-slides`
 - `adversarial-review`
 - `bibtex-gen`
 - `commit-triage`
@@ -22,6 +21,7 @@ Current skill directories in this repository:
 - `dropbox`
 - `handdrawn-schematic`
 - `hep-rumor-mill`
+- `hermes-tweet-signal`
 - `journal-club-review`
 - `md2pdf-typora`
 - `morgen`
@@ -92,7 +92,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill hermes-tweet-signal journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -140,7 +140,7 @@ ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill hermes-tweet-signal journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -187,7 +187,7 @@ Use this when you want every skill in this repository available in Forge. This m
 
 ```bash
 mkdir -p ~/forge/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill hermes-tweet-signal journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   rm -rf ~/forge/skills/$skill
   cp -R "$REPO/$skill" ~/forge/skills/$skill
 done
@@ -202,7 +202,6 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ```text
 /absolute/path/to/skills/
 ├── academic-jobs/
-├── academic-slides/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/
@@ -210,6 +209,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── dropbox/
 ├── handdrawn-schematic/
 ├── hep-rumor-mill/
+├── hermes-tweet-signal/
 ├── journal-club-review/
 ├── md2pdf-typora/
 ├── morgen/
@@ -242,7 +242,7 @@ Because Forge needs real directories (not symlinks), edits made in this reposito
 
 ```bash
 REPO=/absolute/path/to/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill hermes-tweet-signal journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   rm -rf ~/forge/skills/$skill
   cp -R "$REPO/$skill" ~/forge/skills/$skill
 done
@@ -280,7 +280,7 @@ Pi reads a `skills` array in `~/.pi/agent/settings.json` (global) or `.pi/settin
 
 ```bash
 mkdir -p ~/.pi/agent/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill hermes-tweet-signal journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   ln -s "$REPO/$skill" "$HOME/.pi/agent/skills/$skill"
 done
 ```
@@ -291,7 +291,7 @@ This location is shared by every harness that follows the Agent Skills standard,
 
 ```bash
 mkdir -p ~/.agents/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill hermes-tweet-signal journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
 done
 ```
@@ -329,18 +329,6 @@ Requires `uv` on `PATH`; no API keys or credentials. The skill bundles a uv proj
 - State lives under `~/.local/share/academic-jobs/` (`jobs.db` + `config.toml`); override with `AJO_DATA_DIR`.
 - Validity is judged from each posting's detail page (effective deadline = firm `Appl Deadline`, else `listed until`). `--fast` skips detail pages but misses many valid postings; prefer the default.
 - The CLI is polite by design (single session, real User-Agent, inter-request delay, per-run detail-fetch cap). Do not parallelise.
-
-### academic-slides: Node + pnpm (Slidev) + matplotlib/scienceplots/TeX
-
-Two toolchains. Slidev (Node) builds and exports the deck; the scienceplots pipeline (Python) renders the figures. No API keys.
-
-- Install Node.js and `pnpm`. From a deck folder, `pnpm install`, then `pnpm exec playwright install chromium` (Chromium is used only by `slidev export` for the PDF).
-- Figures need `matplotlib` + `scienceplots` and a system TeX distribution on `PATH`:
-  ```bash
-  uv add matplotlib scienceplots numpy
-  pdflatex --version
-  ```
-- If `pnpm install` leaves `esbuild` / `vue-demi` unbuilt, run `pnpm rebuild esbuild vue-demi`; if `slidev export` prompts for a theme, `pnpm add @slidev/theme-default`.
 
 ### adversarial-review — no setup required
 
@@ -414,6 +402,14 @@ Requires `uv` on `PATH`; no API keys or credentials. The skill bundles a uv proj
 - State lives under `~/.local/share/hep-rumor-mill/rumor.db`; override with `PRM_DATA_DIR`.
 - Optional: set `S2_API_KEY` (same env var `reference-search` uses) to raise the Semantic Scholar rate limit and make citation backfill reliable.
 - The CLI paces InspireHEP and OpenAlex requests by design. Do not parallelise.
+
+### hermes-tweet-signal: Hermes Tweet plugin + XQUIK_API_KEY
+
+Requires Hermes Tweet installed in the Hermes runtime and `XQUIK_API_KEY` configured where Hermes executes tools. Leave `HERMES_TWEET_ENABLE_ACTIONS` unset unless a user explicitly approves an action-capable workflow.
+
+- Use `tweet_explore` first to find supported public read routes.
+- Use `tweet_read` only for public read-only endpoints returned by discovery.
+- Do not call `tweet_action` for monitoring, research, launch reaction, incident, feedback, or community-chatter briefs.
 
 ### journal-club-review: uv (+ optional codex for figures)
 
