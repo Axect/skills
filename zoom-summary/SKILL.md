@@ -5,7 +5,7 @@ description: Read Zoom AI Companion meeting summaries through the Zoom REST API,
 
 # Zoom Summary
 
-Read-only access to Zoom AI Companion meeting summaries via the Zoom REST API v2, using a Server-to-Server OAuth app. Wraps the two summary endpoints with `curl` + `jq` helpers.
+Read-only access to Zoom AI Companion meeting summaries via the Zoom REST API v2, using a Server-to-Server OAuth app. Wraps the two summary endpoints with `curl` + `jq` helpers, and repairs the domain terms the summariser mistranscribes.
 
 ## Trigger conditions
 
@@ -79,7 +79,7 @@ Verifies by minting a real token, writes credentials mode 600, then reports gran
 - `get` renders markdown by default; `--json` gives the raw body.
 - `save` writes to `$ZOOM_SUMMARY_DIR` (default `~/Documents/ZoomSummaries`) as `YYYY-MM-DD_<topic-slug>.md` and prints the path. It refuses to overwrite without `--force`.
 
-Meeting UUIDs often contain `/`, `+`, and `=`. Always quote them in shell commands. The double-encoding rule for UUIDs starting with `/` is handled inside `auth.sh`.
+Meeting UUIDs often contain `/`, `+`, and `=`. Always quote them in shell commands. `auth.sh` handles Zoom's rule that a UUID starting with `/` or containing `//` must be double URL encoded; every other UUID goes through as is.
 
 ### correct.py — repair mangled domain terms
 
@@ -94,13 +94,15 @@ Two tiers, and the distinction is the whole point:
 
 `--in-place` keeps the untouched summary as `<stem>.raw.md`. Re-running re-derives from that raw file, so the run is idempotent, the substitution record survives, and glossary edits always apply to pristine text.
 
+`--report-only` prints the report to stderr and writes nothing. `--no-appendix` corrects the text without appending the audit table. Reading from `-` (stdin) writes to stdout and cannot be combined with `--in-place`.
+
 Glossaries load in order, later overriding earlier by pattern:
 
-1. `references/glossary.tsv` in this skill (shared, project-wide terms)
-2. `~/.config/zoom-skill/glossary.tsv` (the user's own additions)
-3. anything passed with `--glossary`
+1. `references/glossary.tsv` in this skill — **template only**, ships with no real terms
+2. `~/.config/zoom-skill/glossary.tsv` — where every real entry belongs (override the path with `ZOOM_SKILL_GLOSSARY`)
+3. anything passed with `--glossary` (repeatable)
 
-Requires `python3`.
+Requires `python3`. Exits 1 when the file is missing or no glossary entry exists anywhere, and 64 when `--in-place` is given with stdin.
 
 ## After fetching
 
@@ -120,7 +122,7 @@ Requires `python3`.
 Show script stderr to the user verbatim. Exit code reference:
 
 - 0 — success
-- 1 — bad argument, or `save` refused to overwrite
+- 1 — bad argument, `save` refused to overwrite, or `correct.py` found no file / no glossary entry
 - 2 — credentials.json missing (→ run setup.sh)
 - 3 — token rejected or scope missing, HTTP 401/403 (→ see the scope gotcha above)
 - 4 — meeting UUID not found, HTTP 404 (often a UUID that needed quoting)
@@ -134,6 +136,8 @@ Show script stderr to the user verbatim. Exit code reference:
 - `ZOOM_SKILL_CREDS` — credentials path (default `~/.config/zoom-skill/credentials.json`)
 - `ZOOM_SKILL_CACHE` — token cache directory (default `~/.cache/zoom-skill`)
 - `ZOOM_SUMMARY_DIR` — markdown output directory (default `~/Documents/ZoomSummaries`)
+- `ZOOM_SKILL_GLOSSARY` — user glossary path (default `~/.config/zoom-skill/glossary.tsv`)
+- `ZOOM_API_BASE`, `ZOOM_OAUTH_URL` — API and token endpoints. Only for pointing the scripts at a stand-in server during testing; never change them in normal use.
 
 ## API notes
 
