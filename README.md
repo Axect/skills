@@ -7,16 +7,28 @@ A curated collection of reusable skills for common automation, research, and inf
 This repository groups a small set of focused skills into one place with consistent naming and structure.
 Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may also bundle `scripts/` or `references/` depending on the workflow.
 
+## Output directory convention
+
+Skills that write generated artifacts into a project's `outputs/` directory name each run directory `YYYYMMDD_<topic>`, with the date taken from `date +%Y%m%d` on the day the directory is created. Alphabetical order then matches chronological order, so a bare `ls outputs/` reads as a timeline and no separate sequence index is needed.
+
+| Skill | Directory |
+|---|---|
+| `research-report` | `outputs/YYYYMMDD_<topic>/`; the same basename is reused for the `~/Dropbox/ResearchReport/<Category>/` archive |
+| `adversarial-review` | `outputs/review/YYYYMMDD_HHMM/`, with a time suffix because one draft is often reviewed more than once a day |
+| `overleaf-section-workflow` | `outputs/YYYYMMDD_<topic>/` in the research project that owns the plot scripts |
+| `concept-explainer` | `YYYYMMDD_<concept-slug>/` in the working directory, mirrored under the same name to `~/Dropbox/ConceptExplainer/<Topic>/` |
+
+Directories created before this convention keep their names, and a directory is never re-dated because it was edited later: the prefix records when the work started, which is what makes the ordering stable.
+
 ## Included skills
 
 | Skill | Primary use | Entry point | External setup |
 |---|---|---|---|
 | `academic-jobs` | Fetch valid (still-open, deadline-not-passed) academic job postings from Academic Jobs Online (AJO) and the InspireHEP jobs board via the `ajo` CLI: searches both boards by the same field presets (keywords + position-type + country filters + which sources), fetches and stores postings judged valid from their effective deadline, flags what is new since the last check, and inspects a posting. Postings keyed by `(source, id)` in a local SQLite store under `~/.local/share/academic-jobs/`. | `academic-jobs/SKILL.md` | `uv` (the bundled `ajo` uv project auto-installs `requests` + `beautifulsoup4` on first `uv run`) |
-| `academic-slides` | Scaffold a clean, modern academic presentation deck (Slidev) from a fixed design system: house style (IBM Plex Sans + Inter + IBM Plex Mono), deep-blue gradient section dividers, figure-card / step-card / minimal-table layouts, plus a scienceplots figure pipeline (`science`+`nature`, no in-figure titles) and the battle-tested mdc-math / footer / layout rules that keep the recurring Slidev rendering bugs from coming back. | `academic-slides/SKILL.md` | Node.js + `pnpm` (Slidev + playwright-chromium for PDF export); Python + `matplotlib` + `scienceplots` + system TeX for figures |
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
-| `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; Korean output is mirrored to `~/Dropbox/Magi/<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
+| `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; every explanation is archived to `~/Dropbox/ConceptExplainer/<Topic>/YYYYMMDD_<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `hep-rumor-mill` | Analyze the HEP-theory postdoc rumor mill (a public Google Sheet) via the `prm` CLI: pull a year's offer list, resolve each offer-holder's InspireHEP record (plus OpenAlex by ORCID and Semantic Scholar by name for interdisciplinary people), and study what kind of profile lands where. Institute cohort profiles and self-benchmarking against the accepted cohort, with Korean report output. State in a local SQLite store under `~/.local/share/hep-rumor-mill/`. Self-reported data, treated as descriptive not predictive. | `hep-rumor-mill/SKILL.md` | `uv` (the bundled `prm` uv project auto-installs `requests` on first `uv run`) |
 | `handdrawn-schematic` | Generate a single friendly hand-drawn whiteboard schematic (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) on a **pure white background** that explains a concept, pipeline, architecture, or algorithm at a glance. Composes the load-bearing style block + a 3-6 panel figure brief and by default renders a PNG via the bundled `codex` image_generation tool (ChatGPT OAuth); falls back to emitting the copy-paste prompt when codex is unavailable. The reusable single-figure generator extracted from `journal-club-review`, retuned from cream to white. | `handdrawn-schematic/SKILL.md` | Logged-in bundled `codex` for rendering (optional; prompt-only without it) |
@@ -25,7 +37,6 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
 | `overleaf-section-workflow` | Disciplined section-by-section workflow for Overleaf physics-paper drafts: Korean intermediate draft → user iteration → Opus-direct English LaTeX → out-of-tree build. Codifies non-negotiables (no em/en-dashes, no forward refs in background, citation content verified, scienceplots conventions, build never inside sync folder) and orchestrates `overleap`, `scienceplot-py`, `reference-search`, `bibtex-gen`, and `commit-triage` in turn. | `overleaf-section-workflow/SKILL.md` | TeX distribution (`pdflatex`, `bibtex`) + the companion skills it orchestrates |
-| `paperbanana` | Generate academic diagrams and statistical plots with the PaperBanana CLI | `paperbanana/SKILL.md` | `paperbanana` CLI + API keys |
 | `proton-mail` | Read and search Proton Mail through a locally running Proton Bridge (read-only IMAP over STARTTLS on 127.0.0.1); does not send, delete, or move messages | `proton-mail/SKILL.md` | Proton Bridge running locally + `~/.proton-imap` credentials file (chmod 600) |
 | `reference-search` | Search and curate academic references via domain-aware routing across InspireHEP, OpenAlex, and Semantic Scholar for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python; optional `S2_API_KEY` env var) |
 | `research-backup` | Mirror untracked research report directories (`outputs/`, `results/`, `report(s)/`) into the locally synced Dropbox folder with rsync, preserving the `<category>/<project>` layout so same-named projects never collide. `discover.sh` scans for candidate directories git does not track (ignored / untracked / outside any repo) and a registry under `~/.config/research-backup/` keeps the backup set explicit; backups are additive (no `--delete`), so local deletions never propagate. | `research-backup/SKILL.md` | `rsync` + the official Dropbox client syncing `~/Dropbox` locally |
@@ -38,6 +49,7 @@ Each skill lives in its own directory, includes a `SKILL.md` entrypoint, and may
 | `workshop-paper-review` | Produce OpenReview-ready ~400-word peer reviews for ICML/NeurIPS/ICLR workshop papers (4-8 page submissions): PDF intake, evidence-grounded drafting, anti-anchoring scoring calibration, parallel fact-check against the source PDF, AI-writing-pattern removal, and a Korean-draft to English-submission workflow | `workshop-paper-review/SKILL.md` | None (PDF reading; stdlib) |
 | `xkcd-py` | Generate a Python matplotlib plot script following the user's mandatory xkcd lab template (`with plt.xkcd():`, `figsize=(10, 6)`, `dpi=300`), with parquet / CSV / NumPy data sources and four plot variants (single line, multi-line, scatter/errorbar, subplots). Writes the `.py` only — does not execute it. | `xkcd-py/SKILL.md` | `matplotlib`, plus `pandas` / `numpy` as needed (in the user's runtime env) |
 | `zai-web-search` | Search the live web via z.ai's `web_search_prime` MCP server (included with the GLM Coding Plan, so no separate API recharge): a single stdlib-Python3 script (`scripts/web_search.py`) does the MCP streamable-HTTP handshake, SSE parsing, and multiply-escaped-JSON handling, reading the z.ai key at runtime from pi's `~/.pi/agent/auth.json` (single source of truth — the same key pi uses for the default model). Returns title / link / snippet per result, retries transient HTTP/TLS failures, and locally enforces the optional `--domain` restriction; `--json` is available for piping. Complementary to `reference-search` (InspireHEP / OpenAlex / Semantic Scholar): use this for recent trends, news, blogs, docs, and anything outside academic databases. | `zai-web-search/SKILL.md` | None (stdlib Python3; z.ai key from `~/.pi/agent/auth.json` via GLM Coding Plan login) |
+| `zoom-summary` | Read Zoom AI Companion meeting summaries through the Zoom REST API v2 (Server-to-Server OAuth): list summaries over a date range with full pagination, fetch a summary body, and save it as markdown. Also repairs the domain jargon the summariser mistranscribes via a two-tier glossary — high-confidence terms are substituted, low-confidence ones are only reported for a human to resolve — keeping the untouched summary as `<stem>.raw.md` so runs are idempotent and auditable. | `zoom-summary/SKILL.md` | Zoom Server-to-Server OAuth app with the two meeting-summary scopes, on a paid account with AI Companion enabled |
 
 ## Quick start
 
@@ -59,15 +71,6 @@ Requires `uv` on `PATH`. The skill bundles a small uv project (`ajo`); `uv run -
 - AJO validity is judged from each posting's **detail page** (effective deadline = firm `Appl Deadline` if present, else the `listed until` date), not the list page; `--fast` skips AJO detail pages but misses many valid postings. InspireHEP is queried with `status=open` and uses the structured `deadline_date` directly (no detail fetch, `--fast` does not apply).
 - The CLI uses one polite session per board with a real User-Agent, a small inter-request delay, and a per-run AJO detail-fetch cap (reported under `stats.per_source`). Do not parallelise or hammer either board.
 - See `academic-jobs/references/`: `fetch.md`, `presets.md`, `schema.md`.
-
-### academic-slides: Node + pnpm (Slidev) + matplotlib/scienceplots/TeX
-
-Two toolchains: Slidev (Node) builds and exports the deck, and the scienceplots pipeline (Python) renders the figures. No API keys.
-
-- Slidev runs from the deck folder via `pnpm`: `pnpm install`, then `pnpm exec playwright install chromium` (Chromium is needed only by `slidev export` for the PDF). If the `esbuild` / `vue-demi` build scripts are blocked, `pnpm rebuild esbuild vue-demi`; if the default theme is missing at export, `pnpm add @slidev/theme-default`.
-- Figures need `matplotlib` + `scienceplots` and a system TeX install (real LaTeX, never `no-latex`); verify with `pdflatex --version`.
-- The design system (`style.css`, `global-top.vue`, `global-bottom.vue`, `package.json`, `deck_style.py`) is copied verbatim into each deck; do not restyle ad hoc.
-- See `academic-slides/references/`: `design-system.md`, `gotchas.md`, `figures.md`, `build-verify.md`.
 
 ### adversarial-review
 
@@ -98,7 +101,7 @@ Requires `matplotlib` and `scienceplots` in the runtime that executes the genera
 - The `import scienceplots` line in every generated plot script is required even though Pyright flags it as unused — the `science` and `nature` styles register by import side-effect.
 - Unlike `scienceplot-py`, this skill **does** execute the plot scripts it generates (via `uv run`), because the auto-PDF step at the end depends on the PNGs existing.
 - Optional: `wide-slide-illustrator` for Friendly Whiteboard schematic prompts (the skill outputs prompts; the user — or the `codex-image` skill — renders them).
-- Korean output is auto-copied to `~/Dropbox/Magi/<concept-slug>/` per the user's global rule. Skip this if you do not want Dropbox mirroring.
+- Every finished explanation is archived to `~/Dropbox/ConceptExplainer/<Topic>/YYYYMMDD_<concept-slug>/`, reusing the local folder name so the topic listing sorts chronologically. Skip this if you do not want Dropbox mirroring.
 - See `concept-explainer/references/`: `audience-calibration.md`, `rigor-checklist.md`, `visualization-playbook.md`, `structure-template.md`, `schematic_friendly.md`, plus `plot_skeletons/{function_plot,parametric_sweep,heatmap}.py`.
 
 ### dropbox
@@ -224,22 +227,6 @@ Requires a working TeX distribution on `PATH` and the companion skills it orches
 - Translation is **Opus-only** by user mandate — this skill explicitly forbids delegating section translation to a Sonnet subagent, even where the general lab convention would. See `references/05_translation_rules.md`.
 - All draft text and final LaTeX must be em/en-dash-free; verify with `grep -cP "[\x{2013}\x{2014}]" <file>` (must return 0).
 
-### paperbanana
-
-Requires the `paperbanana` CLI and an env file at `~/.config/paperbanana/env`.
-
-- Install the `paperbanana` CLI per its upstream instructions, then verify with `paperbanana --help`.
-- Create the env file with your API key and default VLM model:
-  ```bash
-  mkdir -p ~/.config/paperbanana
-  cat > ~/.config/paperbanana/env << 'EOF'
-  export GOOGLE_API_KEY="your-google-api-key"
-  export VLM_MODEL="gemini-3-flash-preview"
-  EOF
-  ```
-- Or run `paperbanana setup` for the interactive wizard.
-- The skill always sources this env file before running commands, so do **not** hardcode keys elsewhere.
-
 ### proton-mail
 
 Requires a locally running Proton Bridge instance and a credentials file at `~/.proton-imap` (chmod 600).
@@ -352,14 +339,26 @@ Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — t
 - Transient HTTP/TLS connection failures are retried twice before returning exit code 5.
 - Distinct from `reference-search`: this skill searches the live web (news, blogs, docs, repos, trends). Use `reference-search` for academic papers, metadata, and BibTeX, and run both when a claim needs a primary source plus current context.
 
+### zoom-summary
+
+Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Companion meeting summaries enabled, created by the account owner at https://marketplace.zoom.us (Develop → Build App). Dependencies: `curl`, `jq`, `base64`, plus `python3` for `correct.py`.
+
+- Add both scopes on the app's Scopes tab: `meeting:read:list_summaries:admin` (list) and `meeting:read:summary:admin` (body). If the picker does not offer the granular pair, the classic `meeting_summary:read:admin` covers both. Activate the app, then register the credentials:
+  ```bash
+  bash zoom-summary/scripts/setup.sh --stdin <<< '{"account_id":"...","client_id":"...","client_secret":"..."}'
+  ```
+  `setup.sh` reports `GRANTED`/`MISSING` per scope from the token's own scope string and then probes the list endpoint live, so a half-provisioned app is visible immediately rather than at first use.
+- The body scope is reported missing from the scope picker on some accounts (open Zoom developer-forum reports as of 2026-05). The symptom is that `list` works and `get` returns HTTP 403. There is no API workaround; the zoom.us web portal (**Meeting Summary with AI Companion → My Summaries**) is the fallback.
+- Credentials live at `~/.config/zoom-skill/credentials.json` (mode 600); tokens are cached for their one-hour life at `~/.cache/zoom-skill/token.json`, keyed by a fingerprint of the credentials.
+- `references/glossary.tsv` is a **template that ships with no real terms**. Every real entry goes in `~/.config/zoom-skill/glossary.tsv`, which is outside the repository, so project vocabulary and personal names are never published here. Back that file up separately; `research-backup` covers it as an `_external/` entry.
+
 ## Which skill to use?
 
 - Choose `academic-jobs` to pull current, still-open academic job postings (postdoc / faculty / PhD) from Academic Jobs Online **and the InspireHEP jobs board** (searched together by default), filtered to postings whose application deadline has not passed, with field presets and "new since last check" tracking.
-- Choose `academic-slides` to build a polished academic talk deck (Slidev) for a paper, result, or project: a consistent house style with section dividers, figure-card and step-card layouts, a scienceplots figure pipeline, and the mdc-math / footer / layout rules baked in so the usual Slidev rendering traps never resurface.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
-- Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (Korean output mirrored to Dropbox).
+- Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (archived to Dropbox under a date-prefixed folder).
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `hep-rumor-mill` to study the HEP-theory postdoc job market from the rumor mill: who got offers at which institutions, the publication profiles of the people who got them (citations, papers, venues, subfield, PhD-age, named fellowships, with OpenAlex cross-disciplinary augmentation for interdisciplinary candidates), and how your own InspireHEP profile sits against the accepted cohort. Self-reported data, descriptive not predictive.
 - Choose `handdrawn-schematic` to generate a single friendly hand-drawn whiteboard schematic on a **pure white background** (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) that explains a concept, pipeline, architecture, or algorithm at a glance. Renders a PNG by default via the bundled `codex` image_generation tool, or emits the copy-paste prompt when codex is unavailable. Use `wide-slide-illustrator` instead for a prompt-only composer across six other styles, `journal-club-review` for the paired method+results figures inside a paper walkthrough, and `scienceplot-py` / `xkcd-py` for real matplotlib data plots.
@@ -368,7 +367,6 @@ Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — t
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
 - Choose `overleaf-section-workflow` when you are drafting a physics paper section-by-section on Overleaf and want the disciplined Korean-draft → user-iteration → Opus-direct English-LaTeX → out-of-tree-build loop, with citation-content verification, scienceplots-grade plots, and em/en-dash-free output. This is the orchestration layer; `overleap` is just the sync primitive it builds on.
-- Choose `paperbanana` for figures, diagrams, plots, or visual refinement tasks.
 - Choose `proton-mail` to search or read Proton Mail messages and threads through a locally running Proton Bridge, useful for retrieving paper notifications, calendar invites, or collaboration emails without leaving the terminal.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
 - Choose `research-backup` to back up the untracked `outputs/` / `results/` / `report(s)/` directories of your research projects into the locally synced Dropbox folder, organized as `<category>/<project>` so nothing collides. Additive rsync mirroring, no API calls. Choose `dropbox` instead for one-off file upload/download/share through the API.
@@ -381,17 +379,18 @@ Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — t
 - Choose `workshop-paper-review` to write an OpenReview-ready peer review for a workshop paper submission (ICML/NeurIPS/ICLR, 4-8 pages): the skill handles PDF intake, evidence-grounded drafting, anti-anchoring score calibration, and AI-writing-pattern removal, with a Korean-draft to English-submission option.
 - Choose `xkcd-py` for a hand-drawn / sketch-style matplotlib script (`with plt.xkcd():`, wider canvas, dpi=300) — same data-source and plot-variant coverage as `scienceplot-py`.
 - Choose `zai-web-search` for live web search via z.ai (recent trends, news, blogs, docs, repos) when the need is clearly outside academic databases; the bundled script reads the key from pi's `auth.json` and the MCP endpoint is covered by the GLM Coding Plan. Complementary to `reference-search` — run both and merge when a claim needs a primary source plus current context.
+- Choose `zoom-summary` to pull a past Zoom meeting's AI Companion summary into the session — list what exists over a date range, fetch one, save it as markdown, and repair the mistranscribed jargon before you act on it. Read-only: it cannot generate a summary for a meeting that did not have AI Companion on.
 
 ## Structure
 
 ```text
 skills/
 ├── academic-jobs/
-├── academic-slides/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/
 ├── concept-explainer/
+├── deprecated/              # retired skills, entrypoint renamed so nothing loads them
 ├── dropbox/
 ├── handdrawn-schematic/
 ├── hep-rumor-mill/
@@ -400,7 +399,6 @@ skills/
 ├── morgen/
 ├── overleap/
 ├── overleaf-section-workflow/
-├── paperbanana/
 ├── proton-mail/
 ├── reference-search/
 ├── research-backup/
@@ -412,8 +410,13 @@ skills/
 ├── wide-slide-illustrator/
 ├── workshop-paper-review/
 ├── xkcd-py/
-└── zai-web-search/
+├── zai-web-search/
+└── zoom-summary/
 ```
+
+## Deprecated skills
+
+Retired skills live under `deprecated/`, with the entrypoint renamed `SKILL.md` to `SKILL.md.deprecated` so no harness discovers them (Pi scans this repository root recursively). See `deprecated/README.md` for the current list, the reasoning, and how to restore one.
 
 ## License
 

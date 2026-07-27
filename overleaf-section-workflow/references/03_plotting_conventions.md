@@ -75,7 +75,7 @@ Plot scripts live under the *research* project, not the paper project:
 ~/Documents/Project/Research/<PROJECT>/
 └── operator/
     └── outputs/
-        └── <section_topic>/
+        └── <YYYYMMDD>_<section_topic>/
             ├── families.py          # reusable PDF definitions
             ├── plot_individual.py   # one plot per family
             ├── plot_limits.py       # limit convergence plots
@@ -84,6 +84,8 @@ Plot scripts live under the *research* project, not the paper project:
                 ├── *.png
                 └── *.pdf
 ```
+
+The `<YYYYMMDD>` prefix is the day the plot workspace is created (`date +%Y%m%d`), so a bare `ls outputs/` in the research project reads as a timeline. Directories created before this convention keep their names; do not retro-rename them.
 
 The plot scripts are NOT inside `~/zbin/OverLeaf/<PROJECT>/` (sync folder). They live with the experiment / analysis code, and only the PDF outputs are copied to `~/zbin/OverLeaf/<PROJECT>/figs/`.
 
@@ -98,7 +100,7 @@ In the Korean draft, embed plots as inline markdown images:
 The `figs_<short>` is a symlink in `<PROJECT>_draft/` pointing to the plots directory or to `<PROJECT>/figs/`. Set this up once per project:
 
 ```bash
-ln -sf ~/Documents/Project/Research/<PROJECT>/operator/outputs/<topic>/plots \
+ln -sf ~/Documents/Project/Research/<PROJECT>/operator/outputs/<YYYYMMDD>_<topic>/plots \
        ~/zbin/OverLeaf/<PROJECT>_draft/figs_<short>
 ```
 
@@ -135,7 +137,7 @@ Include:
 Each plot script should be a single command to regenerate:
 
 ```bash
-cd ~/Documents/Project/Research/<PROJECT>/operator/outputs/<topic>
+cd ~/Documents/Project/Research/<PROJECT>/operator/outputs/<YYYYMMDD>_<topic>
 uv run python plot_overview.py
 ```
 

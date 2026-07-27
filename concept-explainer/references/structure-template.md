@@ -1,6 +1,6 @@
 # Structure Template
 
-Drop the template below into `<concept-slug>/explanation.md` and fill the
+Drop the template below into `<out-dir>/explanation.md` and fill the
 braces. Translate section headings to match the requested language; keep
 the section *order* and the section *purpose*.
 

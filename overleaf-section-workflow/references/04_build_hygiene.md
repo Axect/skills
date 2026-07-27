@@ -126,11 +126,11 @@ Fix: replace the manual `thebibliography` block with:
 
 ### Failure: `pdflatex: I can't find file 'figs/foo.pdf'`
 
-Cause: PDF was not copied from `outputs/<topic>/plots/` to `<PROJECT>/figs/`.
+Cause: PDF was not copied from `outputs/<YYYYMMDD>_<topic>/plots/` to `<PROJECT>/figs/`.
 
 Fix:
 ```bash
-cp ~/Documents/Project/Research/<PROJECT>/operator/outputs/<topic>/plots/foo.pdf \
+cp ~/Documents/Project/Research/<PROJECT>/operator/outputs/<YYYYMMDD>_<topic>/plots/foo.pdf \
    ~/zbin/OverLeaf/<PROJECT>/figs/
 ```
 

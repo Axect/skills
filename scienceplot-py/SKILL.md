@@ -120,7 +120,7 @@ then Write the result to the user's chosen path.
   Assume they are already available in the target environment; dependency
   installation remains the user's or project's responsibility.
 - It does not produce methodology / architecture / pipeline diagrams. For
-  those, use the `paperbanana` skill or `wide-slide-illustrator`.
+  those, use `wide-slide-illustrator` or `handdrawn-schematic`.
 - It does not change the style invariants. If the user asks for a different
   style (e.g., `seaborn`, `ggplot`, plain matplotlib), tell them this skill
   is specifically for the science+nature template and offer to write the

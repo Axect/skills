@@ -25,7 +25,7 @@ Two habits carry the whole skill:
 ## Inputs to confirm
 
 Ask for only what is missing:
-- target output directory
+- target output directory (named `outputs/YYYYMMDD_<topic>/`, see "Report workflow conventions")
 - report title
 - the reader this is written for (default: a sharp colleague new to this problem, and future-you) and how much they already know
 - the core idea in one sentence, if the user can state it (if not, deriving it from the materials is part of the job)
@@ -63,7 +63,9 @@ Missing folders are acceptable. Adapt the report to whatever evidence actually e
 
 When tailoring this skill to a project that already uses `outputs/` directories:
 
-- Prefer a self-contained target like `outputs/{report_slug}/`.
+- Name the report root `outputs/YYYYMMDD_<topic>/`, where `YYYYMMDD` is the day the directory is created (`date +%Y%m%d`) and `<topic>` is a short lowercase slug. Alphabetical order then equals chronological order, so a bare `ls outputs/` reads as a timeline.
+- That basename is the `report_slug` used downstream, including the Dropbox archive. Keep one report per dated root.
+- Do not retro-rename directories created before this convention, and never re-date a root because it was edited later: the prefix records when the report was started.
 - Keep `report.md`, `report_versions.json`, and `plots/plot_manifest.json` in the same report root.
 - Copy or regenerate only artifacts that belong to the current report narrative. Do not mix unrelated experiment outputs.
 - Treat `report_v{N}.md` files as immutable archives once versioned.
@@ -374,20 +376,28 @@ here.
    producing `{output_dir}/report.pdf`. This runs regardless of report language;
    the Whitey theme handles Korean and English both.
 2. **Pick the category folder.** The archive is organised as
-   `~/Dropbox/ResearchReport/<Category>/<report_slug>/` (the `report_slug` is
-   the basename of `{output_dir}`). List the existing categories
-   (`ls ~/Dropbox/ResearchReport`) and choose the one that fits the report. If
-   none fits, ask the user which category to use or whether to create a new one
-   (reuse the JournalClub topic vocabulary — `InverseProblem`, `NeuralOperators`,
-   `PBH`, `SMEFT`, `Unfolding`, ... — when sensible); create it only after they
-   confirm the name. Do not silently invent a category.
+   `~/Dropbox/ResearchReport/<Category>/<report_slug>/`, where `report_slug` is
+   the basename of `{output_dir}`. It already carries the `YYYYMMDD_` prefix, so
+   the category listing sorts chronologically without a separate index.
+   - List the existing categories (`ls ~/Dropbox/ResearchReport`) and choose the
+     one that fits the report. If none fits, ask the user which category to use
+     or whether to create a new one (reuse the JournalClub topic vocabulary —
+     `InverseProblem`, `NeuralOperators`, `PBH`, `SMEFT`, `Unfolding`, ... —
+     when sensible); create it only after they confirm the name. Do not silently
+     invent a category.
+   - If `{output_dir}` predates the convention and has no date prefix, prepend
+     one for the archive copy only: take the first timestamp in
+     `report_versions.json`, else `report.md` mtime. Leave the local directory
+     alone.
+   - If the report is already archived under an older name, update that folder
+     in place rather than creating a second, renamed copy.
 3. **Copy the artifacts** into
    `~/Dropbox/ResearchReport/<Category>/<report_slug>/`: `report.md`,
    `report.pdf`, `report_versions.json`, and the `plots/` directory (PNG + PDF
-   + scripts + data, including `plot_manifest.json` and `_plot_style.py`). Do
-   **not** copy `src/`, `tests/`, or other code — `research-backup` already
-   mirrors those from the project tree. Match the existing layout in sibling
-   report folders.
+   + scripts + data, including `plot_manifest.json` and `_plot_style.py`). Also
+   copy any `report_v*.md` version archives if present. Do **not** copy `src/`,
+   `tests/`, or other code — `research-backup` already mirrors those from the
+   project tree. Match the existing layout in sibling report folders.
 4. **Confirm** the destination path and file sizes to the user.
 
 ## User-feedback loop (Tier 1 / 2 / 3)
