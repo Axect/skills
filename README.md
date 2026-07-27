@@ -49,6 +49,7 @@ Directories created before this convention keep their names, and a directory is 
 | `workshop-paper-review` | Produce OpenReview-ready ~400-word peer reviews for ICML/NeurIPS/ICLR workshop papers (4-8 page submissions): PDF intake, evidence-grounded drafting, anti-anchoring scoring calibration, parallel fact-check against the source PDF, AI-writing-pattern removal, and a Korean-draft to English-submission workflow | `workshop-paper-review/SKILL.md` | None (PDF reading; stdlib) |
 | `xkcd-py` | Generate a Python matplotlib plot script following the user's mandatory xkcd lab template (`with plt.xkcd():`, `figsize=(10, 6)`, `dpi=300`), with parquet / CSV / NumPy data sources and four plot variants (single line, multi-line, scatter/errorbar, subplots). Writes the `.py` only — does not execute it. | `xkcd-py/SKILL.md` | `matplotlib`, plus `pandas` / `numpy` as needed (in the user's runtime env) |
 | `zai-web-search` | Search the live web via z.ai's `web_search_prime` MCP server (included with the GLM Coding Plan, so no separate API recharge): a single stdlib-Python3 script (`scripts/web_search.py`) does the MCP streamable-HTTP handshake, SSE parsing, and multiply-escaped-JSON handling, reading the z.ai key at runtime from pi's `~/.pi/agent/auth.json` (single source of truth — the same key pi uses for the default model). Returns title / link / snippet per result, retries transient HTTP/TLS failures, and locally enforces the optional `--domain` restriction; `--json` is available for piping. Complementary to `reference-search` (InspireHEP / OpenAlex / Semantic Scholar): use this for recent trends, news, blogs, docs, and anything outside academic databases. | `zai-web-search/SKILL.md` | None (stdlib Python3; z.ai key from `~/.pi/agent/auth.json` via GLM Coding Plan login) |
+| `zoom-summary` | Read Zoom AI Companion meeting summaries through the Zoom REST API v2 (Server-to-Server OAuth): list summaries over a date range with full pagination, fetch a summary body, and save it as markdown. Also repairs the domain jargon the summariser mistranscribes via a two-tier glossary — high-confidence terms are substituted, low-confidence ones are only reported for a human to resolve — keeping the untouched summary as `<stem>.raw.md` so runs are idempotent and auditable. | `zoom-summary/SKILL.md` | Zoom Server-to-Server OAuth app with the two meeting-summary scopes, on a paid account with AI Companion enabled |
 
 ## Quick start
 
@@ -338,6 +339,19 @@ Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — t
 - Transient HTTP/TLS connection failures are retried twice before returning exit code 5.
 - Distinct from `reference-search`: this skill searches the live web (news, blogs, docs, repos, trends). Use `reference-search` for academic papers, metadata, and BibTeX, and run both when a claim needs a primary source plus current context.
 
+### zoom-summary
+
+Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Companion meeting summaries enabled, created by the account owner at https://marketplace.zoom.us (Develop → Build App). Dependencies: `curl`, `jq`, `base64`, plus `python3` for `correct.py`.
+
+- Add both scopes on the app's Scopes tab: `meeting:read:list_summaries:admin` (list) and `meeting:read:summary:admin` (body). If the picker does not offer the granular pair, the classic `meeting_summary:read:admin` covers both. Activate the app, then register the credentials:
+  ```bash
+  bash zoom-summary/scripts/setup.sh --stdin <<< '{"account_id":"...","client_id":"...","client_secret":"..."}'
+  ```
+  `setup.sh` reports `GRANTED`/`MISSING` per scope from the token's own scope string and then probes the list endpoint live, so a half-provisioned app is visible immediately rather than at first use.
+- The body scope is reported missing from the scope picker on some accounts (open Zoom developer-forum reports as of 2026-05). The symptom is that `list` works and `get` returns HTTP 403. There is no API workaround; the zoom.us web portal (**Meeting Summary with AI Companion → My Summaries**) is the fallback.
+- Credentials live at `~/.config/zoom-skill/credentials.json` (mode 600); tokens are cached for their one-hour life at `~/.cache/zoom-skill/token.json`, keyed by a fingerprint of the credentials.
+- `references/glossary.tsv` is a **template that ships with no real terms**. Every real entry goes in `~/.config/zoom-skill/glossary.tsv`, which is outside the repository, so project vocabulary and personal names are never published here. Back that file up separately; `research-backup` covers it as an `_external/` entry.
+
 ## Which skill to use?
 
 - Choose `academic-jobs` to pull current, still-open academic job postings (postdoc / faculty / PhD) from Academic Jobs Online **and the InspireHEP jobs board** (searched together by default), filtered to postings whose application deadline has not passed, with field presets and "new since last check" tracking.
@@ -365,6 +379,7 @@ Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — t
 - Choose `workshop-paper-review` to write an OpenReview-ready peer review for a workshop paper submission (ICML/NeurIPS/ICLR, 4-8 pages): the skill handles PDF intake, evidence-grounded drafting, anti-anchoring score calibration, and AI-writing-pattern removal, with a Korean-draft to English-submission option.
 - Choose `xkcd-py` for a hand-drawn / sketch-style matplotlib script (`with plt.xkcd():`, wider canvas, dpi=300) — same data-source and plot-variant coverage as `scienceplot-py`.
 - Choose `zai-web-search` for live web search via z.ai (recent trends, news, blogs, docs, repos) when the need is clearly outside academic databases; the bundled script reads the key from pi's `auth.json` and the MCP endpoint is covered by the GLM Coding Plan. Complementary to `reference-search` — run both and merge when a claim needs a primary source plus current context.
+- Choose `zoom-summary` to pull a past Zoom meeting's AI Companion summary into the session — list what exists over a date range, fetch one, save it as markdown, and repair the mistranscribed jargon before you act on it. Read-only: it cannot generate a summary for a meeting that did not have AI Companion on.
 
 ## Structure
 
@@ -395,7 +410,8 @@ skills/
 ├── wide-slide-illustrator/
 ├── workshop-paper-review/
 ├── xkcd-py/
-└── zai-web-search/
+├── zai-web-search/
+└── zoom-summary/
 ```
 
 ## Deprecated skills
