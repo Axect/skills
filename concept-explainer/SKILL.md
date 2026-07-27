@@ -7,8 +7,8 @@ description: >
   or CS concept; write lecture, tutorial, or seminar notes; derive results step
   by step; build a kind but rigorous walkthrough; or turn a paper section into
   classroom-ready material. Finished explanations are archived to
-  ~/Dropbox/ConceptExplainer/<Topic>/<concept-slug>/ automatically, regardless
-  of language.
+  ~/Dropbox/ConceptExplainer/<Topic>/<YYYYMMDD>_<concept-slug>/ automatically,
+  regardless of language, date-prefixed so name order matches time order.
 ---
 
 # concept-explainer — Kind, Rigorous, Visualization-Heavy Explanations
@@ -22,7 +22,7 @@ appear wherever they shorten the gap between a formula and an intuition.
 The skill writes:
 
 ```text
-<concept-slug>/
+<out-dir>/                   # <YYYYMMDD>_<concept-slug>, e.g. 20260728_lagrangian-mechanics
 ├── explanation.md           # the document (language follows user's request)
 ├── plots/                   # matplotlib scripts + their rendered PNGs
 │   ├── *.py
@@ -32,11 +32,16 @@ The skill writes:
     └── *.png                # rendered images (user fills these in, or codex-image)
 ```
 
+`<out-dir>` is `<YYYYMMDD>_<concept-slug>`: the day the directory is created
+(`date +%Y%m%d`) followed by the kebab-case concept slug. Alphabetical order
+then equals chronological order in any folder that collects explanations.
+
 After the document is complete, the skill invokes `md2pdf-typora` to produce
-`<concept-slug>/explanation.pdf`, then mirrors the explanation (markdown, PDF,
-plots, schematics) into `~/Dropbox/ConceptExplainer/<Topic>/<concept-slug>/`,
-organised by topic. This archive step runs for every explanation regardless of
-language.
+`<out-dir>/explanation.pdf`, then mirrors the explanation (markdown, PDF,
+plots, schematics) into `~/Dropbox/ConceptExplainer/<Topic>/<out-dir>/`,
+organised by topic. The archive folder keeps the same name as the local
+directory; the date prefix carries the ordering, so there is no separate index.
+This archive step runs for every explanation regardless of language.
 
 ## Mandatory invariants (non-negotiable)
 
@@ -117,7 +122,8 @@ Ask only for what is missing. Required:
   measure-theoretic probability".
 - **Concept slug**: kebab-case directory name. Default: derived from the
   concept (e.g. `lagrangian-mechanics`).
-- **Output directory**: default `<cwd>/<concept-slug>/`.
+- **Output directory**: default `<cwd>/<YYYYMMDD>_<concept-slug>/`, referred to
+  as `<out-dir>` below. Take the date from `date +%Y%m%d`.
 
 Optional:
 
@@ -172,7 +178,7 @@ Drop or merge sections only when the concept genuinely doesn't need them
 
 ### 4. Draft the document
 
-Write `<concept-slug>/explanation.md` with the structure from step 3.
+Write `<out-dir>/explanation.md` with the structure from step 3.
 While drafting, the rigor invariants from above are **load-bearing** — read
 `references/rigor-checklist.md` and apply each item to every paragraph.
 
@@ -218,13 +224,13 @@ templates — do **not** duplicate them here.
 For each matplotlib plot:
 
 1. Adapt the matching skeleton from `references/plot_skeletons/` into a
-   concrete `.py` file under `<concept-slug>/plots/<plot_name>.py`. Keep
+   concrete `.py` file under `<out-dir>/plots/<plot_name>.py`. Keep
    every invariant from `scienceplot-py` intact.
-2. Execute it: `uv run <concept-slug>/plots/<plot_name>.py`. This skill
+2. Execute it: `uv run <out-dir>/plots/<plot_name>.py`. This skill
    **does** execute its own plot scripts (unlike `scienceplot-py`, which
    does not). The PDF assembly later depends on the PNGs existing.
 3. Verify the PNG exists and is non-empty: `ls -la
-   <concept-slug>/plots/<plot_name>.png`.
+   <out-dir>/plots/<plot_name>.png`.
 4. Reference the PNG in `explanation.md` with a caption that says what to
    look at:
 
@@ -248,7 +254,7 @@ For each schematic figure:
    the panel-count guidance, the on-canvas-text-is-English rule, and the
    per-panel content fields needed.
 2. Save the composed prompt as
-   `<concept-slug>/schematics/<schematic_name>_prompt.md`.
+   `<out-dir>/schematics/<schematic_name>_prompt.md`.
 3. The user feeds this prompt to ChatGPT Image / DALL-E / Sora / Midjourney
    and saves the result as `schematics/<schematic_name>.png`. (Alternative:
    the `codex-image` skill can run this automatically — mention this option
@@ -286,17 +292,25 @@ Every finished explanation is exported to PDF and mirrored into the user's
 for every explanation regardless of language — do not wait to be asked.
 
 1. **Export the PDF** with the `md2pdf-typora` skill on
-   `<concept-slug>/explanation.md`, producing `<concept-slug>/explanation.pdf`.
+   `<out-dir>/explanation.md`, producing `<out-dir>/explanation.pdf`.
    The Whitey theme handles Korean and English both.
 2. **Pick the topic folder.** The archive is organised as
-   `~/Dropbox/ConceptExplainer/<Topic>/<concept-slug>/`. List the existing topics
-   (`ls ~/Dropbox/ConceptExplainer`) and choose the one that fits the concept. If
-   none fits, ask the user which topic to use or whether to create a new one
-   (reuse the JournalClub topic vocabulary — `InverseProblem`, `NeuralOperators`,
-   `PBH`, `SMEFT`, `Unfolding`, ... — when sensible); create it only after they
-   confirm the name. Do not silently invent a topic.
+   `~/Dropbox/ConceptExplainer/<Topic>/<out-dir>/`, reusing the same
+   `<YYYYMMDD>_<concept-slug>` folder name used locally, so the topic listing
+   sorts chronologically without a separate index.
+   - List the existing topics (`ls ~/Dropbox/ConceptExplainer`) and choose the
+     one that fits the concept. If none fits, ask the user which topic to use or
+     whether to create a new one (reuse the JournalClub topic vocabulary —
+     `InverseProblem`, `NeuralOperators`, `PBH`, `SMEFT`, `Unfolding`, ... —
+     when sensible); create it only after they confirm the name. Do not silently
+     invent a topic.
+   - If the local directory predates the convention and has no date prefix,
+     prepend one for the archive copy only, taken from the `explanation.md`
+     mtime. Leave the local directory alone.
+   - If the concept is already archived under an older name, update that folder
+     in place rather than creating a second, renamed copy.
 3. **Copy the artifacts** into
-   `~/Dropbox/ConceptExplainer/<Topic>/<concept-slug>/`: `explanation.md`,
+   `~/Dropbox/ConceptExplainer/<Topic>/<out-dir>/`: `explanation.md`,
    `explanation.pdf`, the `plots/` directory (scripts + rendered PNGs), and the
    `schematics/` directory if it exists. Match the existing layout in sibling
    explanation folders.
@@ -369,6 +383,6 @@ output under `plots/`.
   usable, leave the claim un-cited and flag it to the user, or rewrite the
   claim so it no longer needs a citation.
 - It does not skip the auto-PDF step on success. Every explanation always
-  reaches `~/Dropbox/ConceptExplainer/<Topic>/<concept-slug>/`.
+  reaches `~/Dropbox/ConceptExplainer/<Topic>/<YYYYMMDD>_<concept-slug>/`.
 - It does not commit anything. `commit-triage` does that, when the user
   asks.

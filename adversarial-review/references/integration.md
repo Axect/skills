@@ -50,7 +50,7 @@ The user's standing convention: any English `report*.md` / `synthesis*.md` / `ex
 For this skill, when the user asks for Korean output (or has a project-level standing rule):
 
 - Translate **`summary.md` only**, not the per-persona files. The per-persona files are evidence; the author reads `summary.md`.
-- Output path: `outputs/review/<YYYY-MM-DD-HHMM>/summary_ko.md`.
+- Output path: `outputs/review/<YYYYMMDD_HHMM>/summary_ko.md`.
 - Delegate the translation to a Sonnet subagent rather than doing it inline, so the main context stays free for any follow-up review work.
 - Do **not** translate technical terms that the draft itself uses in English (optimizer names, architecture names, metric names) — the translation should preserve those as-is.
 

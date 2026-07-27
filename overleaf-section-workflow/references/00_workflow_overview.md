@@ -76,7 +76,7 @@ See `02_citation_verification.md` for the full three-source protocol.
 
 For each new figure:
 
-1. Define data in `~/Documents/Project/Research/<PROJECT>/outputs/<topic>/<defs>.py` (reusable).
+1. Define data in `~/Documents/Project/Research/<PROJECT>/outputs/<YYYYMMDD>_<topic>/<defs>.py` (reusable). The date prefix comes from `date +%Y%m%d` on the day the workspace is created, so `ls outputs/` sorts chronologically.
 2. Write `plot_<name>.py` that imports the defs and produces both PNG and PDF.
 3. Style mandates (see `03_plotting_conventions.md`):
    - `with plt.style.context(["science", "nature"]):`

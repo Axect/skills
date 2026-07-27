@@ -55,7 +55,7 @@ If any of these directories does not exist, surface the gap before proceeding.
    - Plot layout issues (legend on top of curves, xlim/ylim wasting empty space).
 4. **User confirms** the Korean draft is paper-grade.
 5. **Translate Opus-direct into English LaTeX** at `<PROJECT>/<jobname>.tex`. **NEVER use a Sonnet subagent for translation in this skill** — the user has explicitly required Opus-only. Conversion rules in `references/05_translation_rules.md`.
-6. **Copy figure PDFs** from `~/Documents/Project/Research/.../outputs/<topic>/plots/` to `<PROJECT>/figs/`.
+6. **Copy figure PDFs** from `~/Documents/Project/Research/.../outputs/<YYYYMMDD>_<topic>/plots/` to `<PROJECT>/figs/`.
 7. **Verify the build** via `bash <PROJECT>_build/build_<jobname>.sh`. Build must produce zero `undefined` warnings.
 8. **Commit-triage** the working tree at session boundaries (use the `commit-triage` skill).
 

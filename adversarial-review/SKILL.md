@@ -98,10 +98,10 @@ Meta-editor output is the canonical `summary.md` the user reads first.
 
 ### 5. Write outputs
 
-Write all artifacts under `outputs/review/<YYYY-MM-DD-HHMM>/` relative to the draft's directory. Keep individual persona files alongside the synthesis so the user can trace any claim in `summary.md` back to its source.
+Write all artifacts under `outputs/review/<YYYYMMDD_HHMM>/` relative to the draft's directory, with the stamp taken from `date +%Y%m%d_%H%M`. Alphabetical order then equals chronological order across repeated reviews. Keep individual persona files alongside the synthesis so the user can trace any claim in `summary.md` back to its source.
 
 ```text
-outputs/review/2026-04-18-1430/
+outputs/review/20260418_1430/
   summary.md                 # meta-editor synthesis — read this first
   hostile_theorist.md
   experimentalist.md

@@ -50,14 +50,14 @@ copy-pasteable image-generation prompt.
 
 ## What to do with the prompt
 
-1. Save it as `<concept-slug>/schematics/<schematic_name>_prompt.md`.
+1. Save it as `<out-dir>/schematics/<schematic_name>_prompt.md`.
 2. Tell the user the prompt is ready and which image generator to use
    (ChatGPT Image 2.0 / DALL-E 3 / Sora / Midjourney). Mention the
    `codex-image` skill as an alternative that runs the generation
    automatically, but do **not** auto-invoke it — image generation is
    metered, so let the user decide.
 3. The user (or `codex-image`) produces the PNG. Save it as
-   `<concept-slug>/schematics/<schematic_name>.png`.
+   `<out-dir>/schematics/<schematic_name>.png`.
 4. Reference it in `explanation.md` with a caption that interprets the
    schematic — same caption discipline as matplotlib figures.
 
