@@ -2,6 +2,20 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-07-28
+
+### Changed
+- Standardised the naming of generated artifact directories across the collection on `YYYYMMDD_<topic>`, dated from `date +%Y%m%d` on the day the directory is created, so alphabetical order matches chronological order and a bare `ls outputs/` reads as a timeline. `research-report` writes `outputs/YYYYMMDD_<topic>/`; `paperbanana` writes `outputs/paperbanana/YYYYMMDD_<semantic_name>/`, with the run directory held in a `$RUN_DIR` / `$V2_DIR` shell variable so the date cannot drift between `mkdir` and the `-o` flag; `adversarial-review` writes `outputs/review/YYYYMMDD_HHMM/`, replacing the old `YYYY-MM-DD-HHMM` stamp; `overleaf-section-workflow` puts its plot workspace in `outputs/YYYYMMDD_<topic>/`; and `concept-explainer` writes `YYYYMMDD_<concept-slug>/`, referred to as `<out-dir>` throughout the skill and its references. Directories created before the convention keep their names, and no directory is re-dated because it was edited later.
+- Dropped the `<NNN>_` sequence index from the `~/Dropbox/ResearchReport/<Category>/` and `~/Dropbox/ConceptExplainer/<Topic>/` archives. The date prefix already fixes chronological order, so the archive folder reuses the local directory name verbatim and the index bookkeeping (scan for `max + 1`, renumber a dated batch) is gone. Artifacts that predate the convention get a date prefix on the archive copy only, taken from `report_versions.json` or the document mtime, leaving the local directory untouched.
+- Documented the rule in `README.md` under a new "Output directory convention" section, and pointed the `concept-explainer` README entries at the `~/Dropbox/ConceptExplainer/` archive instead of the stale `~/Dropbox/Magi/<concept-slug>/` mirror.
+
+### Deprecated
+- Retired the `paperbanana` skill into `deprecated/paperbanana/`, because ChatGPT Images 2.0 produces better figures than its multi-agent retrieval/planning/critic pipeline. Its entrypoint is renamed `SKILL.md` -> `SKILL.md.deprecated`, and that rename is what actually hides it: Pi carries this repository root in the `skills` array of `~/.pi/agent/settings.json` and scans it recursively for files named exactly `SKILL.md`, so moving the directory alone would leave the skill loadable. Also removed every install (the `~/.claude/skills/paperbanana` and `~/.codex/skills/paperbanana` symlinks, plus the real copy at `~/forge/skills/paperbanana`) and every reference in `README.md` and `CLIENT_SETUP.md`, including all six whole-collection install loops. Diagrams now go to `wide-slide-illustrator` or `handdrawn-schematic` and data plots to `scienceplot-py` or `xkcd-py`; the cross-references in those two skills were repointed accordingly.
+- Added `deprecated/README.md`: why retired skills stay in the repository, the four steps that make a deprecation stick, the contents table, and the restore procedure.
+
+### Removed
+- Purged the leftover `academic-slides` references from `README.md` (skill table, requirements section, picker, directory tree) and `CLIENT_SETUP.md` (skill list, install loops, Forge tree, per-skill prerequisites). The skill directory was deleted in an earlier commit but its name stayed in the install loops, which is what produced the dangling `~/.claude/skills/academic-slides` symlink; that link is gone too.
+
 ## 2026-07-11
 
 ### Added

@@ -70,7 +70,7 @@ If the user does not specify a style, ask once before composing.
 ## When to use
 
 Trigger this skill when the user wants an **image-generator prompt** (not a
-matplotlib/seaborn plot, not a paperbanana diagram) for one of:
+matplotlib/seaborn plot) for one of:
 
 - A **methodology / pipeline / architecture** overview slide — for a lab
   meeting / seminar / workshop (friendly variant) OR a paper hero figure /
@@ -81,7 +81,7 @@ matplotlib/seaborn plot, not a paperbanana diagram) for one of:
 
 Do NOT use for:
 
-- Publication figures with strict statistical content → use `paperbanana` skill.
+- Publication figures with strict statistical content → use `scienceplot-py`.
 - Real plots from data (matplotlib, seaborn, plotly) → write code directly.
 - Slide *decks* (multi-slide presentations) → use `claude-typst-slides` or
   `frontend-slides`.

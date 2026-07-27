@@ -14,7 +14,6 @@ Some skills also include helper assets such as:
 Current skill directories in this repository:
 
 - `academic-jobs`
-- `academic-slides`
 - `adversarial-review`
 - `bibtex-gen`
 - `commit-triage`
@@ -27,7 +26,6 @@ Current skill directories in this repository:
 - `morgen`
 - `overleap`
 - `overleaf-section-workflow`
-- `paperbanana`
 - `proton-mail`
 - `reference-search`
 - `research-backup`
@@ -40,6 +38,8 @@ Current skill directories in this repository:
 - `workshop-paper-review`
 - `xkcd-py`
 - `zai-web-search`
+
+Retired skills live under `deprecated/` with their entrypoint renamed to `SKILL.md.deprecated`. They are not installable and must stay out of the install loops below. See `deprecated/README.md`.
 
 > Several skills also need a one-time **external setup** (CLIs, API keys, credentials files) that is independent of the client. See the "Per-skill prerequisites" section near the end of this guide — do that before your first invocation.
 
@@ -92,7 +92,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -133,14 +133,14 @@ ln -s "$REPO/research-log" ~/.codex/skills/research-log
 
 ```bash
 mkdir -p ~/.codex/skills
-ln -s "$REPO/paperbanana" ~/.codex/skills/paperbanana
+ln -s "$REPO/vastai" ~/.codex/skills/vastai
 ```
 
 ### Install the whole collection for your user account
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -187,7 +187,7 @@ Use this when you want every skill in this repository available in Forge. This m
 
 ```bash
 mkdir -p ~/forge/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   rm -rf ~/forge/skills/$skill
   cp -R "$REPO/$skill" ~/forge/skills/$skill
 done
@@ -202,11 +202,11 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ```text
 /absolute/path/to/skills/
 ├── academic-jobs/
-├── academic-slides/
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── commit-triage/
 ├── concept-explainer/
+├── deprecated/
 ├── dropbox/
 ├── handdrawn-schematic/
 ├── hep-rumor-mill/
@@ -215,7 +215,6 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── morgen/
 ├── overleap/
 ├── overleaf-section-workflow/
-├── paperbanana/
 ├── proton-mail/
 ├── reference-search/
 ├── research-backup/
@@ -242,7 +241,7 @@ Because Forge needs real directories (not symlinks), edits made in this reposito
 
 ```bash
 REPO=/absolute/path/to/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   rm -rf ~/forge/skills/$skill
   cp -R "$REPO/$skill" ~/forge/skills/$skill
 done
@@ -276,11 +275,13 @@ Pi reads a `skills` array in `~/.pi/agent/settings.json` (global) or `.pi/settin
 }
 ```
 
+The scan is recursive, so every `SKILL.md` under this root is discovered, including one nested inside `deprecated/`. That is exactly why a deprecated skill's entrypoint is renamed to `SKILL.md.deprecated` rather than merely moved.
+
 ### Option 2: symlink the collection into `~/.pi/agent/skills`
 
 ```bash
 mkdir -p ~/.pi/agent/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   ln -s "$REPO/$skill" "$HOME/.pi/agent/skills/$skill"
 done
 ```
@@ -291,7 +292,7 @@ This location is shared by every harness that follows the Agent Skills standard,
 
 ```bash
 mkdir -p ~/.agents/skills
-for skill in academic-jobs academic-slides adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow paperbanana proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search; do
   ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
 done
 ```
@@ -329,18 +330,6 @@ Requires `uv` on `PATH`; no API keys or credentials. The skill bundles a uv proj
 - State lives under `~/.local/share/academic-jobs/` (`jobs.db` + `config.toml`); override with `AJO_DATA_DIR`.
 - Validity is judged from each posting's detail page (effective deadline = firm `Appl Deadline`, else `listed until`). `--fast` skips detail pages but misses many valid postings; prefer the default.
 - The CLI is polite by design (single session, real User-Agent, inter-request delay, per-run detail-fetch cap). Do not parallelise.
-
-### academic-slides: Node + pnpm (Slidev) + matplotlib/scienceplots/TeX
-
-Two toolchains. Slidev (Node) builds and exports the deck; the scienceplots pipeline (Python) renders the figures. No API keys.
-
-- Install Node.js and `pnpm`. From a deck folder, `pnpm install`, then `pnpm exec playwright install chromium` (Chromium is used only by `slidev export` for the PDF).
-- Figures need `matplotlib` + `scienceplots` and a system TeX distribution on `PATH`:
-  ```bash
-  uv add matplotlib scienceplots numpy
-  pdflatex --version
-  ```
-- If `pnpm install` leaves `esbuild` / `vue-demi` unbuilt, run `pnpm rebuild esbuild vue-demi`; if `slidev export` prompts for a theme, `pnpm add @slidev/theme-default`.
 
 ### adversarial-review — no setup required
 
@@ -523,21 +512,6 @@ The skill is a workflow orchestrator. It needs a working TeX distribution on `PA
    - `<PROJECT>_build/` — out-of-tree build scripts and artefacts. Use the bundled `templates/build_template.sh` (set `JOBNAME`).
 4. The skill does not install any libraries itself and does not write to your system other than via the companion-skill scripts.
 
-### paperbanana — CLI + env file
-
-1. Install the `paperbanana` CLI per its upstream instructions; confirm with `paperbanana --help`.
-2. Create the env file:
-   ```bash
-   mkdir -p ~/.config/paperbanana
-   cat > ~/.config/paperbanana/env << 'EOF'
-   export GOOGLE_API_KEY="your-google-api-key"
-   export VLM_MODEL="gemini-3-flash-preview"
-   EOF
-   chmod 600 ~/.config/paperbanana/env
-   ```
-   Alternatively, run `paperbanana setup` for the interactive wizard.
-3. The skill always runs commands as `source ~/.config/paperbanana/env && paperbanana ...`, so never hardcode keys in invocations.
-
 ### proton-mail: Proton Bridge + ~/.proton-imap
 
 Requires a locally running Proton Bridge instance and a credentials file.
@@ -672,7 +646,7 @@ If a skill does not show up:
 
 If a skill loads but fails at runtime:
 
-7. Re-check the "Per-skill prerequisites" section above — missing CLI binaries (`paperbanana`, `vastai`), missing credentials (`~/.config/dropbox-skill/credentials.json`, `~/.config/morgen-skill/credentials.json`, `~/.vast_api_key`), or a missing env file (`~/.config/paperbanana/env`) are the most common cause.
+7. Re-check the "Per-skill prerequisites" section above — a missing CLI binary (`vastai`) or missing credentials (`~/.config/dropbox-skill/credentials.json`, `~/.config/morgen-skill/credentials.json`, `~/.vast_api_key`) are the most common cause.
 
 ## Repository maintenance tip
 

@@ -82,54 +82,54 @@ source ~/.config/paperbanana/env && paperbanana evaluate \
 
 ## Output Management
 
-**All outputs MUST be saved under `outputs/paperbanana/<SEMANTIC_NAME>/`** in the current working directory.
+**All outputs MUST be saved under `outputs/paperbanana/<YYYYMMDD>_<SEMANTIC_NAME>/`** in the current working directory.
 
 ### Naming Convention
 
-Before running any generation command, create a semantically named output directory:
+Before running any generation command, create a dated, semantically named output directory and keep its path in a shell variable so every later command lands in the same place:
 
 ```bash
-mkdir -p outputs/paperbanana/<SEMANTIC_NAME>
+RUN_DIR="outputs/paperbanana/$(date +%Y%m%d)_<SEMANTIC_NAME>"
+mkdir -p "$RUN_DIR"
 ```
 
-`<SEMANTIC_NAME>` should be a concise, descriptive name derived from the task context. Examples:
-- `encoder_decoder_overview` — for an encoder-decoder architecture diagram
-- `accuracy_comparison_bar` — for a bar chart comparing accuracy
-- `training_pipeline_v2` — for a revised version of a training pipeline diagram
-- `cosmoflow_architecture` — for a CosmoFlow architecture diagram
+The `<YYYYMMDD>` prefix is the day the directory is created, so `ls outputs/paperbanana/` sorts chronologically. `<SEMANTIC_NAME>` should be a concise, descriptive name derived from the task context. Examples:
+- `20260728_encoder_decoder_overview` — for an encoder-decoder architecture diagram
+- `20260728_accuracy_comparison_bar` — for a bar chart comparing accuracy
+- `20260728_cosmoflow_architecture` — for a CosmoFlow architecture diagram
 
-For refinement iterations, append a version suffix: `<SEMANTIC_NAME>_v2`, `_v3`, etc.
+For refinement iterations, append a version suffix (`_v2`, `_v3`, ...) and date the directory with the day of the refinement run, not the original: `20260729_encoder_decoder_overview_v2`.
 
 ### How to Use
 
-Always pass `-o` pointing into the semantic directory:
+Always pass `-o` pointing into the dated run directory created above:
 
 ```bash
 # generate
 source ~/.config/paperbanana/env && paperbanana generate \
   -i method.txt -c "caption" \
-  -o outputs/paperbanana/encoder_decoder_overview/diagram.png
+  -o "$RUN_DIR/diagram.png"
 
 # plot
 source ~/.config/paperbanana/env && paperbanana plot \
   -d results.csv --intent "intent" \
-  -o outputs/paperbanana/accuracy_comparison_bar/plot.png
+  -o "$RUN_DIR/plot.png"
 ```
 
 The CLI also creates its own `outputs/run_<timestamp>/` directory with intermediate artifacts.
-After a successful run, **copy the run directory contents into the semantic directory** so everything is consolidated:
+After a successful run, **copy the run directory contents into the dated directory** so everything is consolidated:
 
 ```bash
 # Find the latest run and copy artifacts
 LATEST_RUN=$(ls -td outputs/run_* | head -1)
-cp -r "$LATEST_RUN"/* outputs/paperbanana/<SEMANTIC_NAME>/
+cp -r "$LATEST_RUN"/* "$RUN_DIR/"
 ```
 
 ### Final Directory Structure
 
 ```
 outputs/paperbanana/
-├── encoder_decoder_overview/
+├── 20260728_encoder_decoder_overview/
 │   ├── diagram.png               # Final output (via -o flag)
 │   ├── final_output.png          # CLI's copy of final image
 │   ├── metadata.json             # Run config, provider info, iteration count
@@ -139,10 +139,10 @@ outputs/paperbanana/
 │   │   └── diagram_iter_1.png
 │   ├── iter_2/ ...
 │   └── iter_3/ ...
-├── encoder_decoder_overview_v2/  # After user feedback refinement
+├── 20260729_encoder_decoder_overview_v2/  # After user feedback refinement
 │   ├── diagram.png
 │   ├── ...
-└── accuracy_comparison_bar/
+└── 20260729_accuracy_comparison_bar/
     ├── plot.png
     └── ...
 ```
@@ -168,9 +168,9 @@ The CLI does not have a built-in `--continue` flag, so **you must orchestrate fe
 
 2. **User gives feedback**: e.g., "Make the arrows thicker" or "The encoder block should be more prominent."
 
-3. **Read the previous run's artifacts** from the semantic directory:
-   - Read `outputs/paperbanana/<SEMANTIC_NAME>/planning.json` to get the optimized description.
-   - Read the latest `outputs/paperbanana/<SEMANTIC_NAME>/iter_N/details.json` to get the last revised description and critique.
+3. **Read the previous run's artifacts** from the dated run directory:
+   - Read `outputs/paperbanana/<YYYYMMDD>_<SEMANTIC_NAME>/planning.json` to get the optimized description.
+   - Read the latest `outputs/paperbanana/<YYYYMMDD>_<SEMANTIC_NAME>/iter_N/details.json` to get the last revised description and critique.
 
 4. **Create an enhanced input file** that incorporates the user's feedback:
    - Read the original input file.
@@ -190,15 +190,16 @@ The CLI does not have a built-in `--continue` flag, so **you must orchestrate fe
 
 5. **Re-run generation** into a new versioned semantic directory:
    ```bash
-   mkdir -p outputs/paperbanana/<SEMANTIC_NAME>_v2
+   V2_DIR="outputs/paperbanana/$(date +%Y%m%d)_<SEMANTIC_NAME>_v2"
+   mkdir -p "$V2_DIR"
    source ~/.config/paperbanana/env && paperbanana generate \
      -i /tmp/pb_refined_input.txt \
      -c "Revised: <original caption>. Changes: <user feedback summary>" \
      -n 5 \
-     -o outputs/paperbanana/<SEMANTIC_NAME>_v2/diagram.png
+     -o "$V2_DIR/diagram.png"
    # Copy run artifacts
    LATEST_RUN=$(ls -td outputs/run_* | head -1)
-   cp -r "$LATEST_RUN"/* outputs/paperbanana/<SEMANTIC_NAME>_v2/
+   cp -r "$LATEST_RUN"/* "$V2_DIR/"
    ```
 
 6. **Show the new result** and repeat if needed.
@@ -207,21 +208,23 @@ The CLI does not have a built-in `--continue` flag, so **you must orchestrate fe
 
 ```bash
 # Step 1: User asks for a diagram
-mkdir -p outputs/paperbanana/framework_overview
+RUN_DIR="outputs/paperbanana/$(date +%Y%m%d)_framework_overview"
+mkdir -p "$RUN_DIR"
 paperbanana generate -i method.txt -c "Framework overview" \
-  -o outputs/paperbanana/framework_overview/diagram.png
+  -o "$RUN_DIR/diagram.png"
 LATEST_RUN=$(ls -td outputs/run_* | head -1)
-cp -r "$LATEST_RUN"/* outputs/paperbanana/framework_overview/
+cp -r "$LATEST_RUN"/* "$RUN_DIR/"
 
 # Step 2: User says "arrows are too thin, and make the encoder block blue"
-# → Read outputs/paperbanana/framework_overview/planning.json and iter_3/details.json
+# → Read $RUN_DIR/planning.json and iter_3/details.json
 # → Write /tmp/pb_refined_input.txt with original text + context + feedback
-mkdir -p outputs/paperbanana/framework_overview_v2
+V2_DIR="outputs/paperbanana/$(date +%Y%m%d)_framework_overview_v2"
+mkdir -p "$V2_DIR"
 paperbanana generate -i /tmp/pb_refined_input.txt \
   -c "Framework overview. Revised: thicker arrows, blue encoder block" \
-  -n 5 -o outputs/paperbanana/framework_overview_v2/diagram.png
+  -n 5 -o "$V2_DIR/diagram.png"
 LATEST_RUN=$(ls -td outputs/run_* | head -1)
-cp -r "$LATEST_RUN"/* outputs/paperbanana/framework_overview_v2/
+cp -r "$LATEST_RUN"/* "$V2_DIR/"
 ```
 
 ### Tips for Effective Refinement
