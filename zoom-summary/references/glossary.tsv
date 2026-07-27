@@ -1,0 +1,35 @@
+# zoom-summary glossary TEMPLATE
+#
+# This file ships with the skill and is version controlled, so it holds NO real
+# terms: project vocabulary and personal names would be published with the repo.
+# Write your own entries in ~/.config/zoom-skill/glossary.tsv instead. That file
+# loads on top of this one and overrides it by pattern.
+#
+# Format (tab separated, one entry per line):
+#
+#   pattern <TAB> replacement <TAB> tier <TAB> note
+#
+#   tier = high  -> substituted automatically
+#   tier = low   -> never substituted, only reported under "검토 필요".
+#                   Put "?" in the replacement column when the right term is
+#                   unknown, or your best guess to have it shown as a suggestion.
+#
+# Matching: an all-ASCII pattern matches only when it is not flanked by other
+# ASCII letters or digits, so "ABC" matches inside "ABC를" but not inside
+# "XABCY". A pattern containing non-ASCII characters matches as a plain
+# substring. Longer patterns are applied first.
+#
+# Promotion rule: an entry earns 'high' only with the user's explicit
+# confirmation, or a citable line in the research log
+# (~/.research/projects/<slug>/compass.md or journal.md). Put that evidence in
+# the note column so the decision stays auditable. Plausibility alone is not
+# enough: a wrong 'high' entry silently rewrites meeting records.
+#
+# Example rows, commented out so they never apply:
+#
+# ABC	ABCD	high	Expanded acronym. User confirmed 2026-01-01.
+# 어떤용어	?	low	Correct term unknown; reported for review only.
+# 다른용어	추정값	low	Guess shown as a suggestion, never substituted.
+#
+# Also worth recording in your own file, as comments, are terms that look wrong
+# but are correct. They stop a future reader from "fixing" them.
