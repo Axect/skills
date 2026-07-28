@@ -1,399 +1,77 @@
----
-name: md2pdf-typora
-description: Convert Markdown to PDF using Typora's Whitey theme via pandoc + Chrome headless, replicating Typora's PDF export appearance
----
-
 # Markdown to PDF (Typora-style)
 
-Convert a Markdown file to PDF that closely matches Typora's PDF export with the **Whitey** theme. Uses pandoc for MD→HTML conversion and Chrome headless for HTML→PDF rendering.
+Convert a Markdown file to PDF that closely matches Typora's PDF export with the **Whitey** theme. pandoc handles MD to HTML, Chrome headless handles HTML to PDF.
+
+**Run the bundled script. Do not reconstruct the pipeline inline.** The pipeline used to live in this file as a bash-plus-python template that the caller retyped every run, and the retyping was the instability. See "History" at the bottom for what that cost.
 
 ## Usage
 
-```
-/md2pdf-typora <input.md> [options]
-```
-
-### Arguments
-
-- `<input.md>` — Path to the input Markdown file (required)
-- `--output <path>` — Output PDF path (default: same directory as input, `.pdf` extension)
-- `--dropbox [subfolder]` — Copy PDF to `~/Dropbox/Magi/[subfolder]/`
-- `--send-telegram` — Send compiled PDF via Telegram after compilation
-- `--toc` — Include table of contents
-
-## Pipeline
-
-### Step 1: Pre-process Markdown
-
-Before pandoc conversion, handle Typora-specific syntax and pandoc parser quirks that the input may not anticipate:
-
-- **`[TOC]` handling**: Typora uses `[TOC]` as an inline TOC marker, but pandoc ignores it and leaves it as literal text. Always strip `[TOC]` from the input and use pandoc's `--toc` flag instead.
-- **HR-then-heading normalization** (load-bearing): If a horizontal rule line `---` is *immediately* followed by a `## ` heading with no blank line between them, pandoc's reader can interpret the pair as a setext-style table fragment, swallowing the heading and several paragraphs into a single `<table><td>` cell. Symptoms: missing TOC entries for that section, AND the section's body content (especially pipe tables) renders as a single inline run-on paragraph in the PDF. This pattern is common in chunked-translation workflows where chunk N ends with `---` and chunk N+1 starts with `## `, then `cat`-merging skips the blank line. The pre-processor inserts a blank line between any `---` line and an immediately-following `## ` heading.
-
 ```bash
-TMP_MD="${INPUT_DIR}/_typora_tmp.md"
-# (a) strip Typora [TOC] markers
-# (b) ensure a blank line between '---' HR and an immediately-following '## ' heading
-python3 - "$INPUT" "$TMP_MD" << 'PYEOF'
-import sys
-src, dst = sys.argv[1], sys.argv[2]
-out = []
-with open(src) as f:
-    lines = f.readlines()
-for i, line in enumerate(lines):
-    if line.rstrip("\n").strip() == "[TOC]":
-        continue  # strip Typora TOC marker
-    out.append(line)
-    if line.rstrip() == "---" and i + 1 < len(lines) and lines[i+1].lstrip().startswith("## "):
-        out.append("\n")  # insert blank line so pandoc doesn't fuse '---'+heading into a table
-with open(dst, "w") as f:
-    f.writelines(out)
-PYEOF
+bash ~/.claude/skills/md2pdf-typora/scripts/md2pdf.sh <input.md> [options]
 ```
 
-### Step 2: Prepare HTML
+| Option | Effect |
+|---|---|
+| `--output <path>` | Output PDF path. Default: same directory as the input, `.pdf` extension |
+| `--dropbox [subfolder]` | Also copy the PDF into `~/Dropbox/Magi/<subfolder>/` |
+| `--no-toc` | Omit the table of contents. It is included by default |
+| `--toc` | Accepted for compatibility; the TOC is already on by default |
+| `--break-on-hr` | Force a page break at every `---`. Default is a thin rule, which is what Typora does |
+| `--paper <A4\|Letter>` | Page size. Default `A4` |
+| `--font <px>` | Root font size. Default `14` |
+| `--keep-html` | Keep the intermediate HTML for debugging |
 
-Use pandoc to convert the pre-processed Markdown to standalone HTML with:
-- MathJax for math rendering
-- The Whitey theme CSS embedded
-- Syntax highlighting for code blocks
-- `--toc --toc-depth=2` for table of contents (always enabled since `[TOC]` was stripped)
+The script exits non-zero with a specific message on any failure, so a broken run is never mistaken for a good one.
 
-```bash
-CSS_PATH="$HOME/.claude/skills/md2pdf-typora/typora-whitey.css"
+`--send-telegram` is not a script option, because bash cannot reach the Telegram MCP tool. Run the script, then pass the printed PDF path to the `reply` tool yourself.
 
-cd "$INPUT_DIR"
-pandoc "$(basename "$TMP_MD")" \
-    -f markdown-yaml_metadata_block+tex_math_dollars \
-    -o "$TMP_HTML" \
-    --standalone \
-    --mathjax \
-    --css="$CSS_PATH" \
-    --metadata title="$TITLE" \
-    --highlight-style=pygments \
-    --toc --toc-depth=2
+## What the script does
 
-# Force MathJax SVG output (replaces pandoc's default CHTML mode).
-# CHTML depends on STIX-Web webfonts loaded from CDN; under Chrome headless,
-# missing-glyph fallbacks render Greek letters (\phi, \theta etc.) as empty
-# boxes and inline sub/superscripts wrap onto separate lines. SVG renders
-# every glyph as a path with no font dependency, eliminating both failures.
-sed -i 's|/tex-chtml-full.js|/tex-svg-full.js|g' "$TMP_HTML"
-```
+1. **Preprocess** (`scripts/preprocess_md.py`): strips Typora's `[TOC]` marker, and inserts a blank line between a `---` rule and an immediately following heading.
+2. **pandoc**: standalone HTML with `--mathjax`, `--highlight-style=pygments`, `--toc --toc-depth=2`, run from the input's directory so relative image paths resolve. Reader is `markdown-yaml_metadata_block+tex_math_dollars`.
+3. **Patch HTML** (`scripts/patch_html.py`): inlines the theme plus print CSS as one `<style>` block in the `<link>`'s position, rewrites MathJax to SVG, removes pandoc's duplicate title, moves the TOC below the document's H1, then asserts each of those actually happened.
+4. **Chrome headless**: `--headless=new --no-pdf-header-footer --virtual-time-budget=30000 --print-to-pdf`. The browser is resolved from `google-chrome-stable`, `google-chrome`, `chromium`, `chromium-browser` in that order, matching what the repository README promises.
+5. **Verify**: PDF exists, is non-empty, has at least one page. Reports size and page count.
 
-**Why `-f markdown-yaml_metadata_block+tex_math_dollars`**: pandoc's default markdown reader treats any colon (`:`) on an early line as a potential YAML key. Korean / non-English documents that open with a metadata blockquote like `> **도메인**: 물리학` raise spurious `YAML parse exception at line N, column M` errors and abort. Disabling the `yaml_metadata_block` extension bypasses this false positive without losing any other parsing capability — true YAML frontmatter (delimited by leading and trailing `---`) is rare in PDF inputs, and metadata is supplied via `--metadata title=...` instead. The companion `+tex_math_dollars` keeps `$...$`/`$$...$$` math active.
+Temp files are removed by an `EXIT` trap even when a stage fails.
 
-**Title extraction**: Use the first `# heading` in the file, or the filename if none exists.
+## Design notes
 
-**Image handling**: Pandoc resolves relative image paths from the input file's directory. Always run pandoc from the input file's directory:
-```bash
-cd "$(dirname "$INPUT")" && pandoc "$(basename "$TMP_MD")" ...
-```
+**Why the theme CSS is inlined rather than linked.** pandoc's `--css` emits `<link rel="stylesheet" href="...">`. Chrome sometimes resolves an absolute path under `file://` and sometimes does not, and a link gives no control over cascade order. pandoc also emits its own `<style>` block *before* the link, so overrides appended to the first `</style>` land ahead of the theme and lose to it. The patcher therefore builds one block, theme first then print overrides, and puts it exactly where the link was.
 
-**Why SVG over CHTML**: CHTML (pandoc's default) requires Chrome headless to download and apply MathJax web fonts before printing. In practice this fails silently — Greek letters become `□` boxes, and inline math like `$\theta_{\mathrm{UV}}$` wraps with `θ` on one line and `_UV` on the next. SVG mode renders every symbol as inline `<svg>` path data, so the PDF is glyph-correct regardless of font cache state. SVG output is also slightly larger (~10-30%) but immune to network/cache flakiness.
+**Why print overrides are needed at all.** The Whitey theme is tuned for screens: `body { max-width: 960px }` and `html { font-size: 19px }`. A4's printable width is 794px. Without overrides the body overflows the page, tables clip, and equations run past the right margin. The print CSS pins `@page { size: A4 }`, sets `body { max-width: none }`, drops the root font to 14px, and switches body text from justified to left (justified Korean in Chrome's print engine produces wide rivers).
 
-### Step 3: Patch HTML (CSS, TOC position, print layout)
+**Why table column widths are scoped by column count.** Under `table-layout: fixed`, assigning 22%/22%/56% to the first three columns of *every* table gives those three the entire width and collapses columns 4 and beyond to nothing: a 7-column table renders as three wide columns plus a few pixels of vertically stacked single characters spilling off the page. The width hints are now scoped with `:has()` to tables that have exactly two or exactly three columns. Wider tables get `table-layout: fixed` with no hints, which distributes evenly and never overflows.
 
-This is the critical post-processing step. Pandoc's output has several issues that must be fixed:
+**Why MathJax SVG, not CHTML.** CHTML needs STIX-Web webfonts loaded from a CDN before printing. Under Chrome headless this fails quietly: Greek letters render as empty boxes and inline math like `$\theta_{\mathrm{UV}}$` wraps with the base on one line and the subscript on the next. SVG renders every glyph as path data with no font dependency. The patcher rewrites any `tex-*.js` reference to `tex-svg-full.js`. SVG output is 10 to 30 percent larger and immune to font-cache state.
 
-1. **Inline CSS**: Pandoc's `--css` adds a `<link>` tag that Chrome headless can't resolve. Replace it with an inline `<style>` block.
-2. **Remove duplicate title**: Pandoc generates `<h1 class="title">` from `--metadata title` AND keeps the body `<h1>` from the markdown `# heading`. Remove the metadata title h1 to avoid duplication.
-3. **Move TOC after body h1**: Pandoc places `<nav id="TOC">` before all body content (including the `<h1>`). Extract the TOC nav block and re-insert it after the first body `</h1>` so it appears below the title, matching Typora's `[TOC]` behavior.
-4. **Print layout overrides** (load-bearing): The Whitey theme's body `max-width: 960px` and base `font-size: 19px` were tuned for on-screen reading and *overflow* both A4 (794px) and Letter (816px) page widths. Without overrides, content silently extends past the printable area, wide tables collapse with overflowing cells, equations push past the right margin, and code blocks scroll off the page. The patch CSS pins `@page { size: A4 }`, sets `body { max-width: none }`, switches tables to `table-layout: fixed` with explicit column widths and `word-break` so multi-line cells wrap correctly, prevents page breaks inside equations / blockquotes / table rows, and keeps headings attached to their following content (`page-break-after: avoid`).
-5. **Inline-math no-wrap**: MathJax SVG produces `<mjx-container>` for each formula. Without `white-space: nowrap`, inline math like `$\theta_{\mathrm{UV}}$` can wrap mid-expression, splitting `θ` from its subscript across lines. The patch CSS pins each container to one line.
+**Why `code` no longer uses `word-break: break-all` in body text.** `break-all` breaks even when the token would have fitted, so `` `morton` `` came out as `mort` / `on` mid-sentence. Body code now uses `overflow-wrap: break-word` (break only when necessary); table and pre code keep the aggressive rule, where narrow cells need it.
 
-```python
-python3 << 'PYEOF'
-import re
+**Why `---` no longer forces a page break.** Typora renders `---` as a thin rule and does not break the page. Documents that use `---` as a section separator every few paragraphs turned into bloated PDFs with many half-empty pages. Use `--break-on-hr` for the old behaviour.
 
-css_path = "$CSS_PATH"
-html_path = "$TMP_HTML"
+## Fonts
 
-with open(css_path) as f:
-    css = f.read()
-with open(html_path) as f:
-    html = f.read()
+**IBM Plex Serif** (Latin) plus **MaruBuri** (Korean) for body, **Roboto Slab** for headings, **JetBrains Mono** for code, all pulled from CDNs by four `@import` rules at the top of `typora-whitey.css`. Chrome needs network access while rendering. The body stack falls back to Palatino, Times and generic serif when offline, so text still renders, just not in the intended faces. For fully offline use, download the font CSS and MathJax `tex-svg-full.js` locally and point the `@import` rules and `MATHJAX_RE` replacement at the local copies.
 
-# Print-layout overrides (kept inside the same <style> block as Whitey CSS so
-# they cascade after the theme rules and win without `!important` battles).
-print_css = """
-@page { size: A4; margin: 18mm 14mm 20mm 14mm; }
-html { font-size: 14px !important; }
-body { max-width: none !important; margin: 0 !important; padding: 0 !important;
-       line-height: 1.45 !important; text-align: left !important; }
-h1 { font-size: 1.9em !important; margin-top: 0.8em !important; }
-h2 { font-size: 1.5em !important; margin-top: 1.2em !important;
-     page-break-after: avoid; }
-h3 { font-size: 1.2em !important; page-break-after: avoid; }
-h4 { font-size: 1.05em !important; page-break-after: avoid; }
-p, li { orphans: 2; widows: 2; }
-/* Tables: fixed layout + column widths + cell wrap so wide content
-   (especially CJK paragraphs) does not overflow the page width. */
-table { table-layout: fixed !important; width: 100% !important;
-        font-size: 0.88em !important; word-break: keep-all;
-        overflow-wrap: anywhere; page-break-inside: auto; }
-table th, table td { padding: 5px 7px !important; line-height: 1.35 !important;
-                     vertical-align: top !important;
-                     word-break: keep-all; overflow-wrap: anywhere; }
-table thead { display: table-header-group; }
-table tr { page-break-inside: avoid; }
-/* 3-column tables (e.g. 'this concept | is not | distinguishing feature') */
-table th:first-child, table td:first-child { width: 22%; }
-table th:nth-child(2), table td:nth-child(2) { width: 22%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-/* 2-column tables (e.g. key/value glossaries): override the 3-col widths */
-table:not(:has(thead th:nth-child(3))) th:first-child,
-table:not(:has(thead th:nth-child(3))) td:first-child { width: 28%; }
-table:not(:has(thead th:nth-child(3))) th:nth-child(2),
-table:not(:has(thead th:nth-child(3))) td:nth-child(2) { width: 72%; }
-pre { white-space: pre-wrap !important; word-wrap: break-word !important;
-      font-size: 0.85em !important; page-break-inside: avoid; }
-code { word-break: break-all; overflow-wrap: anywhere; }
-blockquote { page-break-inside: avoid; margin: 0.8em 0; padding: 0.4em 0.9em;
-             border-left: 3px solid #bbb; }
-ul, ol { margin: 0.4em 0 0.4em 1.2em; padding-left: 0.4em; }
-li { margin-bottom: 0.15em; }
-hr { page-break-after: always; visibility: hidden;
-     height: 0; margin: 0; border: 0; }
-nav#TOC { font-size: 0.85em; line-height: 1.35; page-break-after: always; }
-nav#TOC ul { list-style: none; padding-left: 1em; margin: 0.2em 0; }
-"""
+## Failure modes the pipeline defends against
 
-# 1) Inline CSS — Whitey theme followed by print overrides
-html = re.sub(
-    r'<link rel="stylesheet" href="[^"]*typora-whitey\.css"[^>]*/>',
-    f'<style>\n{css}\n{print_css}\n</style>', html
-)
+Each of these was observed in production and is handled by default now.
 
-# 2) Add image scaling + MathJax SVG inline-math no-wrap CSS
-html = html.replace('</style>', """
-img {
-  max-width: 100% !important;
-  height: auto !important;
-  display: block;
-  margin: 0.8em auto;
-  page-break-inside: avoid;
-}
-mjx-container {
-  white-space: nowrap;
-}
-mjx-container[display="true"] {
-  margin: 0.6em 0 !important;
-  page-break-inside: avoid !important;
-}
-mjx-container[display="true"] > svg,
-mjx-container[display="true"] > mjx-math {
-  max-width: 100%;
-}
-</style>""", 1)
+1. **Quoted heredoc swallowed the paths.** The python stage was pasted under `<< 'PYEOF'`, so `css_path = "$CSS_PATH"` reached python as literal text and the stage died on `FileNotFoundError`. Under `set -e` the run aborted; without it, the HTML kept pandoc's `<link>` and *none* of the print CSS applied, so PDFs came out Letter-sized with a 19px body and 960px max-width crushed onto the page. Fixed structurally: paths now arrive as `argv` in real script files, and step 3 asserts the CSS was inlined.
+2. **`---` followed immediately by a heading, no blank line.** pandoc parses `---\n## X` as a setext-style table fragment and swallows the heading plus following paragraphs into one `<table><td>` cell. Symptom: the TOC entry disappears and the section body renders as a run-on paragraph. Common when chunked translations are `cat`-merged. Fixed by the preprocessor.
+3. **`YAML parse exception at line N, column M`.** pandoc's default markdown reader reads an early-line `:` as a YAML key, so Korean documents opening with `> **도메인**: 물리학` abort before producing HTML. Fixed by `-f markdown-yaml_metadata_block+tex_math_dollars`.
+4. **Wide tables destroyed by the column-width hints.** See "Design notes". Fixed by `:has()` scoping.
+5. **TOC silently deleted.** The old code cut the TOC out and reinserted it after the first `</h1>`; a document with no `# heading` has no `</h1>`, so the reinsertion no-oped and the TOC vanished. Now it falls back to just after `<body>`, and an assertion fires if it went missing.
+6. **Duplicate title.** pandoc emits `<h1 class="title">` from `--metadata title` inside a `<header id="title-block-header">` wrapper, on top of the body `<h1>`. Both the h1 and the wrapper are removed; leaving the wrapper kept its margins as stray whitespace.
+7. **Equations, blockquotes, code blocks split across page breaks**, and **headings stranded at the bottom of a page**. Handled by `page-break-inside: avoid` and `page-break-after: avoid`.
 
-# 3) Remove pandoc's duplicate title h1 (has class="title")
-html = re.sub(r'<h1 class="title">[^<]*</h1>\s*', '', html)
+## Files
 
-# 4) Move TOC nav block to after the first body </h1>
-toc_match = re.search(r'(<nav\s+id="TOC"[^>]*>.*?</nav>)', html, re.DOTALL)
-if toc_match:
-    toc_block = toc_match.group(1)
-    html = html.replace(toc_block, '', 1)
-    html = html.replace('</h1>', '</h1>\n' + toc_block, 1)
+- `scripts/md2pdf.sh`: the pipeline. Run this.
+- `scripts/preprocess_md.py`: `[TOC]` stripping, `---`-then-heading separation.
+- `scripts/patch_html.py`: CSS inlining, print layout, TOC placement, MathJax SVG, plus the assertions.
+- `typora-whitey.css`: the theme, unmodified screen CSS. Print concerns live in `patch_html.py`, not here.
 
-with open(html_path, 'w') as f:
-    f.write(html)
-PYEOF
-```
+## History
 
-### Step 4: Render PDF with Chrome headless
-
-```bash
-google-chrome-stable \
-    --headless=new \
-    --disable-gpu \
-    --no-pdf-header-footer \
-    --virtual-time-budget=30000 \
-    --print-to-pdf="$OUTPUT_PDF" \
-    "file://$TMP_HTML" 2>/dev/null
-```
-
-**Chrome PDF options**:
-- `--no-pdf-header-footer` — removes default header/footer with URL and date
-- `--virtual-time-budget=30000` — gives 30 seconds for Google Fonts CDN + MathJax SVG bundle (~1 MB) to fully load and typeset every formula before printing. Documents with hundreds of math expressions are still well within budget; documents with very few math expressions never wait the full 30s in practice.
-- Page size is set to A4 by the patched `@page { size: A4 }` rule (Step 3). Chrome's command-line default is Letter; the CSS rule overrides it. To switch to Letter, change `size: A4` to `size: Letter` in the print CSS — do not pass `--print-to-pdf-paper-size`, which is brittle across Chrome versions.
-
-**IMPORTANT: HTML must be in the same directory as the input markdown** so that relative image paths (e.g., `plots/foo.png`) resolve correctly. Do NOT write HTML to `/tmp/`.
-
-### Step 5: Verify and deliver
-
-1. Check the PDF was created and report file size
-2. If `--dropbox` was specified:
-   ```bash
-   DROPBOX_BASE="$HOME/Dropbox/Magi"
-   mkdir -p "$DROPBOX_BASE/$SUBFOLDER"
-   cp "$OUTPUT_PDF" "$DROPBOX_BASE/$SUBFOLDER/"
-   ```
-3. If `--send-telegram` was specified, send via Telegram reply tool
-4. Clean up temporary files (HTML and pre-processed MD)
-
-## Complete Script Template
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-INPUT="$1"
-BASENAME="$(basename "${INPUT}" .md)"
-INPUT_DIR="$(cd "$(dirname "$INPUT")" && pwd)"
-CSS_PATH="$HOME/.claude/skills/md2pdf-typora/typora-whitey.css"
-TMP_MD="${INPUT_DIR}/_typora_tmp.md"
-TMP_HTML="${INPUT_DIR}/_typora_tmp.html"
-OUTPUT_PDF="${OUTPUT:-${INPUT_DIR}/${BASENAME}.pdf}"
-
-# Extract title from first H1
-TITLE=$(grep -m1 '^# ' "$INPUT" | sed 's/^# //' || echo "$BASENAME")
-
-# Step 1: Pre-process — strip Typora's [TOC] AND insert blank line between
-# any '---' HR and an immediately-following '## ' heading (otherwise pandoc
-# fuses them into a setext-style table that swallows the heading + body).
-python3 - "$INPUT" "$TMP_MD" << 'PYEOF'
-import sys
-src, dst = sys.argv[1], sys.argv[2]
-out = []
-with open(src) as f:
-    lines = f.readlines()
-for i, line in enumerate(lines):
-    if line.rstrip("\n").strip() == "[TOC]":
-        continue
-    out.append(line)
-    if line.rstrip() == "---" and i + 1 < len(lines) and lines[i+1].lstrip().startswith("## "):
-        out.append("\n")
-with open(dst, "w") as f:
-    f.writelines(out)
-PYEOF
-
-# Step 2: MD → HTML (run from input dir for relative image paths).
-# `-f markdown-yaml_metadata_block` disables YAML metadata block detection so
-# that Korean / non-English documents whose body lines contain ':' do not
-# raise spurious YAML parse errors. `+tex_math_dollars` keeps `$...$` math.
-cd "$INPUT_DIR"
-pandoc "$(basename "$TMP_MD")" \
-    -f markdown-yaml_metadata_block+tex_math_dollars \
-    -o "$TMP_HTML" \
-    --standalone \
-    --mathjax \
-    --css="$CSS_PATH" \
-    --metadata title="$TITLE" \
-    --highlight-style=pygments \
-    --toc --toc-depth=2
-
-# Force MathJax SVG output (eliminates CHTML font-fallback bugs).
-sed -i 's|/tex-chtml-full.js|/tex-svg-full.js|g' "$TMP_HTML"
-
-# Step 3: Patch HTML — inline CSS + print-layout overrides, fix TOC position,
-# scale images, no-wrap inline math.
-python3 << 'PYEOF'
-import re
-
-css_path = "$CSS_PATH"
-html_path = "$TMP_HTML"
-
-with open(css_path) as f: css = f.read()
-with open(html_path) as f: html = f.read()
-
-print_css = """
-@page { size: A4; margin: 18mm 14mm 20mm 14mm; }
-html { font-size: 14px !important; }
-body { max-width: none !important; margin: 0 !important; padding: 0 !important;
-       line-height: 1.45 !important; text-align: left !important; }
-h1 { font-size: 1.9em !important; margin-top: 0.8em !important; }
-h2 { font-size: 1.5em !important; margin-top: 1.2em !important; page-break-after: avoid; }
-h3 { font-size: 1.2em !important; page-break-after: avoid; }
-h4 { font-size: 1.05em !important; page-break-after: avoid; }
-p, li { orphans: 2; widows: 2; }
-table { table-layout: fixed !important; width: 100% !important;
-        font-size: 0.88em !important; word-break: keep-all; overflow-wrap: anywhere;
-        page-break-inside: auto; }
-table th, table td { padding: 5px 7px !important; line-height: 1.35 !important;
-                     vertical-align: top !important; word-break: keep-all;
-                     overflow-wrap: anywhere; }
-table thead { display: table-header-group; }
-table tr { page-break-inside: avoid; }
-table th:first-child, table td:first-child { width: 22%; }
-table th:nth-child(2), table td:nth-child(2) { width: 22%; }
-table th:nth-child(3), table td:nth-child(3) { width: 56%; }
-table:not(:has(thead th:nth-child(3))) th:first-child,
-table:not(:has(thead th:nth-child(3))) td:first-child { width: 28%; }
-table:not(:has(thead th:nth-child(3))) th:nth-child(2),
-table:not(:has(thead th:nth-child(3))) td:nth-child(2) { width: 72%; }
-pre { white-space: pre-wrap !important; word-wrap: break-word !important;
-      font-size: 0.85em !important; page-break-inside: avoid; }
-code { word-break: break-all; overflow-wrap: anywhere; }
-blockquote { page-break-inside: avoid; margin: 0.8em 0; padding: 0.4em 0.9em;
-             border-left: 3px solid #bbb; }
-ul, ol { margin: 0.4em 0 0.4em 1.2em; padding-left: 0.4em; }
-li { margin-bottom: 0.15em; }
-hr { page-break-after: always; visibility: hidden; height: 0; margin: 0; border: 0; }
-nav#TOC { font-size: 0.85em; line-height: 1.35; page-break-after: always; }
-nav#TOC ul { list-style: none; padding-left: 1em; margin: 0.2em 0; }
-"""
-
-# Inline CSS (Whitey + print overrides)
-html = re.sub(r'<link rel="stylesheet" href="[^"]*typora-whitey\.css"[^>]*/>',
-              f'<style>\n{css}\n{print_css}\n</style>', html)
-
-# Image scaling + MathJax SVG inline-math no-wrap, attached after the main <style>
-html = html.replace('</style>', """
-img { max-width: 100% !important; height: auto !important; display: block;
-      margin: 0.8em auto; page-break-inside: avoid; }
-mjx-container { white-space: nowrap; }
-mjx-container[display="true"] { margin: 0.6em 0 !important;
-                                  page-break-inside: avoid !important; }
-mjx-container[display="true"] > svg,
-mjx-container[display="true"] > mjx-math { max-width: 100%; }
-</style>""", 1)
-
-# Remove pandoc's duplicate title h1
-html = re.sub(r'<h1 class="title">[^<]*</h1>\s*', '', html)
-
-# Move TOC after body h1
-toc_match = re.search(r'(<nav\s+id="TOC"[^>]*>.*?</nav>)', html, re.DOTALL)
-if toc_match:
-    toc_block = toc_match.group(1)
-    html = html.replace(toc_block, '', 1)
-    html = html.replace('</h1>', '</h1>\n' + toc_block, 1)
-
-with open(html_path, 'w') as f: f.write(html)
-PYEOF
-
-# Step 4: HTML → PDF
-google-chrome-stable \
-    --headless=new \
-    --disable-gpu \
-    --no-pdf-header-footer \
-    --virtual-time-budget=30000 \
-    --print-to-pdf="$OUTPUT_PDF" \
-    "file://$TMP_HTML" 2>/dev/null
-
-# Cleanup
-rm -f "$TMP_HTML" "$TMP_MD"
-
-echo "PDF created: $OUTPUT_PDF ($(du -h "$OUTPUT_PDF" | cut -f1))"
-```
-
-## Notes
-
-- The Whitey theme uses **IBM Plex Serif** (Latin) + **MaruBuri** (Korean) for body text, **Roboto Slab** for headings, **JetBrains Mono** for code
-- h1 and h2 are center-aligned with h2 having a centered underline decoration in the on-screen theme; the print-CSS overrides reduce h2 to flush-left at a smaller size to maximise printable area
-- Body text alignment is switched from justify to left in the print CSS, since justified Korean / monospace text produces wide inter-word gaps and bad rivers in Chrome's print engine
-- Fonts are loaded from Google Fonts CDN — Chrome needs network access during rendering
-- Math is rendered by **MathJax SVG** (`tex-svg-full.js`, loaded from CDN). The pipeline rewrites pandoc's default CHTML reference to SVG because CHTML silently fails when STIX-Web webfonts are unavailable to Chrome headless (Greek letters become `□` boxes; inline sub/superscripts wrap onto separate lines). SVG renders every glyph as inline path data and is robust against font-cache state.
-- For offline use, download MathJax SVG locally (`mathjax@3/es5/tex-svg-full.js` plus dependencies) and adjust the `sed` patch to point at the local URL.
-- The CSS file is at `~/.claude/skills/md2pdf-typora/typora-whitey.css`
-
-## Failure modes the pipeline now defends against
-
-These were caught in production and are now handled by the pre-processor / pandoc flags / print CSS by default:
-
-1. **Chunk-merge `---` followed by `## ` heading on the next line, no blank line between them.** Symptom: missing TOC entries for the affected sections AND the section's body content (especially the first table after the heading) renders as a single inline run-on paragraph, sometimes spanning multiple paragraphs welded into one cell. Root cause: pandoc parses `---\n## ...` as a setext-style table fragment. Fix: Step 1 pre-processor inserts a blank line.
-2. **`YAML parse exception at line N, column M` from pandoc on Korean / non-English documents.** Symptom: pandoc aborts with an opaque error before any HTML is produced. Root cause: pandoc's default `markdown` reader treats early-line `:` (very common in Korean blockquotes like `> **도메인**: 물리학`) as a YAML key. Fix: Step 2 invokes pandoc with `-f markdown-yaml_metadata_block+tex_math_dollars` to disable the YAML metadata block extension while keeping `$...$` math.
-3. **Wide tables overflow page width.** Symptom: the rightmost column of a 3-column table (especially Confusion-Neighbors-style "this | is not | distinguishing feature" tables with long Korean cells) extends past the right margin and gets clipped, or the row wraps in unexpected ways. Root cause: the Whitey CSS body `max-width: 960px` is wider than A4 (794px), and tables default to `table-layout: auto` which sizes columns from content. Fix: Step 3 print CSS sets `body { max-width: none }`, `table { table-layout: fixed }`, explicit column-width allocations, and `word-break: keep-all; overflow-wrap: anywhere` so Korean text wraps cleanly inside cells.
-4. **Equations / blockquotes / code blocks split across page breaks.** Fix: Step 3 print CSS sets `page-break-inside: avoid` on each.
-5. **Headings stranded at the bottom of a page with no body content following.** Fix: Step 3 print CSS sets `page-break-after: avoid` on `h2`/`h3`/`h4`.
+Before 2026-07-28 this file carried the whole pipeline as a "Complete Script Template" to copy. Three latent bugs (1, 4 and 5 above) shipped inside that template, and bug 1 meant the print CSS never applied at all. Keeping the pipeline in executable files removes the transcription variance that made the skill unreliable.
