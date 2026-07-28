@@ -2,6 +2,23 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-07-29
+
+### Fixed
+- `md2pdf-typora`: the HTML-patching stage never ran. It was pasted into `SKILL.md` under a quoted heredoc (`python3 << 'PYEOF'`), which suppresses shell variable expansion, so `css_path = "$CSS_PATH"` reached Python as that literal string and the stage died on `FileNotFoundError`. Under `set -e` the run aborted with no PDF; without it the HTML kept pandoc's `<link>` tag and **none** of the print CSS applied, so every PDF was printed Letter-sized with the theme's on-screen geometry (19px root font, 960px body `max-width`) crushed onto a 794px A4 text block. Confirmed by page geometry: before the fix Chrome emitted 612x792pt (Letter, its own default), after the fix 594.96x841.92pt (A4, from the `@page` rule that had never been reaching the document).
+- `md2pdf-typora`: the print CSS assigned 22%/22%/56% to the first three columns of **every** table under `table-layout: fixed`, so any table with four or more columns gave those three the entire width and collapsed the rest. A 7-column table rendered as three wide columns plus a few pixels of vertically stacked single characters spilling off the page edge. Width hints are now scoped with `:has()` to tables that have exactly two or exactly three columns; wider tables keep `table-layout: fixed` with no hints, which distributes evenly and cannot overflow. This bug was latent rather than visible, because the stage that would have applied it was already dead.
+- `md2pdf-typora`: a document with no `# heading` lost its table of contents. The patcher cut the TOC out and reinserted it after the first `</h1>`, and with no H1 present the reinsertion silently no-oped. It now falls back to just after `<body>`, and an assertion fires if the TOC goes missing.
+- `md2pdf-typora`: the theme's `html, body { background: #fefefe }` was printed, putting a faint grey panel over the whole text block with hard edges against the pure-white `@page` margin, and wasting toner. Pixel measurement on a sample page: `#fefefe` covered 73.3% of the sheet before, 0% after. Typora's own export paints no body background.
+- `md2pdf-typora`: `code { word-break: break-all }` applied to running text, so short identifiers broke mid-word (`` `morton` `` came out as `mort` / `on`). Body code now uses `overflow-wrap: break-word`, which breaks only when a token genuinely cannot fit; table and `pre` code keep the aggressive rule, where narrow cells need it.
+- `md2pdf-typora`: extra element CSS was appended to the first `</style>` in the document, which is pandoc's own style block and sits **before** the theme link, so those rules lost the cascade to the theme. Theme and print CSS are now emitted as a single `<style>` block placed where the `<link>` was.
+- `md2pdf-typora`: the pipeline hardcoded `google-chrome-stable`, while `README.md` promised any Chromium-family browser. The browser is now resolved from `google-chrome-stable`, `google-chrome`, `chromium`, `chromium-browser` in order.
+
+### Changed
+- `md2pdf-typora`: moved the pipeline out of `SKILL.md` into executable files (`scripts/md2pdf.sh`, `scripts/preprocess_md.py`, `scripts/patch_html.py`) and reduced `SKILL.md` to the interface, the design rationale, and the failure-mode record. The old "Complete Script Template" invited the caller to retype a hundred lines of bash and Python per run, and that retyping was the instability: three of the bugs above shipped inside the template, and the heredoc bug meant it could not work as written. Paths now arrive as `argv`, so the quoting failure cannot recur by construction.
+- `md2pdf-typora`: `patch_html.py` asserts its own postconditions (theme CSS inlined, no stylesheet `<link>` surviving, print CSS present, duplicate title gone, TOC not lost) and `md2pdf.sh` verifies the PDF exists, is non-empty and has at least one page. A single one of these assertions would have caught the heredoc bug on day one. Temp files are removed by an `EXIT` trap even when a stage fails.
+- `md2pdf-typora`: `---` no longer forces a page break. Typora renders it as a thin rule and does not break, whereas documents that use `---` as a section separator every few paragraphs turned into PDFs full of half-empty pages. `--break-on-hr` restores the old behaviour.
+- `md2pdf-typora`: added `--no-toc`, `--paper A4|Letter`, `--font <px>`, `--break-on-hr` and `--keep-html`. `--send-telegram` is no longer a script flag, because bash cannot reach the Telegram MCP tool; the caller passes the printed PDF path to the `reply` tool instead.
+
 ## 2026-07-28
 
 ### Added
