@@ -24,6 +24,7 @@ Same-named projects in different categories (e.g. two `pytorch_template` checkou
 
 1. `rsync` on PATH.
 2. A locally synced Dropbox folder. Verify the parent of `BACKUP_ROOT` exists (default check: `test -d ~/Dropbox`). If it does not exist, tell the user the Dropbox client is not syncing this machine and stop; do not fall back to the API.
+3. The Dropbox daemon must be running for local writes to reach the cloud. `backup.sh` only copies into `~/Dropbox`; the actual upload is asynchronous and done by the daemon. If `dropbox-cli` is on PATH (AUR package `dropbox-cli`), run `dropbox-cli status` to confirm the daemon is up and watch live progress. If it is missing or reports the daemon stopped, warn the user that the backup will be written locally but will not upload until the daemon starts, and recommend installing it (`paru -S dropbox-cli`).
 
 ## Config and registry
 
@@ -63,7 +64,15 @@ Same matching as a real backup but passes `-n` to rsync, printing `PEND <rel> N 
     bash scripts/backup.sh MyProject          # entries whose path contains "MyProject" (case-insensitive)
     bash scripts/backup.sh Research/ AI_Project/   # multiple filters, OR-matched
 
-Per-directory output is `OK <rel> N item(s) synced -> <dest>` or `up to date`, with a one-line summary at the end. Missing sources are warned and skipped, never fatal.
+Per-directory output is `OK <rel> N item(s) synced -> <dest>` or `up to date`, with a one-line summary at the end. Missing sources are warned and skipped, never fatal. Note: "synced" here means copied into the local `~/Dropbox` folder, not uploaded to the cloud yet; see step 4.
+
+### 4. Verify cloud sync (recommended)
+
+`backup.sh` only copies into the local `~/Dropbox` sync folder; the Dropbox daemon uploads to the cloud afterwards, asynchronously. After a backup, especially a large one, confirm the upload actually finished:
+
+    dropbox-cli status        # "Up to date" when done; "Syncing N files" while still uploading
+
+A backup reported `OK ... synced` while the daemon was stopped is sitting on local disk only and will upload once the daemon starts. If `dropbox-cli` is not installed, install it (`paru -S dropbox-cli`) or watch the Dropbox GUI.
 
 ## Safety rules
 
