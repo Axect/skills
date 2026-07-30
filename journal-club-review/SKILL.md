@@ -49,6 +49,12 @@ It prints a JSON summary (`slug`, `title`, `authors`, `categories`, `out_dir`,
 and writes `<out_dir>/source.md` (default `./reviews/<slug>/`). For pasted text,
 save it to a `.md` file first, then pass that path.
 
+For arXiv ids and local PDF paths it also keeps the paper itself at
+`<out_dir>/source.pdf`. That file is part of the deliverable: `source.md` is a
+lossy text dump with the LaTeX gone, so any verbatim quote you plan to reuse
+should be checked against `source.pdf`, and step 6 archives it alongside the
+review. Text and LaTeX inputs have no PDF to keep, which is fine.
+
 When LaTeX source is available (arXiv e-print tarball, or a local `.tex`/dir
 input), the extractor also converts the paper's figures to PNG under
 `<out_dir>/figures/paper/` and writes `<out_dir>/figures_manifest.json`
@@ -120,9 +126,12 @@ Every finished review is exported to PDF and mirrored into the user's
    name. Do not silently invent a topic.
 3. **Copy the artifacts** into
    `~/Dropbox/JournalClub/<Topic>/reviews/<slug>/`: `review.md`, `review.pdf`,
-   `source.md`, and the `figures/` directory (both `figures/paper/` real figures
-   and the generated `figures/*.png` infographics). Match the existing layout in
-   sibling review folders.
+   `source.md`, `source.pdf` (the original paper, when the input produced one),
+   `figures_manifest.json` (when it exists), and the `figures/` directory (both
+   `figures/paper/` real figures and the generated `figures/*.png` infographics).
+   Match the existing layout in sibling review folders. The archive is the
+   long-lived copy, so the original PDF belongs there: a text extraction cannot
+   settle a page reference, an equation number, or a figure panel later.
 4. **Confirm** the destination path and file sizes to the user.
 
 ## Notes
@@ -141,10 +150,11 @@ Every finished review is exported to PDF and mirrored into the user's
 
 ## Files
 
-- `scripts/extract_text.py`: arXiv/PDF/text/LaTeX -> `source.md` + JSON metadata;
-  harvests real figures to `figures/paper/` + `figures_manifest.json` when LaTeX
-  source is available (PEP 723 inline deps: pdfplumber, httpx, feedparser; uses
-  system pdftoppm/magick/gs for conversion; run with `uv run`).
+- `scripts/extract_text.py`: arXiv/PDF/text/LaTeX -> `source.md` + JSON metadata,
+  and `source.pdf` for arXiv/PDF inputs (arXiv is downloaded, a local PDF is
+  copied); harvests real figures to `figures/paper/` + `figures_manifest.json`
+  when LaTeX source is available (PEP 723 inline deps: pdfplumber, httpx,
+  feedparser; uses system pdftoppm/magick/gs for conversion; run with `uv run`).
 - `references/section-pipeline.md`: the nine sections and output skeleton.
 - `references/figure-generation.md`: real-figure embedding policy, infographic
   briefs, style block, codex command.

@@ -537,8 +537,18 @@ def main() -> None:
         if src_dir is not None:
             figures = harvest_figures(src_dir, out_dir)
     elif kind == "pdf":
-        text = extract_pdf_text(Path(args.input))
-        meta["title"] = Path(args.input).stem
+        src_pdf = Path(args.input)
+        text = extract_pdf_text(src_pdf)
+        meta["title"] = src_pdf.stem
+        # Keep the original alongside the extraction, so the review directory and
+        # the JournalClub archive always carry the paper as published, not just
+        # the lossy text dump. arXiv inputs already land here via fetch_arxiv.
+        dst_pdf = out_dir / "source.pdf"
+        if src_pdf.resolve() != dst_pdf.resolve():
+            try:
+                shutil.copyfile(src_pdf, dst_pdf)
+            except Exception as exc:
+                print(f"[warn] could not copy input PDF to {dst_pdf}: {exc}", file=sys.stderr)
     elif kind == "latex":
         p = Path(args.input)
         src_dir = p if p.is_dir() else p.parent
