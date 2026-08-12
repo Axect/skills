@@ -32,6 +32,7 @@ Directories created before this convention keep their names, and a directory is 
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `hep-rumor-mill` | Analyze the HEP-theory postdoc rumor mill (a public Google Sheet) via the `prm` CLI: pull a year's offer list, resolve each offer-holder's InspireHEP record (plus OpenAlex by ORCID and Semantic Scholar by name for interdisciplinary people), and study what kind of profile lands where. Institute cohort profiles and self-benchmarking against the accepted cohort, with Korean report output. State in a local SQLite store under `~/.local/share/hep-rumor-mill/`. Self-reported data, treated as descriptive not predictive. | `hep-rumor-mill/SKILL.md` | `uv` (the bundled `prm` uv project auto-installs `requests` on first `uv run`) |
 | `handdrawn-schematic` | Generate a single friendly hand-drawn whiteboard schematic (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) on a **pure white background** that explains a concept, pipeline, architecture, or algorithm at a glance. Composes the load-bearing style block + a 3-6 panel figure brief and by default renders a PNG via the bundled `codex` image_generation tool (ChatGPT OAuth); falls back to emitting the copy-paste prompt when codex is unavailable. The reusable single-figure generator extracted from `journal-club-review`, retuned from cream to white. | `handdrawn-schematic/SKILL.md` | Logged-in bundled `codex` for rendering (optional; prompt-only without it) |
+| `hermes-tweet-signal` | Build source-linked, read-only X/Twitter signal briefs with route discovery, pagination, and evidence caveats through the native Hermes Tweet plugin. | `hermes-tweet-signal/SKILL.md` | Hermes Agent plugin + Xquik API key |
 | `journal-club-review` | Turn an arXiv id/URL, a PDF, or raw text into a journal-club paper presentation (nine sections: TL;DR, The Problem, Key Idea, How It Works, Key Results, Why It Matters, Strengths/Limitations/Open Questions, Discussion Questions, Takeaways) meant to help a reading group understand and discuss a paper, not produce a referee report. LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures (method + results). | `journal-club-review/SKILL.md` | `uv` (extractor deps auto-installed via PEP 723); logged-in bundled `codex` for figures (optional) |
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
@@ -147,6 +148,13 @@ Renders a single friendly hand-drawn whiteboard schematic on a **pure white back
 - The style block in `handdrawn-schematic/references/style-block.md` is load-bearing — drop it into the prompt verbatim, do not paraphrase. It is the journal-club friendly-whiteboard block with the background changed to pure white (#FFFFFF).
 - Build a 3-6 panel figure brief (headline, subtitle, panels flowing left to right); panels are English-only, labels <= 6 words, charts stay hand-drawn.
 - This is the reusable single-figure generator extracted from `journal-club-review`. For the paired method+results figures inside a paper walkthrough use that skill; for a prompt-only composer across six other styles (editorial, blueprint, swiss, neon, poster) use `wide-slide-illustrator`; for matplotlib data plots use `scienceplot-py` / `xkcd-py`.
+
+### hermes-tweet-signal
+
+Requires Hermes Agent with the native Hermes Tweet plugin and `XQUIK_API_KEY`
+in the Hermes runtime environment. Install it with
+`hermes plugins install Xquik-dev/hermes-tweet --enable`. The skill uses only
+`tweet_explore` and `tweet_read`; keep `HERMES_TWEET_ENABLE_ACTIONS` unset.
 
 ### journal-club-review
 
@@ -362,6 +370,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `hep-rumor-mill` to study the HEP-theory postdoc job market from the rumor mill: who got offers at which institutions, the publication profiles of the people who got them (citations, papers, venues, subfield, PhD-age, named fellowships, with OpenAlex cross-disciplinary augmentation for interdisciplinary candidates), and how your own InspireHEP profile sits against the accepted cohort. Self-reported data, descriptive not predictive.
 - Choose `handdrawn-schematic` to generate a single friendly hand-drawn whiteboard schematic on a **pure white background** (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) that explains a concept, pipeline, architecture, or algorithm at a glance. Renders a PNG by default via the bundled `codex` image_generation tool, or emits the copy-paste prompt when codex is unavailable. Use `wide-slide-illustrator` instead for a prompt-only composer across six other styles, `journal-club-review` for the paired method+results figures inside a paper walkthrough, and `scienceplot-py` / `xkcd-py` for real matplotlib data plots.
+- Choose `hermes-tweet-signal` for a read-only, source-linked X/Twitter signal brief in Hermes Agent. It discovers supported routes, follows requested pagination, and separates observations from interpretation without exposing action tools.
 - Choose `journal-club-review` to turn an arXiv id/URL, a PDF, or raw text into a journal-club presentation (nine sections from TL;DR to Takeaways) meant to help a reading group understand and discuss a paper, with LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures. Use `workshop-paper-review` instead for an OpenReview referee report, or `adversarial-review` for a hostile pre-submission audit.
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
@@ -393,6 +402,7 @@ skills/
 ├── deprecated/              # retired skills, entrypoint renamed so nothing loads them
 ├── dropbox/
 ├── handdrawn-schematic/
+├── hermes-tweet-signal/
 ├── hep-rumor-mill/
 ├── journal-club-review/
 ├── md2pdf-typora/

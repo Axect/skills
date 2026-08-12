@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-08-12
+
+### Added
+- Added `hermes-tweet-signal`, a read-only Hermes Agent workflow for source-linked X/Twitter signal briefs. It uses offline `tweet_explore` route discovery and authenticated `tweet_read` operations, preserves pagination caveats, and never exposes `tweet_action`.
+
+### Changed
+- Added `hermes-tweet-signal` to the README discovery, setup, picker, and structure sections, plus every client installation list and loop in `CLIENT_SETUP.md`.
+
 ## 2026-07-29
 
 ### Fixed
