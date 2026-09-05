@@ -1,3 +1,13 @@
+---
+name: md2pdf-typora
+description: >
+  Convert a Markdown file to PDF that closely matches Typora's PDF export with
+  the Whitey theme using pandoc and headless Chrome. Preserves MathJax math,
+  code styling, and typography. Use when the user asks to convert Markdown to
+  PDF, generate a PDF report from a .md file, export markdown in Typora style,
+  or render styled documents to PDF.
+---
+
 # Markdown to PDF (Typora-style)
 
 Convert a Markdown file to PDF that closely matches Typora's PDF export with the **Whitey** theme. pandoc handles MD to HTML, Chrome headless handles HTML to PDF.
@@ -7,7 +17,8 @@ Convert a Markdown file to PDF that closely matches Typora's PDF export with the
 ## Usage
 
 ```bash
-bash ~/.claude/skills/md2pdf-typora/scripts/md2pdf.sh <input.md> [options]
+bash <skill-dir>/scripts/md2pdf.sh <input.md> [options]
+# e.g., bash ~/Documents/Project/AI_Project/skills/md2pdf-typora/scripts/md2pdf.sh <input.md> [options]
 ```
 
 | Option | Effect |

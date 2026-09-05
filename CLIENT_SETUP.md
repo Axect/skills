@@ -1,6 +1,6 @@
 # Client Setup Guide
 
-This document explains how to use the skills in this repository from different clients, with a focus on Claude Code, Codex, Forge-style local setups, and Pi.
+This document explains how to use the skills in this repository from different clients, with a focus on Claude Code, Codex, Forge-style local setups, Pi, and Antigravity (agy).
 
 ## What this repository provides
 
@@ -315,6 +315,77 @@ After installation, start Pi and either:
 
 - run `/skill:<name>` for an installed skill, or
 - ask for a task that should naturally trigger the skill.
+
+## Antigravity (agy)
+
+Google Antigravity natively implements the Agent Skills standard with progressive disclosure: skill descriptions are indexed into agent context, and full instructions (`SKILL.md`) are loaded on demand when relevant.
+
+### Supported locations
+
+- Global (machine-local): `~/.gemini/config/skills/<skill-name>/SKILL.md` or via `~/.gemini/config/skills.json`
+- Project-specific (workspace): `.agents/skills/<skill-name>/SKILL.md` or `.agents/skills.json` at repository root
+
+### Option 1: register the collection via JSON manifest (recommended)
+
+Antigravity natively supports registering external skill directories using `skills.json` in the customization root. This automatically discovers all active skills without creating individual symlinks, and excludes deprecated ones:
+
+Create `~/.gemini/config/skills.json`:
+
+```json
+{
+  "entries": [
+    {
+      "path": "~/Documents/Project/AI_Project/skills",
+      "exclude": ["deprecated.*"]
+    }
+  ]
+}
+```
+
+### Option 2: symlink into `~/.gemini/config/skills`
+
+If you prefer explicit symlinks (mirroring Claude Code or Codex setups):
+
+```bash
+mkdir -p ~/.gemini/config/skills
+for skill in academic-jobs adversarial-review bibtex-gen commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review md2pdf-typora morgen overleap overleaf-section-workflow proton-mail reference-search research-backup research-log research-portal research-report scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
+  ln -s "$REPO/$skill" "$HOME/.gemini/config/skills/$skill"
+done
+```
+
+### Option 3: install for a single workspace/project
+
+Run from the target project repository root:
+
+```bash
+mkdir -p .agents/skills
+ln -s "$REPO/vastai" .agents/skills/vastai
+```
+
+Or declare a workspace `.agents/skills.json`:
+
+```json
+{
+  "entries": [
+    {
+      "path": "~/Documents/Project/AI_Project/skills",
+      "include_only": ["vastai", "research-report"]
+    }
+  ]
+}
+```
+
+### Behavior notes
+
+- Antigravity automatically indexes skills discovered in `~/.gemini/config/` and the active workspace `.agents/`.
+- Progressive disclosure: Antigravity reads YAML frontmatter (`name`, `description`) at session start. The full `SKILL.md` is loaded into context only when triggered.
+- If changes to `skills.json` are made, start a new session or run `agy` in your project directory.
+
+### Quick verification
+
+After configuration, start `agy` and prompt:
+- Ask for a workflow matching an installed skill (e.g. asking for open academic jobs, BibTeX entries, or a research report).
+- The agent will identify and activate the corresponding skill dynamically.
 
 ## Per-skill prerequisites
 
