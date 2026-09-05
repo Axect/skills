@@ -18,7 +18,7 @@ This skill helps you use the `vastai` CLI to manage GPU cloud resources on the V
 
 ## Core Workflow
 
-The typical workflow is: **Search** -> **Create** -> **Use** -> **Destroy**.
+The typical workflow is: **Search** -> **Create** -> **Use** -> **Verify artifacts** -> **Destroy within explicitly authorized retirement scope**.
 
 ### 1. Search for GPU Offers
 
@@ -135,8 +135,8 @@ vastai ssh-url ID
 # View logs
 vastai logs ID --tail 100
 
-# Stop — DANGER: releases the GPU; `start` may never succeed. See IRON RULE under "Destroy When Done".
-# Do NOT use stop to "park" an instance you still need — prefer keeping it running, or destroy.
+# Stop — DANGER: releases the GPU; `start` may never succeed. See "Retire Within Authorized Scope".
+# Do NOT use stop to "park" an instance you still need — keep it running; destroy only after authorization and verification.
 vastai stop instance ID
 
 # Start a stopped instance — only works if that exact GPU is still free (often it is NOT)
@@ -169,26 +169,32 @@ vastai cloud copy --src cloud_service:path --dst instance_id:/path --transfer "C
 **IRON RULE — verify every retrieved artifact before trusting it. `scp`/`vastai copy` can exit 0 on a TRUNCATED or corrupted file.** A successful exit code does NOT mean the bytes arrived intact. This has caused real loss: a 29 MB model checkpoint pulled back at exit 0 was 182 KB short, was not a valid zip, and `torch.load` failed with "failed finding central directory" — after the source instance had already been destroyed, so the result was unrecoverable and the whole run had to be repeated. After EVERY pull of an important artifact (model checkpoint, results archive, dataset):
 1. **Compare byte size** remote vs local: `ssh ... "stat -c%s REMOTE"` vs `stat -c%s LOCAL` — they must be exactly equal.
 2. **Compare a checksum** remote vs local: `ssh ... "sha256sum REMOTE"` vs `sha256sum LOCAL` — they must match. (Size match alone is necessary but not sufficient.)
-3. **Load/parse test** the artifact locally when cheap: `python -c "import torch; torch.load(PATH, map_location='cpu', weights_only=True)"`, `tar tzf archive.tgz >/dev/null`, `python -c "import zipfile; assert zipfile.is_zipfile(PATH)"`, etc.
+3. **Load/parse test** each required recovered artifact before retirement: `python -c "import torch; torch.load(PATH, map_location='cpu', weights_only=True)"`, `tar tzf archive.tgz >/dev/null`, `python -c "import zipfile; assert zipfile.is_zipfile(PATH)"`, etc. Use the artifact's real loader/parser; archive listing alone is not a complete load test.
 4. For large or flaky transfers, prefer **`rsync -P --append-verify` over a manual ssh tunnel with retries** instead of plain `scp`/`vastai copy`; rsync re-checks and resumes, and `--append-verify` rechecksums the whole file. Re-pull on any mismatch.
 
-### 5. Destroy When Done
+### 5. Retire Within Authorized Scope
+
+**Authorization and integrity are separate gates.** Require explicit user authorization for the specific instances to retire and the artifact set to preserve. Finished work, storage charges, and passing checks do not create permission to destroy.
+
+**Before any destroy**, use `artifact-sync-completeness-gate`: establish the expected manifest; reconcile expected/source/staging counts per instance; compare byte size and sha256 for every required stable artifact; load/parse every recovered artifact; and confirm empty expected-minus-staging and expected-minus-durable-destination sets. Assert verified count equals expected count. Freeze or quiesce required mutable files before this gate; do not omit them merely because live hashing is unsafe. Confirm no unfinished work remains on the source.
+
+If verification fails, keep the source available while performing bounded recovery. Report the exact missing set, recovery attempts, and ongoing cost. Obtain explicit approval before reducing the required set or accepting losses at retirement; never describe that outcome as fully verified.
 
 ```bash
+# After explicit retirement authorization AND the complete integrity gate:
 # Destroy single instance (irreversible!)
 vastai destroy instance ID -y
 
-# Destroy multiple
-vastai destroy instances ID1 ID2 ID3 -y
+# For multiple authorized instances, repeat once per instance after its gate passes:
+vastai destroy instance ID2 -y
+vastai destroy instance ID3 -y
 ```
 
-`vastai destroy instance` prompts `Are you sure...? [y/N]` on stdin and aborts if not attached to a TTY (piping `yes` does not work — it reads from the terminal). **Always pass `-y` (or `--yes`) from non-interactive contexts** such as Claude tool calls, scripts, or CI.
+`vastai destroy instance` prompts `Are you sure...? [y/N]` on stdin and may abort without a TTY. Use `-y` (or `--yes`) in a non-interactive call **only after authorization and the applicable retirement gate are satisfied**. It suppresses the CLI prompt; it is never a permission bypass.
 
-**IRON RULE — destroy is irreversible, so NEVER destroy until every artifact you need is integrity-verified on local disk.** Destroy is the point of no return: once gone, the instance's disk (and any model/result not yet correctly copied off) is lost forever. Gate every `destroy` behind the checklist above (size match + checksum match + load/parse test). Do NOT treat "file exists and size > 0" as sufficient — that check passed on the truncated checkpoint that was later unloadable. Order of operations is always: (1) pull artifact, (2) verify size + checksum + load, (3) only then destroy. If you cannot verify, keep the instance **running** and re-pull (rsync with retries) until the local copy passes — do NOT `stop` it.
+**IRON RULE — NEVER `vastai stop` an instance you still need. `stop` is not a safe pause.** A stopped instance releases the GPU back to the pool; `start` only succeeds if that GPU is still free, which for popular cards may fail indefinitely ("Required resources are currently unavailable, state change queued"). Storage charges continue. Keep needed instances running during work or recovery; destroy only within explicitly authorized retirement scope and after the applicable integrity or approved loss-acceptance gate. Do not use `stop` to bypass either gate.
 
-**IRON RULE — NEVER `vastai stop` an instance you still need. `stop` is worse than `destroy`, not a safe pause.** A stopped instance releases the GPU back to the pool; `start` only succeeds if that exact GPU is still free, which for popular cards it usually is NOT ("Required resources are currently unavailable, state change queued" — it may never resume). Meanwhile you keep paying storage for a box you cannot use. So `stop` gives you the worst of both: ongoing cost AND no compute, with no guaranteed way back. Treat the choices as binary: either keep the instance **running** (verify/re-pull, finish the work) or `destroy` it. Do not use `stop` as a "park it for later" move — there is no reliable later.
-
-Always destroy instances when done to stop storage charges.
+Retire completed instances promptly to stop storage charges only when retirement is explicitly authorized and the integrity gate passes. Otherwise report the blocker and cost; do not expand permissions.
 
 ## Setting up Python on a Fresh Instance
 
@@ -269,8 +275,17 @@ print(f\"hours until contract end: {h:.1f}\")"
 # 4. Copy results back
 vastai copy INSTANCE_ID:/workspace/results ./local_results
 
-# 5. Destroy
-vastai destroy instance INSTANCE_ID
+# 5. Verify the full required manifest before retirement:
+#    expected/source/staging counts per instance; verified count == expected count;
+#    remote/local byte size + sha256 for every stable required artifact;
+#    load/parse every recovered artifact; empty expected-minus-staging and
+#    expected-minus-durable-destination sets. Freeze required mutable files first.
+#    Any gap blocks normal retirement; report it and seek explicit loss approval.
+
+# 6. Destroy only if this instance's retirement is explicitly authorized,
+#    its work is finished, and the gate above passes.
+#    -y suppresses the CLI prompt only; it never supplies user permission.
+vastai destroy instance INSTANCE_ID -y
 ```
 
 **Contract expiration is a silent failure mode.** When `end_date` (host `Max_Days`) passes, the container goes `exited`, billing stops, and unsynced in-container state is lost. SSH refuses and `actual_status: exited` (but `status_msg` may still say "running", so compare `end_date` to wall time, don't trust that field). Mitigate: filter by `Max_Days` before renting, keep checkpoints rsyncing to local, and poll `end_date` vs now.

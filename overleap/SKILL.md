@@ -31,11 +31,12 @@ Invoke this skill when the user says any of:
    ```bash
    command -v overleap && overleap --help | head -5
    ```
-   If missing, install globally:
+   If it is not on PATH, first inspect read-only the documented existing user-scoped installation and environment: the user's PATH and Node/npm prefix or nvm configuration, and any documented checkout (e.g. `~/Documents/Project/AI_Project/overleap`). Check for a usable existing binary or `node bin/overleap.js ...` entry point before declaring the CLI missing. Do not expose credential values during inspection.
+   If no usable installation exists, give the exact manual command for the user's setup, e.g.:
    ```bash
    npm install -g overleap
    ```
-   Or, if the user has a local checkout (e.g. `~/Documents/Project/AI_Project/overleap`), run from there with `node bin/overleap.js ...`.
+   Do not install automatically, use sudo, or retrieve credentials as prerequisite repair. The explicit user-supplied cookie setup below is unchanged. Block only the operation requiring the missing prerequisite and finish independent authorized work.
 3. **A valid Overleaf session cookie** in one of:
    - `OVERLEAF_COOKIE` environment variable
    - `.env` file in the working directory or in `--dir` (key: `OVERLEAF_COOKIE`)
@@ -47,7 +48,7 @@ Invoke this skill when the user says any of:
 
 Run this when the user wants to start using overleap on a new machine, in a new project directory, or after their session expires.
 
-1. **Verify prerequisites** (Node 18+, git, `overleap` on PATH). If any is missing, tell the user the exact install command and stop.
+1. **Verify prerequisites** (Node 18+, git, and a usable `overleap` installation). Before declaring one missing, inspect the documented existing user-scoped installation and environment read-only as described above. If it is genuinely unavailable, report what is missing and the exact manual command needed; do not install automatically, use sudo, or retrieve credentials as prerequisite repair. Pause only dependent operations and finish independent authorized work; follow the unchanged cookie rules below when setup is authorized.
 2. **Decide the local sync directory**. Prefer the user's chosen folder for the Overleaf project (e.g. `~/Papers/quantum-draft`). Confirm before creating it.
 3. **Create the `.env` file** inside that directory. Ask the user to paste their cookie with this exact caveat:
    > Your Overleaf session cookie grants full access to your account. It will be saved at `<dir>/.env`. Only paste it here if you trust this terminal and session transcript. Add `.env` to `.gitignore` immediately. Get it from browser DevTools → Application → Cookies → overleaf.com → copy the full cookie string (or just `overleaf_session2`). Detailed steps: see `references/cookie-setup.md`.

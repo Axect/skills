@@ -27,22 +27,22 @@ Use after an experiment, debugging session, design choice, or failed attempt.
 4. Draft a journal.md Decision Log entry using the exact format from `conventions.md`:
    Context / Tried / Expected / Got / Why analysis / Conclusion / Lesson.
 
-5. Present the full draft. Wait for user approval before writing.
+5. Internally assess whether the entry yields a generalizable lesson and perform the dedup step below. Present the full journal draft and any concrete lesson create-or-update proposal together, naming every file to be written and the proposed changes. Wait for explicit approval of that write scope; journal approval alone does not authorize lesson writes.
 
-6. After approval: acquire `~/.research/.locks/{slug}.lock`; insert the entry at the **top** of
-   `~/.research/projects/{slug}/journal.md` (newest-first, verbatim).
+6. After approval: acquire `~/.research/.locks/{slug}.lock`; insert the approved entry at the **top** of
+   `~/.research/projects/{slug}/journal.md` (newest-first, verbatim). Apply only lesson writes included in the approval.
 
 ---
 
 ## LESSON EXTRACTION
 
-After the journal entry is written, ask: does this yield a generalizable lesson?
+Assess internally: does this yield a generalizable lesson? This is not a question the user must answer. Approval is on the actual proposed lesson file and changes, which may accompany the journal draft. A lesson developed later, or a change outside the approved proposal, needs additional explicit approval before writing.
 
 **Dedup step** — search `~/.research/lessons/` for an existing lesson with the same pattern:
 - If QMD is available: query with lex + vec sub-queries using key terms from the lesson.
 - Fallback: `grep -r` over `~/.research/lessons/` for trigger phrases.
 
-Two outcomes:
+Two proposed outcomes (execute only when the exact lesson write is approved):
 - **Match found**: append this project's slug to that lesson's `projects:` list; refresh its
   `Evidence` field with the new entry pointer. Do NOT create a duplicate lesson file.
 - **No match**: create `~/.research/lessons/{id}.md` using the Lesson schema in `conventions.md`
@@ -66,8 +66,8 @@ hook phrases matched at decision time (M1) and during recall (M3).
 After any lesson create-or-update, check the lesson's `projects:` list length.
 
 If `len(projects) >= 2` and `status` is still `lesson`:
-- Propose promoting to `status: rule`.
-- After user approval: update the lesson file's frontmatter; regenerate
+- Propose promoting to `status: rule`; promotion is a separate approval decision, not implied by journal or lesson-write approval.
+- After explicit promotion approval: update the lesson file's frontmatter; regenerate
   `~/.research/rules.md` as the compact projection (one line per promoted lesson:
   `**{id}** — {Check}. ({projects})`).
 

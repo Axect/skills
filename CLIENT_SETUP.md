@@ -574,7 +574,7 @@ Uses only the Python standard library. Helper scripts live in `research-report/s
 
 ### scienceplot-py — Python deps in your runtime
 
-The skill writes a `.py` file but does not run it; the user runs the script (typically `uv run <path>`). Make sure the *runtime environment* has the libraries the generated script imports:
+This section lists dependencies only. Execution and completion behavior are defined by `scienceplot-py/SKILL.md`: the default includes rendering and output verification, except for explicit script-only requests. Do not install packages automatically; report missing dependencies and the required command. The runtime environment needs the libraries imported by the generated script:
 
 ```bash
 uv add matplotlib scienceplots pandas pyarrow numpy

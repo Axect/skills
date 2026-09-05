@@ -13,7 +13,7 @@ This skill exists because committing after long research sessions is the single 
 
 - **NEVER** add `Co-Authored-By: Claude` (or any co-author attribution) to commit messages, unless the user explicitly asks for it.
 - **NEVER** use `git add .` or `git add -A`. Always stage named paths so nothing sneaks in.
-- **NEVER** `git push` unless the user explicitly asked. Produce the commit, then stop.
+- **NEVER** `git push` unless the user explicitly asked. Approval of the commit plan does not authorize push or PR creation; stop after commit verification unless that further action was explicitly requested and its applicable approval requirements are satisfied.
 - **NEVER** delete files. Move failed experiments into `failure/` with `git mv` so they remain recoverable from git history.
 - Pause and ask on anything that looks destructive, ambiguous, or unfamiliar (new top-level directories, renames, submodule changes, lock-file bumps, large generated artifacts).
 
@@ -21,7 +21,7 @@ This skill exists because committing after long research sessions is the single 
 
 Ask only for what is missing:
 - target repository (default: current working directory)
-- whether the user wants a single commit or multiple logical commits
+- any stated preference for a single commit or multiple logical commits (otherwise propose grouping in step 3)
 - any directories or patterns the user wants to always treat as failure or always skip (e.g. `write/`, `scratch/`, `_gen/`)
 
 If the user just says "commit" without context, run the full triage workflow below. Do not shortcut to `git commit -am`.
@@ -53,7 +53,7 @@ Default stance when in doubt: **ASK**. It is cheap to confirm and expensive to c
 
 ### 3. Present — show the categorization before touching anything
 
-Produce a compact table grouped by bucket, with a one-line reason per path. Example:
+Produce a compact table grouped by bucket, with a one-line reason per path. Include every path's proposed classification, exact failure-move destinations and diagnosis-note paths, commit grouping, and draft commit messages in this initial approval presentation. Resolve any single-versus-multiple-commit choice here. Example path table:
 
 ```text
 COMMIT
@@ -69,32 +69,32 @@ ASK
   data/normalization_v3.bin        large binary, regenerated? to track or ignore?
 ```
 
-Then wait for confirmation. If the user corrects a row, re-draft and show again. Do not move to step 4 until the user approves.
+Wait for explicit approval of the path classifications and complete plan before touching anything. If the user corrects a row or leaves a choice unresolved, revise the affected plan and obtain approval. Execute only the approved paths, moves, grouping, and messages in steps 4–6; ask again only if that plan changes, not merely because the next step begins.
 
 ### 4. Archive failures — move, do not delete
 
-Create a dated slug under `failure/` and move FAILURE paths with `git mv`. See `references/failure-layout.md` for the directory convention and the short diagnosis note that should accompany each archive.
+Create the approved dated slug under `failure/` and move only approved FAILURE paths with `git mv` to their approved destinations. See `references/failure-layout.md` for the directory convention and the short diagnosis note included in the approved plan.
 
 ```bash
 mkdir -p failure/2026-04-18-oom-psi-run
 git mv outputs/run_2026-04-15_psi failure/2026-04-18-oom-psi-run/
 ```
 
-Write a short `failure/<slug>/NOTES.md` summarizing *what was attempted*, *what failed*, and *what was learned* — enough so a later skim tells you whether to revisit.
+Write the approved `failure/<slug>/NOTES.md` summarizing *what was attempted*, *what failed*, and *what was learned* — enough so a later skim tells you whether to revisit.
 
 ### 5. Stage — named paths only, grouped logically
 
-For COMMIT items, propose one or more logical groupings (feature changes, docs, tests, unrelated fixes). Stage with named paths:
+Stage only the paths and logical groupings approved in step 3 (including approved failure moves and notes). Always use named paths:
 
 ```bash
 git add src/model.py tests/test_model.py
 ```
 
-If the grouping is non-obvious, ask the user to choose between a single commit and multiple commits before staging.
+Do not introduce an automatic second grouping gate. If the grouping or path scope must change, present that change for approval before staging it.
 
-### 6. Commit — draft, then write
+### 6. Commit — use the approved messages
 
-Follow the repo's existing commit style from `git log`. Draft the message yourself, show it, and only commit after it looks right. Use a HEREDOC for multi-line bodies.
+Follow the repo's existing commit style from `git log` when drafting messages for step 3. Commit only with the message approved for that grouping; a changed message requires renewed approval. Use a HEREDOC for multi-line bodies.
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -110,7 +110,7 @@ EOF
 
 ### 7. Verify — show the result, stop
 
-Run `git status` and `git log --oneline -3` and show the output. Do **not** push. If the user wants a push or a PR, they will ask.
+Run `git status` and `git log --oneline -3` and show the output. For a commit-only request, stop here. Push or PR creation requires an explicit user request and any applicable approval; never infer that authority from approval of the commit plan.
 
 ## Edge cases
 

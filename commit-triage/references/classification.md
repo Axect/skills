@@ -1,6 +1,6 @@
 # Classification Heuristics
 
-Use these heuristics to assign each changed path to **COMMIT**, **FAILURE**, or **ASK**. When in doubt, choose **ASK**.
+Use these heuristics to assign each changed path to **COMMIT**, **FAILURE**, or **ASK**. Always-ASK conditions override COMMIT signals and tie-breakers, including tracked-file status. When in doubt, choose **ASK**. Every classification still requires explicit user approval in the initial plan before any move, stage, or commit.
 
 ## COMMIT — research-relevant changes that belong in history
 
@@ -61,6 +61,6 @@ If one of these *does* show up in `git status`, propose a `.gitignore` update in
 ## Tie-breakers
 
 - **New file, no signal either way** → ASK.
-- **Modified tracked file, no obvious reason** → COMMIT (assume the modification is intentional) but include the one-line reason so the user can reject.
+- **Modified tracked file, no obvious reason, and no ASK condition applies** → propose COMMIT (assume the modification is intentional), with a one-line reason for the user's explicit approval. If any ASK condition applies, classify ASK instead.
 - **Deleted tracked file** → always ASK. Deletions are destructive.
-- **Rename** → classify by the destination path.
+- **Rename** → classify by the destination path, subject to all ASK conditions above.

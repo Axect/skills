@@ -74,7 +74,7 @@ When tailoring this skill to a project that already uses `outputs/` directories:
 
 ## Single-Harness workflow
 
-The workflow has nine ordered steps. Steps marked **(gate)** must pass before continuing.
+The workflow has ten ordered steps, including PDF export and Dropbox archiving. Steps marked **(gate)** must pass before dependent work continues.
 
 ### Step 1 — Gather materials
 
@@ -356,9 +356,9 @@ After both reviews return, synthesize:
     --tier 1
   ```
 - `--tier` corresponds to the feedback loop tiers below:
-  - `1` — wording, structure, captions, formatting
-  - `2` — plot/figure changes, scale/encoding swaps, manifest updates
-  - `3` — substantive methodology or result changes (re-run experiments, change baselines)
+  - `1` — cosmetic prose, structure, captions, formatting; scientific meaning unchanged
+  - `2` — visualization changes using existing verified data; methodology and results unchanged
+  - `3` — substantive methodology or result changes completed under separate explicit authorization, outside this skill's execution authority
 - Add structured change records with repeated `--change '{...json...}'` arguments when useful.
 - Re-run the JSON-artifact validator and the plot-script auditor.
 - Report file locations, plot count, validation findings, thin sections, missing figure references, sections that still need stronger literature support, and any known caveats.
@@ -384,7 +384,8 @@ here.
      or whether to create a new one (reuse the JournalClub topic vocabulary —
      `InverseProblem`, `NeuralOperators`, `PBH`, `SMEFT`, `Unfolding`, ... —
      when sensible); create it only after they confirm the name. Do not silently
-     invent a category.
+     invent a category. While category approval is pending, finish the local
+     report and PDF and report **pending archive approval**, not whole-task completion.
    - If `{output_dir}` predates the convention and has no date prefix, prepend
      one for the archive copy only: take the first timestamp in
      `report_versions.json`, else `report.md` mtime. Leave the local directory
@@ -402,19 +403,19 @@ here.
 
 ## User-feedback loop (Tier 1 / 2 / 3)
 
-When the user reviews `report.md` and asks for changes, classify the request before applying it. The classification keywords mirror magi's tiered feedback loop.
+Classify each requested change internally by its effects on scientific meaning, evidence, and required work, not by keywords. A caption edit can change a claim; an error-bar request can require a new statistical analysis. Never ask the user to choose a tier.
 
-| Tier | Signals | Action |
-|------|---------|--------|
-| **1 — Cosmetic** | "reword", "rephrase", "move section", "fix typo", "shorten", "expand on", "rename", "reformat", "caption" | Edit `report.md` directly. Archive previous version, bump tier=1. |
-| **2 — Visualization** | "add plot", "change chart", "log scale", "bar chart instead", "overlay", "heatmap", "color", "axis", "resize figure", "add error bars" | Generate or modify plot via templates, rebuild manifest, re-run dual-subagent review on the affected sections only, archive previous version, bump tier=2. |
-| **3 — Substantive** | "rerun", "different method", "add experiment", "change algorithm", "new baseline", "fix the code", "wrong results" | This skill cannot resolve substantive changes alone. Tell the user which experiment / source / test must be re-executed and pause. Do not bump the version. |
+| Tier | Effect | Action |
+|------|--------|--------|
+| **1 — Cosmetic** | Wording, structure, or formatting changes that preserve scientific meaning and evidence | Edit `report.md`. Archive the previous version and bump tier=1. |
+| **2 — Visualization** | Plot or encoding changes using existing verified data, without changing methodology or results | Generate or modify plots via templates, rebuild the manifest, review affected sections with both subagents, archive the previous version, and bump tier=2. |
+| **3 — Substantive** | Changes to methodology, source code, experiments, baselines, results, or their scientific interpretation | Execution is outside this skill's authority. Diagnose read-only and identify the required work; obtain separate explicit authorization for substantive execution. Block plots and prose dependent on unresolved results; do not bump a version for unperformed work. |
 
-If the request is mixed-tier, decompose: apply Tier 1 / Tier 2 first, then escalate Tier 3.
+Ask only for an unresolved scientific, resource, or scope choice that the evidence and existing authorization cannot settle. Tier 3 does not block read-only diagnosis or independent, already-authorized work.
 
-If a request does not clearly match any tier, ask the user to confirm the classification before acting.
+For mixed-tier feedback, apply only independent cosmetic changes (including purely cosmetic plot styling) that cannot imply acceptance of, or depend on, the unresolved substantive change. Hold dependent prose and plots until the substantive work is separately authorized and its results verified.
 
-Maximum 3 feedback iterations per entry into the loop without explicit user re-approval.
+Maximum **3 feedback iterations** per entry into the loop without explicit user re-approval. One iteration is one user feedback round, including its edits and validation; internal repair or validation retries within that round are not additional iterations.
 
 ## Anti-patterns (flag and fix on sight)
 
