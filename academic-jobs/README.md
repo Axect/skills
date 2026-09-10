@@ -1,14 +1,22 @@
 # academic-jobs
 
-Fetch **valid** (still-open, deadline-not-passed) job postings from two academic job boards:
-[Academic Jobs Online](https://academicjobsonline.org) (AJO) and the
-[InspireHEP jobs board](https://inspirehep.net/jobs).
+The `academic-jobs` skill curates opportunities from **Academic Jobs Online,
+InspireHEP, and official institution/research-group recruitment**. Broad postdoc
+requests include both board and direct discovery automatically; explicit board-only
+requests, named-lab searches and maintenance commands retain their narrower scope.
 
-This is the backend for the `academic-jobs` Claude Code skill. It searches both boards by the
-same keyword presets, keeps only postings whose application deadline has not passed, stores them
-in a local SQLite database, and tracks which postings are new since the last fetch. Each posting
-carries a `source` (`ajo` or `inspire`); the two boards use overlapping integer ids, so the
-store is keyed by `(source, id)`.
+The bundled `ajo` CLI is the **board backend**, not an autonomous web-research agent.
+It searches both boards by keyword presets, stores eligible board postings in SQLite,
+and tracks newly discovered records. Each posting carries a `source` (`ajo` or
+`inspire`); overlapping integer IDs are keyed by `(source, id)`. CLI source options
+and the database schema are unchanged.
+
+The assistant follows [SKILL.md](SKILL.md) and
+[references/direct-discovery.md](references/direct-discovery.md) for official-source
+research, then returns one deduplicated result separating current vacancies,
+standing application routes, research-fit leads, and conflicting/closed findings.
+All required instructions and tools ship inside this directory; no separate or
+managed companion skill is needed.
 
 ## Install
 
@@ -42,6 +50,29 @@ Add `--json` to any command for machine-readable output.
 
 Pick boards per preset with `--sources ajo,inspire`, or per run with `--source ajo|inspire|both`
 (default: both).
+
+## Direct-source snapshots
+
+Official calls and application routes remain separate from the board DB. Dated
+snapshots and source extracts default to `~/.local/share/academic-direct-opportunities/`;
+the existing `AJO_DATA_DIR` override continues to apply only to the board backend.
+The schema and evidence rules are in
+[references/direct-discovery.md](references/direct-discovery.md).
+
+```bash
+python3 scripts/direct_ledger.py validate /path/to/snapshot.json
+python3 scripts/direct_ledger.py diff /path/to/before.json /path/to/after.json
+```
+
+The helper uses only Python's standard library and does not fetch websites.
+It rejects malformed records and inconsistent open-job classifications. Diff ignores
+retrieval metadata and reports added, changed, and not-observed records; omission
+does not automatically close a job. Different search scopes require the explicit
+`--allow-scope-change` option.
+
+`ajo report` emits only a board skeleton. Integrated curation must add verified
+direct records, preserve source/status distinctions, and avoid counting prospects
+or standing routes as funded vacancies.
 
 ## Data
 

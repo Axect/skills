@@ -1,19 +1,29 @@
-# Curation rule — how to turn fetched postings into a report
+# Curation: board postings and institution-direct opportunities
 
-This is the **mandatory** process for producing a job-postings report (e.g.
-`~/Dropbox/AJO/AJO_YYYY-MM-DD.md`). It exists because a keyword-matched link list is
-worthless: keyword co-occurrence (e.g. `machine learning` + `cosmology`) does not prove fit,
-and a title alone hides the conditions that decide eligibility. Every miss this skill made
+This is the **mandatory** process for producing an integrated academic opportunities
+report (e.g. `~/Dropbox/AJO/AJO_YYYY-MM-DD.md`). Follow `../SKILL.md` for request routing.
+Broad postdoc searches include the [direct track](direct-discovery.md) automatically.
+Keyword matches do not prove research fit, and titles alone hide the conditions
+that decide eligibility. Every miss this skill made
 came from *not reading the posting*: an experimental-detector ML role mislabeled as a theory
 fit, a full-professor chair mistaken for an assistant-prof opening, a recycled 2025 posting
 treated as live, a military-service exclusion and a fresh-PhD-only limit not surfaced.
 
 ## Iron rule: deep-read every posting you report
 
-Never judge a posting from its title, `subject_areas`, or `matched_keywords`. For every
-posting you put in a report you MUST read its body with `ajo show {id} --source ...` (the body
-is stored after fetch/enrich, so this is local and free). If `ajo show` has no description,
-run `ajo enrich` first. Judging fit or eligibility from anything less is a defect.
+Never judge a posting from its title, `subject_areas`, or `matched_keywords`.
+For each board posting, read `ajo show ID --source ajo|inspire` and its full stored
+description; refresh stale conditions before recommending. Fetch missing bodies
+with `show` or `enrich`. For direct records, read the official page and its linked
+call, PDF or application portal. They do not require a fabricated AJO/Inspire ID.
+
+If the terminal truncates a long description, query the stored `description` by
+`(source,id)` from the read-only SQLite store and wrap paragraphs before reading.
+For example, use Python's `sqlite3` to connect to
+`file:/absolute/path/to/jobs.db?mode=ro` with `uri=True`, select
+`description FROM jobs WHERE source=? AND id=?`, then display it with
+`textwrap.fill(..., width=120)`. Use the configured `AJO_DATA_DIR` when set.
+Do not grade fit from the truncated prefix or modify the DB to obtain full text.
 
 ## Mandatory per-posting fields
 
@@ -41,37 +51,50 @@ posting, write `명시 없음` (not silence), so it's clear you checked.
 7. **지원 서류** — cover letter, CV, publication list, research statement / proposal (with page
    limits), number of reference letters and who submits them, any special document
    (e.g. an interdisciplinary statement), and the submission portal / email.
-8. **fit 근거 + 등급** — name which of the user's projects it maps to
-   ([[user_research_profile]]: OSPREY / SMEFTML / LowRankAutoReg / ExMeV; best-fit axis =
-   **Interdisciplinary Research**) and *why*, concretely. Grade 상 / 중 / 하. Do not inflate.
+8. **fit 근거 + 등급** — connect the actual research to the user's current profile and
+   projects with a concrete reason. Separate method fit, scientific-domain fit,
+   transition cost and intended-start compatibility. Grade 상 / 중 / 하 without
+   inflating it; fit is not selection probability.
 9. **신빙성·주의 플래그** — surface the auto-detected `flags` and verify each by reading the
-   clause: `date-mismatch(stale?)` (body year < deadline year → recycled posting),
+   clause: `date-mismatch(stale?)` (verify an actual date conflict, not merely an old year),
    `funding-pending`, `senior:professor`, `female-only`, `fresh-phd-limit`,
    `nationality-restricted`, `military-service-clause`. Add region-non-preferred when relevant.
-10. **출처** — posting URL and contact email.
+10. **출처** — all supporting URLs and verified recruitment contact; distinguish source
+    publication dates from retrieval dates. Direct records also retain the evidence
+    and status fields in `direct-discovery.md`.
 
 ## Workflow
 
-1. **Configure once.** Put the user's region policy in the preset:
-   `ajo config --set-preset NAME --preferred "KR,DE; JP,HK,GB,US" --excluded "IN,IL,Middle East"`.
-   Tiers are ordered (tier 1 first); excluded countries are dropped at fetch.
-2. **Fetch.** `ajo fetch --preset NAME --json` (add `--include-rolling` only when the user
-   wants open-ended calls). Excluded regions are already gone; results are sorted by
-   preference tier then deadline.
-3. **Complete truncated AJO runs.** If `stats.per_source.ajo.details_truncated` is true, the
-   run hit the detail cap. Either re-run a narrower keyword with `--source ajo`, or run
-   `ajo enrich --source ajo` one or more times (polite, capped) until every shortlisted
-   posting has a body. Never present a truncated run as complete — say how many were judged.
-4. **Deep-read the shortlist.** `ajo show {id}` each candidate you intend to report. Pull the
-   ten fields above from the body. Verify every auto-flag against the actual sentence.
-5. **Group and grade.** Group by preference tier; within a tier, sort by deadline. Grade fit
-   honestly. If a preferred tier is thin (e.g. June is off-season for HEP/cosmo postdocs),
-   *say so* rather than padding with weak matches.
-6. **Scaffold, then fill.** `ajo report --preset NAME --out /tmp/skel.md` emits a markdown
-   skeleton with the data-backed fields pre-filled and blank placeholders for the judgment
-   fields (research/PI, eligibility, fit). The skeleton never invents fit — you complete it.
-7. **Write the report** to `~/Dropbox/AJO/AJO_YYYY-MM-DD.md` (Korean, per the user's
-   preference), and follow the global writing-style rules (no em-dashes, no hype).
+1. **Share constraints.** Read the active preset and current profile. Use existing
+   preferred/excluded countries and target start in both tracks; change saved presets
+   only when requested. Preference tiers are zero-based (tier 0 first).
+2. **Fetch boards when in scope.** Use `ajo fetch --preset NAME --json`, then judge
+   full bodies. Respect explicit board-only/source restrictions. The CLI's undated
+   rolling exclusion does not prohibit a separately labelled direct application route.
+3. **Complete truncated runs.** If the AJO detail cap is hit, enrich stored candidates
+   and use narrower/repeated searches for candidates never stored. State the actual
+   candidate/detail counts and limits. A strict position-type filter can also miss
+   blank/mixed-rank fellowships; verify those with targeted untyped searches.
+4. **Run direct discovery when in scope.** Execute `direct-discovery.md`, following
+   official employer policy and linked calls. Reuse the board candidates for identity
+   checks; do not start another global board search from the direct track.
+5. **Deep-read, reconcile and grade.** Extract all ten fields from every recommended
+   record, verify automatic flags, and resolve earlier priority dates and conflicting
+   sources. Deduplicate verified identical appointments across channels while keeping
+   all source links. Keep different projects and general routes distinct.
+6. **Build one result.** Group by evidence status first: current applicant-facing
+   vacancies (board and direct together), standing routes, research-fit leads, and
+   conflicts/expired/closed/host-funding findings. Within vacancies use preference
+   tier then real application urgency. Do not count routes or prospects as open jobs.
+7. **Scaffold only the board part.** `ajo report --out /tmp/skel.md` generates a
+   data-backed board skeleton, not an integrated report. Fill its judgments and
+   incorporate verified direct records before delivery. Never overwrite the finished
+   report with a newly emitted skeleton.
+8. **Validate and deliver.** Validate dated direct snapshots using
+   `python3 <skill-dir>/scripts/direct_ledger.py validate FILE`; compare prior
+   snapshots for update requests. Save the Korean report to
+   `~/Dropbox/AJO/AJO_YYYY-MM-DD.md` unless the user requests another format.
+   Do not send applications or mark records seen merely because a report was generated.
 
 ## Honesty requirements
 
@@ -80,3 +103,7 @@ posting, write `명시 없음` (not silence), so it's clear you checked.
 - State when the strong-fit set is small because of timing, instead of inflating the list.
 - Keep fit grades calibrated; 상 is for genuine matches to the user's projects, not "physics + ML"
   co-occurrence.
+- Report direct discovery scope and counts separately from board fetch statistics.
+  A local DB miss is not a claim of absence from both live boards.
+- Preserve unknowns and conflicts. Failed access or omission from a later sample
+  does not establish closure; a funding competition for hosts is not an applicant job.

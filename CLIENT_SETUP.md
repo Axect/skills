@@ -391,9 +391,14 @@ After configuration, start `agy` and prompt:
 
 Installing a skill into your client's skill directory only makes it **discoverable** — some skills also need an external CLI, API key, or credentials file on your machine before they can actually run. Do this once per machine, regardless of which client you are using.
 
-### academic-jobs: uv (deps auto-installed)
+### academic-jobs: uv, Python 3, and web research tools
 
-Requires `uv` on `PATH`; no API keys or credentials. The skill bundles a uv project (`ajo`) whose dependencies (`requests`, `beautifulsoup4`) are auto-installed into an isolated environment on first `uv run`.
+The board backend requires `uv` on `PATH`; no board API keys or credentials. The
+bundled uv project (`ajo`) installs `requests` and `beautifulsoup4` into an isolated
+environment on first `uv run`. Broad postdoc requests additionally use the harness's
+web search/read tools for official institution/group discovery. All direct-search
+instructions and the Python 3 standard-library ledger helper ship in `academic-jobs/`;
+no managed or separately installed companion skill is required.
 
 - Smoke-test the CLI (creates the data dir, DB, and default `physics-ml` preset on first run):
   ```bash
@@ -403,6 +408,10 @@ Requires `uv` on `PATH`; no API keys or credentials. The skill bundles a uv proj
 - State lives under `~/.local/share/academic-jobs/` (`jobs.db` + `config.toml`); override with `AJO_DATA_DIR`.
 - Validity is judged from each posting's detail page (effective deadline = firm `Appl Deadline`, else `listed until`). `--fast` skips detail pages but misses many valid postings; prefer the default.
 - The CLI is polite by design (single session, real User-Agent, inter-request delay, per-run detail-fetch cap). Do not parallelise.
+- Direct snapshots live separately under `~/.local/share/academic-direct-opportunities/`.
+  Validate with `python3 "$REPO/academic-jobs/scripts/direct_ledger.py" validate FILE`;
+  compare with `diff BEFORE AFTER`. These commands validate/compare records, not crawl
+  sites. Existing whole-directory symlink/copy installation commands include them.
 
 ### adversarial-review — no setup required
 

@@ -1,22 +1,85 @@
 ---
 name: academic-jobs
 description: >
-  Fetch valid (still-open, deadline-not-passed) job postings from Academic Jobs Online
-  (academicjobsonline.org, AJO) and the InspireHEP jobs board (inspirehep.net/jobs). Use
-  when the user wants current academic openings: postdoc / faculty / PhD positions in
-  physics, cosmology, HEP, ML, astrophysics or any field, filtered to postings whose
-  application deadline has not passed. Searches both boards by default and merges the
-  results. Manage field presets (keywords + position types + which boards), fetch and store
-  valid postings, see what is new since last check, and inspect a posting's details. Triggers
-  on: Academic Jobs Online, AJO, InspireHEP jobs, Inspire HEP 공고, academic job postings,
-  postdoc openings, faculty positions, job listings, valid 공고, 학술 잡, 교수 공고,
-  포닥 공고, 채용 공고, 잡 마켓.
+  Find and curate academic opportunities through AJO/InspireHEP and official
+  institution/group-direct recruitment. Broad personal postdoc searches include
+  both tracks by default, with one deduplicated result separating current vacancies,
+  standing application routes, research-fit leads and conflicting/expired evidence.
+  Respect explicit board-only requests; support named labs, changes since a previous
+  search, field presets, stored postings and individual posting inspection.
+  Triggers: academic jobs, AJO, InspireHEP, postdoc openings, Physics and AI jobs,
+  research-group recruitment, 포닥 공고, 채용 공고, 연구실 채용, 잡 마켓.
 ---
 
 # Academic Jobs Skill
 
-Conversational interface over the `ajo` CLI, which fetches **valid** postings from two
-academic job boards and tracks them in a local SQLite store:
+The user-facing entry point for academic opportunity discovery. **Broad postdoc
+curation runs both board searches and official institution/group-direct discovery.**
+The user does not need another skill. The `ajo` CLI remains the board collector;
+this integration changes the assistant workflow, not CLI source options.
+
+## Request routing
+
+| Request | Execution |
+|---|---|
+| Broad personal postdoc search, e.g. Physics×AI 포닥을 추려줘 | Both boards plus bounded official institution/group discovery; one integrated result |
+| Explicit AJO-only / Inspire-only / board postings only | Only the requested board(s); no direct expansion |
+| Named lab/institution, e.g. Tübingen AI postdocs | Official research and recruitment pages first; board identity checks for duplicates, no global fetch |
+| Changes since previous search | Refresh the previous scope in both tracks and compare snapshots; preserve any explicit board-only restriction |
+| Maintenance: config/list/show/enrich/mark-seen/prune, including “검색 preset 설정을 보여줘” | Maintenance only: execute the requested CLI operation, no board search, direct discovery or snapshot comparison |
+| Faculty or PhD opportunities | Rank-appropriate board and employer sources; do not use the postdoc-only direct ledger for other ranks |
+
+## Integrated curation workflow
+
+1. Ground rank, research/method axes, target start and region policy in the current
+   profile, saved preset and user decisions. Use the same policy in both tracks.
+2. For broad postdoc searches, execute the board flow below AND
+   [references/direct-discovery.md](references/direct-discovery.md). Start with
+   2–3 relevant institutional ecosystems in preferred regions and declare the scope;
+   expand for promising leads or requested breadth. This is not a global census or
+   a quota of recommendations. Do not ask whether to add this track.
+3. Read official research, recruitment policy and linked calls. The direct reference
+   owns the evidence/status schema and uses the bundled
+   `scripts/direct_ledger.py` validator/diff. No managed or externally installed
+   companion skill is required. Reuse board results for identity checks rather
+   than recursively restarting this workflow.
+4. Deep-read both sources. Board candidates require `ajo show` and the complete
+   stored body; direct candidates require the official page and linked call.
+   Follow the full-body extraction instructions in `references/curation.md` when
+   display truncation hides conditions. Targeted untyped searches can recover
+   blank/mixed-rank fellowships; verify the postdoc branch in the body.
+5. Deduplicate verified identical appointments by employer, group/PI, project,
+   reference number, dates and application URL. Preserve all source links and
+   `(source,id)` matches in one row. Different projects remain separate; a general
+   application route is not an extra vacancy. A local DB miss does not prove
+   absence from either live board.
+6. Deliver ONE result with four sections:
+   - **Current applicant-facing vacancies:** verified board and direct vacancies
+     together, preference tier then actual application urgency; no invented dates
+     for undated rolling calls.
+   - **Standing application routes:** ongoing applications, current funded capacity
+     not established.
+   - **Research-fit leads:** no verified hiring, ranked by fit.
+   - **Conflicting/expired/closed or host-funding-only findings:** reasons and
+     evidence, excluded from open-vacancy totals. Host support is not employment.
+7. Use the ten-field curation contract below. Separate method fit, scientific-domain
+   fit, transition cost and start compatibility. Fit is not selection probability.
+   Missing facts remain 명시 없음/null. An open banner against an expired linked PDF
+   is a conflict, not permission to ignore the deadline.
+8. Report board candidates/details/truncation, direct institutions/groups/calls
+   actually read, and deduplicated counts by status. Do not sum overlapping fetches
+   as unique jobs. Distinguish newly discovered records from newly posted calls.
+9. Store direct evidence separately under `~/.local/share/academic-direct-opportunities/`,
+   never as fabricated valid rows in AJO jobs.db. Validate dated snapshots and
+   compare them with the bundled helper. Refresh sources before claiming a change;
+   unobserved records and failed URLs are not automatically closed.
+
+Mail, applications, calendar tasks, scheduled watchers, pruning and mark-seen are
+not implicit in discovery. Respect the user's authorization for each.
+
+## Board collector
+
+The `ajo` CLI fetches **valid** postings from two boards into a local SQLite store:
 
 - **AJO** — Academic Jobs Online (`academicjobsonline.org`), HTML scraping, all fields.
 - **InspireHEP** — the HEP/astro jobs board (`inspirehep.net/jobs`), via its public JSON API.
@@ -29,6 +92,8 @@ boards use overlapping integer ids, so everything is keyed by `(source, id)`.
 
 | Intent | Command | Reference |
 |--------|---------|-----------|
+| Integrated postdoc curation | Board CLI + official-source research | `references/direct-discovery.md`, `references/curation.md` |
+| Validate / compare direct snapshots | `python3 scripts/direct_ledger.py validate FILE` / `diff BEFORE AFTER` | `references/direct-discovery.md` |
 | Show / edit field presets | `ajo config [...]` | `references/presets.md` |
 | Fetch current open postings | `ajo fetch [--preset N \| --keyword K] [--source ajo\|inspire\|both] [--preferred TIERS] [--excluded LIST] [--detail-cap N]` | `references/fetch.md` |
 | Show stored postings | `ajo list [--valid] [--new] [--source S]` | `references/schema.md` |
@@ -53,9 +118,9 @@ First run auto-creates the data dir, the SQLite DB, and a default `physics-ml` p
 
 ## Curation rule (read before writing a report)
 
-Before writing any postings report, you must deep-read every posting via `ajo show {id}`. After
-`ajo fetch` or `ajo enrich`, full description bodies are stored in the DB, so `ajo show` reads
-locally (no extra network calls). Never judge a posting from its title or keyword match alone.
+Deep-read every reported board posting with `ajo show {id} --source S` and its
+complete stored body. For direct opportunities, read the official recruitment page
+and linked call. Never judge either source from titles or keyword matches alone.
 
 Every posting in a report must fill the mandatory 10-field schema:
 
@@ -70,13 +135,14 @@ Every posting in a report must fill the mandatory 10-field schema:
 9. 신빙성/주의 플래그
 10. 출처 URL
 
-Use `ajo report` to generate a skeleton with data-backed fields pre-filled and blank placeholders
-for judgment fields. The full procedure is in `references/curation.md`. Reports are saved to
+Use `ajo report` only for the board skeleton, then add verified direct records and
+the integrated result sections. The complete curation procedure is in
+`references/curation.md`. Reports are saved to
 `~/Dropbox/AJO/AJO_YYYY-MM-DD.md` in Korean.
 
 ## Core behaviour you must understand
 
-### Two sources, one merged view
+### Two board sources, one CLI view
 - `ajo fetch` runs the preset's keywords against **every board in the preset's `sources`**
   (default `["ajo", "inspire"]`), merges, dedups within each board, and stores everything
   keyed by `(source, id)`.
@@ -108,11 +174,11 @@ In both cases:
 ## Common Rules
 
 ### Base directory
-All state lives under `~/.local/share/academic-jobs/` (override with `AJO_DATA_DIR`):
+Board CLI state lives under `~/.local/share/academic-jobs/` (override with `AJO_DATA_DIR`):
 - `jobs.db` — SQLite store of postings
 - `config.toml` — field presets
 
-### Typical flow for "show me current openings"
+### Board-track execution (not the whole integrated search)
 1. `ajo fetch --json [--preferred "KR,DE; JP,HK,GB,US"] [--excluded "IN,IL"] [--detail-cap 80]`
    (uses the default preset; fetches details up to `--detail-cap`; stores + flags new).
    Pass `--preferred`/`--excluded` to override the preset for this run without saving.
@@ -127,6 +193,9 @@ All state lives under `~/.local/share/academic-jobs/` (override with `AJO_DATA_D
    missing, has no stored body, or `--refresh` is given. A live fetch is written back to the DB.
 
 ### Output formatting
+- For broad searches, use the integrated sections above. CLI fields below describe
+  board records; label direct sources and annotate country/preference tier using
+  the same active policy.
 - Sort by deadline ascending; show source, deadline, position type, title, institution, and
   the posting URL (AJO `https://academicjobsonline.org/ajo/jobs/{id}`, InspireHEP
   `https://inspirehep.net/jobs/{id}`).

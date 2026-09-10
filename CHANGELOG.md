@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-09-10
+
+### Added
+- Bundled `academic-jobs/references/direct-discovery.md` and the standard-library `scripts/direct_ledger.py` helper for official institution/group recruitment, evidence-backed status records, snapshot validation and change comparison. No separately installed managed skill is required.
+
+### Changed
+- Broad `academic-jobs` postdoc requests now include both AJO/InspireHEP and bounded direct discovery in one deduplicated result. Board-only requests remain narrow, named-lab searches start with official sources, and update requests preserve the previous search scope.
+- Integrated curation separates current vacancies, standing application routes, research-fit leads and conflicting/expired/host-funding findings. Direct records remain outside the board DB; `ajo` CLI options and DB schema are unchanged.
+
 ## 2026-07-29
 
 ### Fixed

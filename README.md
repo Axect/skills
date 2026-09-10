@@ -24,7 +24,7 @@ Directories created before this convention keep their names, and a directory is 
 
 | Skill | Primary use | Entry point | External setup |
 |---|---|---|---|
-| `academic-jobs` | Fetch valid (still-open, deadline-not-passed) academic job postings from Academic Jobs Online (AJO) and the InspireHEP jobs board via the `ajo` CLI: searches both boards by the same field presets (keywords + position-type + country filters + which sources), fetches and stores postings judged valid from their effective deadline, flags what is new since the last check, and inspects a posting. Postings keyed by `(source, id)` in a local SQLite store under `~/.local/share/academic-jobs/`. | `academic-jobs/SKILL.md` | `uv` (the bundled `ajo` uv project auto-installs `requests` + `beautifulsoup4` on first `uv run`) |
+| `academic-jobs` | Curate academic opportunities from AJO/InspireHEP **and official institution/group recruitment**. Broad postdoc searches include both tracks; explicit board-only requests remain narrow. Merge verified vacancies while separating standing routes, prospects and conflicting evidence. Bundles the `ajo` board CLI and a portable direct-snapshot validator/diff. | `academic-jobs/SKILL.md` | `uv` for the board CLI; Python 3 for the standard-library snapshot helper; web search/read tools for direct discovery |
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
@@ -66,11 +66,13 @@ Several skills depend on external CLIs, API keys, or credential files. Install a
 
 Requires `uv` on `PATH`. The skill bundles a small uv project (`ajo`); `uv run --project <skill-dir> ajo …` auto-installs its dependencies (`requests`, `beautifulsoup4`) into an isolated environment on first run. No API keys.
 
+- Broad postdoc curation also reads official institution/group recruitment through the bundled `references/direct-discovery.md`, without a separate skill installation. Named-lab requests start with official sources; explicit board-only requests do not expand.
+- Direct-source snapshots live separately under `~/.local/share/academic-direct-opportunities/`. Run `python3 academic-jobs/scripts/direct_ledger.py validate FILE` or `diff BEFORE AFTER`. The standard-library helper does not crawl websites or write prospects into the board DB.
 - Searches **two boards**: AJO (`academicjobsonline.org`, HTML scraping) and InspireHEP (`inspirehep.net/jobs`, public JSON API). `ajo fetch` hits both by default; pick boards per preset (`--sources ajo,inspire`) or per run (`--source ajo|inspire|both`).
 - State lives under `~/.local/share/academic-jobs/` (`jobs.db` + `config.toml`); override with the `AJO_DATA_DIR` env var. First run creates the data dir, the SQLite DB, and a default `physics-ml` preset. Postings are keyed by `(source, id)` (the boards use overlapping integer ids); a pre-InspireHEP v1 DB is migrated in place on first open.
 - AJO validity is judged from each posting's **detail page** (effective deadline = firm `Appl Deadline` if present, else the `listed until` date), not the list page; `--fast` skips AJO detail pages but misses many valid postings. InspireHEP is queried with `status=open` and uses the structured `deadline_date` directly (no detail fetch, `--fast` does not apply).
 - The CLI uses one polite session per board with a real User-Agent, a small inter-request delay, and a per-run AJO detail-fetch cap (reported under `stats.per_source`). Do not parallelise or hammer either board.
-- See `academic-jobs/references/`: `fetch.md`, `presets.md`, `schema.md`.
+- See `academic-jobs/references/`: `fetch.md`, `presets.md`, `schema.md`, `curation.md`, `direct-discovery.md`.
 
 ### adversarial-review
 
@@ -354,7 +356,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 
 ## Which skill to use?
 
-- Choose `academic-jobs` to pull current, still-open academic job postings (postdoc / faculty / PhD) from Academic Jobs Online **and the InspireHEP jobs board** (searched together by default), filtered to postings whose application deadline has not passed, with field presets and "new since last check" tracking.
+- Choose `academic-jobs` for academic opportunity curation: broad postdoc requests combine AJO/InspireHEP with official institution/group discovery automatically. Explicit board-only requests stay narrow; named-lab searches start with the employer. Results separate verified vacancies, standing routes, research-fit leads and conflicts, with source-aware deduplication and dated update tracking.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
