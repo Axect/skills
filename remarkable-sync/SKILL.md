@@ -74,6 +74,7 @@ Four stock rmrl defects are patched in-process, leaving the venv untouched:
 | `IndexError` in `paint_strokes` | `DocumentPageLayer.colors` has only black/gray/white | padded 8-colour palette |
 | `TypeError: 'NoneType' object is not iterable` in `merge_pages` | pdfrw does not resolve inherited `/MediaBox` on imported PDFs | walk `Parent` and set it |
 | 0-byte PDF left behind | output opened before rendering | render to `*.pdf.part`, then rename |
+| highlight bands run past the text on both sides | rmrl's highlighter uses reportlab's square line cap, which extends a stroke by half its line width at each end - here half a line height, measured at 5.3 pt per side | draw the bands with butt caps |
 
 ## v6 `.rm` format reference
 
@@ -202,10 +203,15 @@ against pixels: match each highlight's recorded text to a line from
 `pdftotext -bbox-layout`, then compare the band centre with that line's centre.
 That residual is now within about 0.4 pt (line heights are ~9 pt); it read
 -4.3 pt before the anchor was calibrated, which looks like "the highlight sits
-slightly too high" and is invisible in a pixel-overlap score. Use the mask
-overlap against `geta` only as a coarse sanity check (currently recall 0.88,
-precision 0.74; the rest is band-edge and alpha difference). Re-run both after
-any change to the coordinate frame.
+slightly too high" and is invisible in a pixel-overlap score. Do the same for
+the horizontal edges: band left/right versus the line's `xMin`/`xMax`. The
+recorded rect itself carries a little padding (about 2.3 pt left, 0.8 pt right
+of the text), which is the device's own geometry and agrees with `geta` to under
+1 pt - do not trim it further. Use the mask overlap against `geta` only as a coarse sanity check: it cannot
+resolve a few points of vertical shift, and `geta` itself places bands slightly
+higher than the text geometry does, so its score drops when the bands are in
+fact correct. Trust the text-box residual, and re-measure both after any change
+to the coordinate frame.
 
 ## Alternatives, for the record
 

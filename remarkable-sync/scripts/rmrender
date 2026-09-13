@@ -79,7 +79,10 @@ from rmrl.pens.highlighter import HighlighterPen  # noqa: E402
 
 def _highlight_paint(self, canvas, stroke):
     canvas.saveState()
-    canvas.setLineCap(2)   # square: a highlight band has flat ends
+    # butt caps: reportlab's square cap (what rmrl uses) extends the band by
+    # half the line width at each end, which is half a line height - measured
+    # at 5.3 pt per side on a 9 pt line, so the band ran visibly past the text
+    canvas.setLineCap(0)
     canvas.setLineJoin(1)
     canvas.setStrokeColor(self.color, alpha=0.35)
     canvas.setLineWidth(stroke.width)

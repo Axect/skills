@@ -21,6 +21,9 @@ All notable changes to this repository are documented in this file.
 ### Fixed
 - `remarkable-sync`: highlight bands sat about 4.3 pt too high. A highlight's recorded `y` is the band's top edge rather than its centre, so the band centre is `y + 0.45 * h`; the offset scales with the recorded line height (documents with 33 px and 104 px line heights needed 0.413 and 0.483), which is why a constant correction fitted on one document fails on another. Residual against the base PDF's own text-line geometry is now within 0.4 pt, down from -4.3 pt. Pixel-overlap against `rmapi geta` cannot resolve this and was replaced by a text-box measurement as the primary check.
 
+### Fixed
+- `remarkable-sync`: highlight bands extended past the text at both ends. rmrl's highlighter draws them with reportlab's square line cap, which lengthens a stroke by half its line width at each end - half a line height, measured at 5.3 pt per side on a 9 pt line. They are now drawn with butt caps, which puts the band edges on the rect the tablet recorded: about 2.3 pt left and 0.8 pt right of the text, matching `rmapi geta` to under 1 pt.
+
 ### Notes
 - The renderer virtualenv must be Python 3.11: `rmrl` pins `reportlab==3.6.13`, whose prebuilt wheels stop at cp311 and whose source no longer compiles on GCC 14+ because C23 turns `bool` into a keyword while `gt1-parset1.c` uses it as an identifier. `uv tool install rmrl` can never work either, since `rmrl` declares no console entry point.
 - `rmsync` is incremental on `modifiedClient` and keeps downloaded archives, so an interrupted run is resumed by re-rendering locally instead of re-downloading. `rmapi get` cannot fetch a directory, and individual folder listings fail intermittently, so a failing subtree is reported and skipped rather than aborting the run.
