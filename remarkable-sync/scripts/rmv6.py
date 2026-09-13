@@ -37,14 +37,46 @@ Stroke = namedtuple("Stroke", ["pen", "color", "unk1", "width", "unk2", "segment
 Segment = namedtuple("Segment", ["x", "y", "speed", "direction", "width", "pressure"])
 
 HEADER = b"reMarkable .lines file, version="
-LAYER_DEF, LINE_DEF = 0x01010100, 0x05020200
+LAYER_DEF, LINE_DEF, HIGHLIGHT_DEF = 0x01010100, 0x05020200, 0x03010100
+HIGHLIGHT_PEN = 18  # rmrl PEN_MAPPING: highlighter
+# text-highlight colour ids seen in the wild -> palette index
+HIGHLIGHT_COLORS = {3: 3, 9: 5}  # 3 yellow, 9 pink
+HIGHLIGHT_H_FACTOR = 1.0  # band height relative to the recorded line height
 fallback_readLines = None  # set by rmrender to rmrl's stock parser
 
 # Empirical unit mappings (calibrated on real ballpoint-15 notebooks):
 #   v6 per-point width u1 (~12-18 for ballpoint) -> px via /6
 #   pressure/direction u1 0-255 -> float 0-1 / radians
 WIDTH_DIV = 6.0
-X_CENTER = 1404 / 2
+SCREEN_W, SCREEN_H = 1404, 1872
+DPI_PER_PT = 226 / 72  # device pixels per PDF point
+
+# Coordinate frame applied to parsed points, set per document by the caller.
+# Notebooks are already in screen pixels (x centred, y from the top). Imported
+# PDFs are in page points x DPI_PER_PT, so they need the device's best-fit
+# scale and the resulting letterbox offsets.
+SCALE = 1.0
+X_CENTER = SCREEN_W / 2
+Y_OFFSET = 0.0
+
+
+def set_notebook_frame():
+    """Coordinates are already screen pixels."""
+    global SCALE, X_CENTER, Y_OFFSET
+    SCALE, X_CENTER, Y_OFFSET = 1.0, SCREEN_W / 2, 0.0
+
+
+def set_pdf_frame(page_w_pt, page_h_pt):
+    """Frame for annotations on an imported PDF page of the given size."""
+    global SCALE, X_CENTER, Y_OFFSET
+    w, h = page_w_pt * DPI_PER_PT, page_h_pt * DPI_PER_PT
+    if w > h:  # the device shows a landscape page rotated; fit the short side
+        w, h = h, w
+    SCALE = min(SCREEN_W / w, SCREEN_H / h) if w and h else 1.0
+    X_CENTER = SCREEN_W / 2
+    # measured against rmapi's own annotated export: the page top aligns with
+    # the canvas top, it is not letterboxed vertically
+    Y_OFFSET = 0.0
 
 
 class UnsupportedVersion(Exception):
@@ -98,12 +130,14 @@ def _parse_tail(body, off, layer_id):
     off += 1
     (color,) = struct.unpack_from("<I", body, off)
     off += 4
-    if body[off : off + 5] != b"\x38\x00\x00\x00\x00":
+    # 0x38 and 0x44 are field tags followed by four bytes that are NOT always
+    # zero (they vary per pen), so only the tag itself may be checked
+    if body[off] != 0x38:
         return None
     off += 5
     (brush,) = struct.unpack_from("<f", body, off)
     off += 4
-    if body[off : off + 5] != b"\x44\x00\x00\x00\x00":
+    if body[off] != 0x44:
         return None
     off += 5
     if body[off] != 0x5C:
@@ -120,8 +154,8 @@ def _parse_tail(body, off, layer_id):
         off += 14
         segments.append(
             Segment(
-                x + X_CENTER,          # centered -> left origin
-                y,                     # top origin already
+                x * SCALE + X_CENTER,      # centred -> left origin
+                y * SCALE + Y_OFFSET,      # page top -> canvas top
                 speed / 8.0,
                 direction / 256.0 * 2 * 3.141592653589793,
                 width / WIDTH_DIV,
@@ -152,6 +186,78 @@ def _parse_line(body):
     return None
 
 
+def _parse_highlight(body):
+    """Parse a text-highlight block.
+
+    Layout: the usual id header, then tagged fields - 0x44 colour, 0x5c the
+    highlighted text - followed by four float64s (x, y, width, height) in the
+    same space as strokes (x centred on the page, y from its top).
+
+    The offset of that float run varies, and a run read 8 bytes early can also
+    satisfy any plausible range test, so all candidates are scored against the
+    width the highlighted text should occupy at that line height."""
+    if not body or body[0] != 0x1F:
+        return None
+
+    color = None
+    j = body.find(b"\x44", 16, 48)
+    if j > 0:
+        (color,) = struct.unpack_from("<I", body, j + 1)
+
+    text_len = 0
+    k = body.find(b"\x5c", 16, 64)
+    if k > 0 and k + 5 < len(body):
+        text_len = body[k + 5]
+
+    cands = []
+    for off in range(8, len(body) - 31):
+        x, y, w, h = struct.unpack_from("<dddd", body, off)
+        if not (
+            abs(x) <= 1200.0
+            and 0.0 < y <= 3000.0
+            and 2.0 <= w <= 1400.0
+            and 8.0 <= h <= 120.0
+        ):
+            continue
+        # a highlighted run of n characters is about 0.5 * line height wide
+        # per character; score the relative error against that
+        expected = max(text_len, 1) * h * 0.5
+        cands.append((abs(w - expected) / expected, x, y, w, h))
+    if not cands:
+        return None
+
+    cands.sort()
+    _, bx, by, bw, bh = cands[0]
+    # a highlight spanning several lines stores one rect per line in the same
+    # block; keep the others, which share the line height but sit at a
+    # different y. Bogus reads (a run decoded a few bytes off) do not.
+    rects = [(bx, by, bw, bh)]
+    for _, x, y, w, h in cands[1:]:
+        if abs(h - bh) > 0.02 * bh or w > bw * 1.05:
+            continue
+        if all(abs(y - ry) > bh * 0.5 or abs(x - rx) > 1.0 for rx, ry, _, _ in rects):
+            rects.append((x, y, w, h))
+
+    out = []
+    for x, y, w, h in rects:
+        # y is the band's vertical centre (checked against PDF text boxes)
+        mid = y * SCALE + Y_OFFSET
+        out.append(
+            Stroke(
+                pen=HIGHLIGHT_PEN,
+                color=HIGHLIGHT_COLORS.get(color, 3),
+                unk1=0,
+                width=h * SCALE * HIGHLIGHT_H_FACTOR,
+                unk2=0,
+                segments=[
+                    Segment(x * SCALE + X_CENTER, mid, 0.0, 0.0, h * SCALE, 1.0),
+                    Segment((x + w) * SCALE + X_CENTER, mid, 0.0, 0.0, h * SCALE, 1.0),
+                ],
+            )
+        )
+    return out
+
+
 def readLines(f):
     """rmrl-compatible readLines: v6 via this parser, older formats via
     the stock rmrl parser (set as fallback_readLines by the caller)."""
@@ -167,6 +273,7 @@ def readLines(f):
 
     layer_order = []          # layer ids in definition order
     layer_strokes = {}
+    highlights = []
     for flag, off, l in blocks:
         body = data[off : off + l]
         if flag == LAYER_DEF and l >= 3 and body[0] == 0x1F:
@@ -180,8 +287,15 @@ def readLines(f):
             if parsed is not None:
                 stroke, lid = parsed
                 layer_strokes.setdefault(lid, []).append(stroke)
+        elif flag == HIGHLIGHT_DEF:
+            hl = _parse_highlight(body)
+            if hl:
+                highlights.extend(hl)
 
     result = [layer_strokes.pop(lid, []) for lid in layer_order]
     # lines referencing undeclared layers
     result.extend(layer_strokes.values())
+    # highlights go first so ink is drawn over the translucent bands
+    if highlights:
+        result.insert(0, highlights)
     return (6, result)

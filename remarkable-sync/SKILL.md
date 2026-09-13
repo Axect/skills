@@ -101,8 +101,25 @@ that any re-implementation needs:
   pressure u8`.
 - Conversion to rmrl units: `x += 702` (v6 x is page-centred, y is already
   top-origin), `width / 6.0` -> px, `pressure / 255`, `direction / 256 * 2pi`.
-- Pen ids are the firmware-3 generation (ballpoint is 15); rmrl's `PEN_MAPPING`
-  already covers 12-21, so no pen remapping is needed.
+- Pen ids are the firmware-3 generation (ballpoint is 15, mechanical pencil 13);
+  rmrl's `PEN_MAPPING` already covers 12-21, so no pen remapping is needed.
+- The four bytes after the `0x38` and `0x44` field tags are **not** always zero,
+  as the published spec's fixed magic suggests; they vary per pen. Checking them
+  drops every stroke drawn with such a pen, which looks exactly like "my
+  annotations are missing".
+- Text highlights are a separate block type, `0x03010100`, not strokes: the
+  highlighted text plus four float64s (x, y centre, width, height) in the same
+  coordinate space. They are emitted as highlighter strokes so rmrl draws
+  translucent bands. Colour id 3 is yellow and 9 is pink. Two traps: loose
+  plausibility bounds on the float scan match denormal garbage first and produce
+  zero-sized bands, and a run decoded a few bytes early can also look valid, so
+  candidates are scored against the width the recorded text should occupy.
+- Coordinate frames differ by document type, and getting this wrong silently
+  drops most of the ink off-page. Notebook strokes are screen pixels (x centred,
+  y from the top). Annotations on an imported PDF are in page points times
+  226/72, so they must be scaled by the device's best-fit factor, with the page
+  top aligned to the canvas top (not letterboxed vertically). Highlight `y` is
+  the band's vertical centre.
 - `readLines` must return `(6, [[stroke, ...], ...])`, a plain list per layer.
   Returning namedtuples breaks `paint_strokes`.
 
@@ -168,6 +185,21 @@ pages = c.get("pages") or [p["id"] for p in sorted(
 print([i + 1 for i, p in enumerate(pages) if f"{cid}/{p}.rm" in names][:10])
 PY
 ```
+
+## Checking annotation fidelity against rmapi
+
+`rmapi geta <remote_path>` runs ddvk's own Go renderer and is the reference for
+strokes *and* highlights. It only works for documents with a PDF base (it fails
+on notebooks with `archive does not contain a unique pagedata file`), takes a
+remote path rather than an id, and re-downloads the document, so it is a
+verification tool here rather than the renderer.
+
+The pipeline was calibrated against it plus the base PDF's own text boxes
+(`pdftotext -bbox`), comparing highlight-tinted pixel masks per page. Current
+agreement on a two-page annotated sample: recall 0.88, precision 0.74 - the
+remainder is band-edge and alpha differences, not placement. Any change to the
+coordinate frame should be re-checked the same way; a bare visual glance misses
+a systematic shift of a few points.
 
 ## Alternatives, for the record
 

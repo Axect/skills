@@ -46,6 +46,7 @@ except ModuleNotFoundError:
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import rmv6  # noqa: E402
 
+from pdfrw import PdfReader  # noqa: E402
 from rmrl import document, lines, render  # noqa: E402
 
 rmv6.fallback_readLines = lines.readLines
@@ -71,6 +72,27 @@ def _layer_init(self, page, name=None):
 
 document.DocumentPageLayer.__init__ = _layer_init
 
+# rmrl's highlighter is hardcoded to yellow; honour the colour the tablet
+# recorded for each text highlight instead.
+from rmrl.pens.highlighter import HighlighterPen  # noqa: E402
+
+
+def _highlight_paint(self, canvas, stroke):
+    canvas.saveState()
+    canvas.setLineCap(2)   # square: a highlight band has flat ends
+    canvas.setLineJoin(1)
+    canvas.setStrokeColor(self.color, alpha=0.35)
+    canvas.setLineWidth(stroke.width)
+    path = canvas.beginPath()
+    path.moveTo(stroke.segments[0].x, stroke.segments[0].y)
+    for seg in stroke.segments[1:]:
+        path.lineTo(seg.x, seg.y)
+    canvas.drawPath(path, stroke=1, fill=0)
+    canvas.restoreState()
+
+
+HighlighterPen.paint_stroke = _highlight_paint
+
 _render_mod = sys.modules["rmrl.render"]
 _orig_merge = _render_mod.merge_pages
 
@@ -86,6 +108,35 @@ def _merge_pages(basepage, rmpage, changed_page, expand_pages=True):
 
 
 _render_mod.merge_pages = _merge_pages
+
+
+def set_coordinate_frame(archive):
+    """Tell the v6 parser which coordinate frame this document uses.
+
+    Notebook strokes are stored in screen pixels, but annotations on an
+    imported PDF are in page points scaled by the device dpi, so they must be
+    mapped through the best-fit scale the device displays the page at.
+    Otherwise most of the ink lands outside the page and is lost."""
+    try:
+        with zipfile.ZipFile(archive) as z:
+            names = z.namelist()
+            cid = next((n[: -len(".content")] for n in names if n.endswith(".content")), None)
+            if cid is None or f"{cid}.pdf" not in names:
+                rmv6.set_notebook_frame()
+                return
+            with tempfile.NamedTemporaryFile(suffix=".pdf") as tf:
+                tf.write(z.read(f"{cid}.pdf"))
+                tf.flush()
+                page = PdfReader(tf.name).pages[0]
+                box = page.CropBox or page.MediaBox
+                node = page
+                while box is None and node is not None:
+                    node = node.Parent
+                    box = node.MediaBox if node is not None else None
+                x0, y0, x1, y1 = (float(v) for v in box)
+                rmv6.set_pdf_frame(abs(x1 - x0), abs(y1 - y0))
+    except Exception:
+        rmv6.set_notebook_frame()
 
 
 def patch_source(inpath, tmpzip):
@@ -142,6 +193,7 @@ def main():
         tmpzip = tf.name
     try:
         content = patch_source(src, tmpzip)
+        set_coordinate_frame(tmpzip)
         if content is None:
             print(f"SKIP (epub): {src.name}")
             return 2
