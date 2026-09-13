@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""rmrender — render a reMarkable document (.rmdoc or legacy .zip) to PDF.
+
+Wraps rmrl with the shims a firmware-3.x document needs:
+
+1. `{ID}.content` of a new-sync-protocol document carries `cPages.pages`
+   instead of a top-level `pages` key, so stock rmrl enumerates zero pages
+   and then dies in `apply_ocg`. The page list is injected here.
+2. `{ID}.pagedata` is padded to the page count, because rmrl indexes it with
+   `max(page_number, len - 1)` where the intent (per its own comment) was
+   `min`, which raises IndexError on any document with more pages than
+   template lines.
+3. `DocumentPageLayer.colors` only holds black/gray/white, so any highlighter
+   or fw3 colour id raises IndexError. Replaced with a padded palette.
+4. `render.merge_pages` reads `CropBox or MediaBox` without resolving PDF
+   attribute inheritance, so imported books whose pages inherit MediaBox from
+   `/Pages` raise `TypeError: 'NoneType' object is not iterable`.
+5. Page strokes are parsed by the bundled `rmv6.py`, since rmrl only knows
+   the v3/v5 lines formats. Older documents fall back to rmrl's parser.
+
+The rmrl virtualenv is not required on PATH: if `rmrl` cannot be imported,
+this script re-executes itself with `$RMRL_VENV/bin/python`
+(default `~/.venvs/rmrl`), which `scripts/install.sh` creates.
+
+Usage: rmrender <input.rmdoc|input.zip> <output.pdf>
+Exit:  0 rendered, 2 skipped (epub base or no pages), 1 error.
+"""
+import json
+import os
+import shutil
+import sys
+import tempfile
+import zipfile
+from pathlib import Path
+
+try:
+    import rmrl  # noqa: F401
+except ModuleNotFoundError:
+    _venv = Path(os.environ.get("RMRL_VENV", Path.home() / ".venvs/rmrl"))
+    _py = _venv / "bin/python"
+    _self = Path(__file__).resolve()
+    if _py.exists() and Path(sys.executable).resolve() != _py.resolve():
+        os.execv(str(_py), [str(_py), str(_self), *sys.argv[1:]])
+    sys.exit(f"rmrl not importable and no interpreter at {_py}; run scripts/install.sh")
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import rmv6  # noqa: E402
+
+from rmrl import document, lines, render  # noqa: E402
+
+rmv6.fallback_readLines = lines.readLines
+lines.readLines = rmv6.readLines
+
+_PALETTE = [
+    (0, 0, 0),            # 0 black
+    (0.5, 0.5, 0.5),      # 1 gray
+    (1, 1, 1),            # 2 white
+    (0.95, 0.85, 0.2),    # 3 yellow
+    (0.2, 0.6, 0.2),      # 4 green
+    (0.9, 0.4, 0.7),      # 5 pink
+    (0.15, 0.35, 0.8),    # 6 blue
+    (0.8, 0.15, 0.15),    # 7 red
+]
+_orig_layer_init = document.DocumentPageLayer.__init__
+
+
+def _layer_init(self, page, name=None):
+    _orig_layer_init(self, page, name)
+    self.colors = _PALETTE + [(0, 0, 0)] * 56
+
+
+document.DocumentPageLayer.__init__ = _layer_init
+
+_render_mod = sys.modules["rmrl.render"]
+_orig_merge = _render_mod.merge_pages
+
+
+def _merge_pages(basepage, rmpage, changed_page, expand_pages=True):
+    if basepage.CropBox is None and basepage.MediaBox is None:
+        node = basepage.Parent
+        while node is not None and node.MediaBox is None:
+            node = node.Parent
+        if node is not None:
+            basepage.MediaBox = node.MediaBox
+    return _orig_merge(basepage, rmpage, changed_page, expand_pages)
+
+
+_render_mod.merge_pages = _merge_pages
+
+
+def patch_source(inpath, tmpzip):
+    """Rewrite the archive in the layout rmrl expects; returns content dict
+    (None when the document has an epub base, which rmrl cannot render)."""
+    with zipfile.ZipFile(inpath) as zin:
+        names = zin.namelist()
+        cid = next((n[: -len(".content")] for n in names if n.endswith(".content")), None)
+        if cid is None:
+            raise SystemExit(f"no .content entry in {inpath}")
+
+        if f"{cid}.epub" in names and f"{cid}.pdf" not in names:
+            return None
+
+        content = json.loads(zin.read(f"{cid}.content"))
+        if not content.get("pages"):
+            cp = content.get("cPages", {}).get("pages", [])
+            cp.sort(key=lambda p: str(p.get("idx", {}).get("value", "")))
+            content["pages"] = [p["id"] for p in cp]
+        npages = len(content["pages"])
+
+        pagedata = None
+        if f"{cid}.pagedata" in names:
+            pagedata = zin.read(f"{cid}.pagedata").decode().splitlines()
+        elif content.get("cPages"):
+            pagedata = [
+                (p.get("template", {}) or {}).get("value", "") or "Blank"
+                for p in content["cPages"]["pages"]
+            ]
+        if pagedata is not None:
+            if pagedata:
+                pagedata = pagedata + [pagedata[-1]] * max(0, npages - len(pagedata))
+            pagedata = pagedata[:npages] or ["Blank"]
+
+        with zipfile.ZipFile(tmpzip, "w", zipfile.ZIP_DEFLATED) as zout:
+            zout.writestr(f"{cid}.content", json.dumps(content))
+            if pagedata is not None:
+                zout.writestr(f"{cid}.pagedata", "\n".join(pagedata) + "\n")
+            for n in names:
+                if n in (f"{cid}.content", f"{cid}.pagedata"):
+                    continue
+                zout.writestr(n, zin.read(n))
+    return content
+
+
+def main():
+    if len(sys.argv) != 3:
+        print(__doc__, file=sys.stderr)
+        return 1
+    src, dst = Path(sys.argv[1]).expanduser(), Path(sys.argv[2]).expanduser()
+    dst.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tf:
+        tmpzip = tf.name
+    try:
+        content = patch_source(src, tmpzip)
+        if content is None:
+            print(f"SKIP (epub): {src.name}")
+            return 2
+        if not content.get("pages"):
+            print(f"SKIP (no pages): {src.name}")
+            return 2
+        # render into a temporary file so a failure never leaves a 0-byte PDF
+        tmppdf = dst.with_suffix(".pdf.part")
+        with open(tmppdf, "wb") as out:
+            stream = render(tmpzip)
+            shutil.copyfileobj(stream, out)
+        tmppdf.replace(dst)
+        print(f"OK: {dst}")
+        return 0
+    finally:
+        Path(tmpzip).unlink(missing_ok=True)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -39,6 +39,7 @@ Directories created before this convention keep their names, and a directory is 
 | `overleaf-section-workflow` | Disciplined section-by-section workflow for Overleaf physics-paper drafts: Korean intermediate draft → user iteration → Opus-direct English LaTeX → out-of-tree build. Codifies non-negotiables (no em/en-dashes, no forward refs in background, citation content verified, scienceplots conventions, build never inside sync folder) and orchestrates `overleap`, `scienceplot-py`, `reference-search`, `bibtex-gen`, and `commit-triage` in turn. | `overleaf-section-workflow/SKILL.md` | TeX distribution (`pdflatex`, `bibtex`) + the companion skills it orchestrates |
 | `proton-mail` | Read and search Proton Mail through a locally running Proton Bridge (read-only IMAP over STARTTLS on 127.0.0.1); does not send, delete, or move messages | `proton-mail/SKILL.md` | Proton Bridge running locally + `~/.proton-imap` credentials file (chmod 600) |
 | `reference-search` | Search and curate academic references via domain-aware routing across InspireHEP, OpenAlex, and Semantic Scholar for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python; optional `S2_API_KEY` env var) |
+| `remarkable-sync` | Read reMarkable tablet documents on Linux, where no official desktop app exists: installs the ddvk `rmapi` cloud client and the `rmrl` renderer without sudo, mirrors the cloud tree into `<mirror>/raw/` and renders every notebook and annotated PDF into `<mirror>/pdf/`. Handles firmware-3.x documents that stock rmrl cannot read at all: the `.rmdoc` container's `cPages` page list and the v6 `.rm` stroke format (bundled parser), plus four rmrl defects patched in-process (pagedata indexing, 3-colour palette, unresolved inherited `/MediaBox`, 0-byte output on failure). Incremental on `modifiedClient`, so an interrupted run re-renders locally instead of re-downloading. | `remarkable-sync/SKILL.md` | `uv` or `python3.11` for the renderer venv, `curl` for the `rmapi` binary; one-time reMarkable Cloud device code |
 | `research-backup` | Mirror untracked research report directories (`outputs/`, `results/`, `report(s)/`) into the locally synced Dropbox folder with rsync, preserving the `<category>/<project>` layout so same-named projects never collide. `discover.sh` scans for candidate directories git does not track (ignored / untracked / outside any repo) and a registry under `~/.config/research-backup/` keeps the backup set explicit; backups are additive (no `--delete`), so local deletions never propagate. | `research-backup/SKILL.md` | `rsync` + the official Dropbox client syncing `~/Dropbox` locally |
 | `research-log` | Register projects and record decisions; surfaces the lesson/rule corpus at decision time (check step warns against past anti-patterns) and on cross-project recall when stuck | `research-log/SKILL.md` | `~/.research/` workspace (auto) |
 | `research-portal` | Build and manage a local MkDocs Material research portal over a folder of Typora/markdown notes: project-grouped sidebar via mkdocs-literate-nav, full LaTeX rendering via MathJax 3, and safe project tagging/renaming that repairs image links | `research-portal/SKILL.md` | `uv`; mkdocs-material and mkdocs-literate-nav are auto-installed by the scaffold script |
@@ -246,6 +247,16 @@ No external setup required. Uses Python standard library only and queries Inspir
 - Optional: set `S2_API_KEY` env var to raise Semantic Scholar rate limits (unauthenticated works but is rate-limited).
 - Helper script: `reference-search/scripts/reference_search.py`.
 
+### remarkable-sync
+
+Installs everything in user space via `remarkable-sync/scripts/install.sh` (`rmapi` binary + `rmrl` venv + `rmrender` / `rmsync` front ends). Requires one-time cloud auth with an 8-char device code; the token lives in `~/.config/rmapi/rmapi.conf`.
+
+- Mirror layout: `<mirror>/raw/<tree>/<name>.rmdoc`, `<mirror>/pdf/<tree>/<name>.pdf`, state in `<mirror>/.state.json`. `RM_MIRROR` sets the root (default `~/Documents/Remarkable`), `RM_SKIP_DIRS` excludes folders (default `trash`).
+- The renderer venv must be Python 3.11 (rmrl pins `reportlab==3.6.13`: wheels exist for cp37-cp311 only and the source no longer compiles on GCC 14+) and pins `setuptools<81` for `pkg_resources`.
+- Firmware-3.x support is the substance of this skill: the `.rmdoc` page list moved into `cPages`, and page strokes use the v6 `.rm` format that rmrl rejects. `scripts/rmv6.py` parses v6 (including three block flags missing from the published Kaitai spec and the ambiguous terminator-delimited id fields) and delegates older documents to rmrl's own parser.
+- `rmapi get` cannot fetch a directory and individual folder listings fail intermittently, so `rmsync` walks with `rmapi -json ls` and skips a failing subtree with a warning rather than aborting.
+- Always verify a render visually (`pdftoppm -png -r 60 -f 1 -l 1 out.pdf /tmp/page`): a non-zero exit does not prove strokes landed. epub-backed documents cannot be rendered and are counted separately.
+
 ### research-backup
 
 Requires `rsync` and the official Dropbox client syncing a local folder (default destination: `~/Dropbox/ResearchBackup/`). No API keys: the skill only writes files under the synced folder and the daemon uploads them.
@@ -371,6 +382,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `overleaf-section-workflow` when you are drafting a physics paper section-by-section on Overleaf and want the disciplined Korean-draft → user-iteration → Opus-direct English-LaTeX → out-of-tree-build loop, with citation-content verification, scienceplots-grade plots, and em/en-dash-free output. This is the orchestration layer; `overleap` is just the sync primitive it builds on.
 - Choose `proton-mail` to search or read Proton Mail messages and threads through a locally running Proton Bridge, useful for retrieving paper notifications, calendar invites, or collaboration emails without leaving the terminal.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
+- Choose `remarkable-sync` to read, back up, or render reMarkable tablet documents on Linux: it mirrors the reMarkable Cloud into a local directory and renders notebooks and annotated PDFs to PDF, including firmware-3.x `.rmdoc` / v6 `.rm` documents that `rmrl` alone cannot open.
 - Choose `research-backup` to back up the untracked `outputs/` / `results/` / `report(s)/` directories of your research projects into the locally synced Dropbox folder, organized as `<category>/<project>` so nothing collides. Additive rsync mirroring, no API calls. Choose `dropbox` instead for one-off file upload/download/share through the API.
 - Choose `research-log` to register projects, record decisions, check past lessons before committing to a new approach (the `check` step warns against known anti-patterns), or recall cross-project findings when stuck (the `recall` step).
 - Choose `research-portal` to build a browsable, math-rendered MkDocs Material site over a folder of existing Typora/markdown notes without modifying the originals.
@@ -403,6 +415,7 @@ skills/
 ├── overleaf-section-workflow/
 ├── proton-mail/
 ├── reference-search/
+├── remarkable-sync/
 ├── research-backup/
 ├── research-log/
 ├── research-portal/

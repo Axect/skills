@@ -2,6 +2,17 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-09-13
+
+### Added
+- `remarkable-sync`: read reMarkable tablet documents on Linux, where the vendor ships no desktop app. `scripts/install.sh` installs the ddvk `rmapi` cloud client and the `rmrl` renderer without sudo, `scripts/rmsync` mirrors the cloud tree and renders each document, `scripts/rmrender` renders one document, and `scripts/rmv6.py` parses the firmware-3.x v6 `.rm` stroke format.
+- `remarkable-sync` carries the firmware-3.x knowledge that makes stock `rmrl` unusable on a current account: the `.rmdoc` container keeps its page order in `cPages.pages[]` rather than a top-level `pages` key (without injecting it `rmrl` renders zero pages and dies in `apply_ocg`), and page strokes use the v6 lines format `rmrl` rejects outright. The bundled parser also covers three block flags absent from the published Kaitai spec (`0x08010100`, `0x0a010000`, `0x0d010000`) and the terminator-delimited id fields whose bytes may themselves contain the terminator, which a forward scan mis-parses.
+- `remarkable-sync` patches four `rmrl` defects in-process, leaving the virtualenv stock: pagedata indexed with `max(page, len - 1)` where the code's own comment intends `min` (IndexError on any document with more pages than template lines), a three-entry colour palette (IndexError on highlighter and firmware-3 colour ids), `merge_pages` reading `CropBox or MediaBox` without resolving PDF attribute inheritance (TypeError on imported books), and rendering straight into the destination, which left a 0-byte PDF behind on failure.
+
+### Notes
+- The renderer virtualenv must be Python 3.11: `rmrl` pins `reportlab==3.6.13`, whose prebuilt wheels stop at cp311 and whose source no longer compiles on GCC 14+ because C23 turns `bool` into a keyword while `gt1-parset1.c` uses it as an identifier. `uv tool install rmrl` can never work either, since `rmrl` declares no console entry point.
+- `rmsync` is incremental on `modifiedClient` and keeps downloaded archives, so an interrupted run is resumed by re-rendering locally instead of re-downloading. `rmapi get` cannot fetch a directory, and individual folder listings fail intermittently, so a failing subtree is reported and skipped rather than aborting the run.
+
 ## 2026-09-10
 
 ### Added
