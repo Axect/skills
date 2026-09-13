@@ -15,6 +15,11 @@ ships none for Linux), no Connect subscription.
 
 `MIRROR` defaults to `~/Documents/Remarkable` (`RM_MIRROR` overrides it).
 
+Environment: `RM_MIRROR` mirror root, `RM_SKIP_DIRS` folder names to skip
+(default `trash`), `RMAPI` the rmapi binary (default `rmapi` on `PATH`),
+`RMRL_VENV` the renderer virtualenv (default `~/.venvs/rmrl`), plus
+`PREFIX`, `RMRL_PYTHON` and `FORCE` for the installer.
+
 ## Components
 
 | Path | Role |
@@ -66,7 +71,7 @@ Two independent incompatibilities, both handled by `rmrender`:
    rejects with `UnsupportedVersion`. `rmv6.py` parses it and is installed over
    `rmrl.lines.readLines`, delegating to the stock parser for older documents.
 
-Four stock rmrl defects are patched in-process, leaving the venv untouched:
+Five stock rmrl defects are patched in-process, leaving the venv untouched:
 
 | Symptom | Cause | Shim |
 | --- | --- | --- |
@@ -92,16 +97,20 @@ that any re-implementation needs:
   first block by trying offsets 80-600 and keeping the walk that consumes the
   file exactly - that exactness is also the format check.
 - line_def: `1f <layer> 2f <line> 3f <prev> 4f <id u16> 54 <done u32>`; when
-  `done == 0`: `6c <len u32> 0314 <pen u32> 24 <color u32> 38 00000000
-  <brush f32> 44 00000000 5c <points_len u32>`, the points, then `6f 0001`.
+  `done == 0`: `6c <len u32> 0314 <pen u32> 24 <color u32> 38 <4 bytes>
+  <brush f32> 44 <4 bytes> 5c <points_len u32>`, the points, then `6f 0001`.
+  Those two 4-byte payloads are pen-dependent, not the zero magic the published
+  spec shows (see below).
 - **The three id fields are terminator-delimited and their bytes may contain the
   terminator value** (an id `01 4f` followed by terminator `4f`). A forward scan
   silently mis-parses a few percent of strokes; try every terminator position
   and keep the reading whose magic chain validates through the trailer.
 - Point = 14 bytes: `x f32, y f32, speed u8, pad, width u8, pad, direction u8,
   pressure u8`.
-- Conversion to rmrl units: `x += 702` (v6 x is page-centred, y is already
-  top-origin), `width / 6.0` -> px, `pressure / 255`, `direction / 256 * 2pi`.
+- Conversion to rmrl units, for a notebook: `x += 702` (v6 x is page-centred, y
+  is already top-origin), `width / 6.0` -> px, `pressure / 255`,
+  `direction / 256 * 2pi`. Imported PDFs need the extra scale below; per-point
+  width stays in screen pixels and is not scaled with it.
 - Pen ids are the firmware-3 generation (ballpoint is 15, mechanical pencil 13);
   rmrl's `PEN_MAPPING` already covers 12-21, so no pen remapping is needed.
 - The four bytes after the `0x38` and `0x44` field tags are **not** always zero,
@@ -109,7 +118,7 @@ that any re-implementation needs:
   drops every stroke drawn with such a pen, which looks exactly like "my
   annotations are missing".
 - Text highlights are a separate block type, `0x03010100`, not strokes: the
-  highlighted text plus four float64s (x, y centre, width, height) in the same
+  highlighted text plus four float64s (x, y top edge, width, height) in the same
   coordinate space. They are emitted as highlighter strokes so rmrl draws
   translucent bands. Colour id 3 is yellow and 9 is pink. Two traps: loose
   plausibility bounds on the float scan match denormal garbage first and produce
@@ -151,11 +160,10 @@ that any re-implementation needs:
   handles both. Locally, `/` in a name becomes `_`, and a name collision inside
   one folder gets an ` (<id prefix>)` suffix so the two documents cannot
   overwrite each other; entries are processed in id order so that suffix never
-  moves between runs. Each fetch runs in a scratch directory, because rmapi
-  writes its output under the visible name and would otherwise clobber the
-  other document's archive before it can be renamed apart. `get --id` still writes its output under the document's
-  visible name, so those directories are created before the fetch and pruned
-  after.
+  moves between runs. Each fetch runs in a throwaway directory, because `get --id`
+  still names its output after the document's visible name: two documents
+  sharing a name would clobber each other's archive before being renamed apart,
+  and a name containing `/` needs those subdirectories to exist.
 - `rmapi` refreshes its user token on every invocation, so walking a whole
   library makes hundreds of token requests and the service starts answering
   `failed to create user token from device token request`. `rmsync` retries
