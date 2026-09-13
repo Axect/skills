@@ -42,6 +42,10 @@ HIGHLIGHT_PEN = 18  # rmrl PEN_MAPPING: highlighter
 # text-highlight colour ids seen in the wild -> palette index
 HIGHLIGHT_COLORS = {3: 3, 9: 5}  # 3 yellow, 9 pink
 HIGHLIGHT_H_FACTOR = 1.0  # band height relative to the recorded line height
+# Where the band sits relative to the recorded y, as a fraction of the line
+# height. Measured against PDF text boxes on documents with 33 px and 104 px
+# line heights: 0.413 and 0.483, i.e. y is essentially the band's top edge.
+HIGHLIGHT_ANCHOR = 0.45
 fallback_readLines = None  # set by rmrender to rmrl's stock parser
 
 # Empirical unit mappings (calibrated on real ballpoint-15 notebooks):
@@ -240,8 +244,7 @@ def _parse_highlight(body):
 
     out = []
     for x, y, w, h in rects:
-        # y is the band's vertical centre (checked against PDF text boxes)
-        mid = y * SCALE + Y_OFFSET
+        mid = (y + HIGHLIGHT_ANCHOR * h) * SCALE + Y_OFFSET
         out.append(
             Stroke(
                 pen=HIGHLIGHT_PEN,

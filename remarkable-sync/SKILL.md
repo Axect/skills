@@ -118,8 +118,11 @@ that any re-implementation needs:
   drops most of the ink off-page. Notebook strokes are screen pixels (x centred,
   y from the top). Annotations on an imported PDF are in page points times
   226/72, so they must be scaled by the device's best-fit factor, with the page
-  top aligned to the canvas top (not letterboxed vertically). Highlight `y` is
-  the band's vertical centre.
+  top aligned to the canvas top (not letterboxed vertically). A highlight's `y`
+  is its top edge: the band centre sits at `y + 0.45 * h`, measured against PDF
+  text boxes on documents with 33 px and 104 px line heights (needing 0.413 and
+  0.483). The offset is proportional to the line height, not constant, so a
+  constant correction fitted on one document is wrong on the next.
 - `readLines` must return `(6, [[stroke, ...], ...])`, a plain list per layer.
   Returning namedtuples breaks `paint_strokes`.
 
@@ -194,12 +197,15 @@ on notebooks with `archive does not contain a unique pagedata file`), takes a
 remote path rather than an id, and re-downloads the document, so it is a
 verification tool here rather than the renderer.
 
-The pipeline was calibrated against it plus the base PDF's own text boxes
-(`pdftotext -bbox`), comparing highlight-tinted pixel masks per page. Current
-agreement on a two-page annotated sample: recall 0.88, precision 0.74 - the
-remainder is band-edge and alpha differences, not placement. Any change to the
-coordinate frame should be re-checked the same way; a bare visual glance misses
-a systematic shift of a few points.
+Band placement is better checked against the base PDF's own text geometry than
+against pixels: match each highlight's recorded text to a line from
+`pdftotext -bbox-layout`, then compare the band centre with that line's centre.
+That residual is now within about 0.4 pt (line heights are ~9 pt); it read
+-4.3 pt before the anchor was calibrated, which looks like "the highlight sits
+slightly too high" and is invisible in a pixel-overlap score. Use the mask
+overlap against `geta` only as a coarse sanity check (currently recall 0.88,
+precision 0.74; the rest is band-edge and alpha difference). Re-run both after
+any change to the coordinate frame.
 
 ## Alternatives, for the record
 
