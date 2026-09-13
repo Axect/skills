@@ -108,28 +108,33 @@ that any re-implementation needs:
 
 ## Sync behaviour and gotchas
 
-- `rmapi get` cannot download a directory; the tree is walked with
-  `rmapi -json ls` (`id, name, type, version, modifiedClient, parent`) and each
-  document fetched individually.
-- Individual folder listings fail sometimes (`Error: no matches for 'X'`) and
-  can transiently return an empty array. `rmsync` reports and skips such a
-  subtree rather than aborting; never trust a single recursive document count.
+- `rmapi -json find /` returns every entry (`id, name, type, version,
+  modifiedClient, parent`) in one call; paths are rebuilt from the `parent`
+  pointers. Do not walk folder by folder with `ls`: a folder whose name is
+  ambiguous cannot be listed at all, so its whole subtree silently disappears
+  from the mirror (that cost 15 documents here), and the per-folder calls
+  trigger the token failures below.
 - Incremental key is `modifiedClient`. Archives are kept, so an interrupted run
   costs no extra bandwidth: re-run and only the missing documents are fetched,
   while existing archives are merely re-rendered locally.
 - The first full mirror downloads the entire library - expect hundreds of MB when
   it holds annotated books and papers. Set `RM_SKIP_DIRS` to exclude folders.
-- Documents deleted in the cloud lose their mirror files. Entries skipped as
-  unreachable are protected from that pass, and the pass is skipped entirely
-  whenever any listing failed: a failed listing is
-  indistinguishable from an emptied folder and would otherwise delete good
-  mirror files. `trash` is skipped.
-- Two classes of document are unreachable through `rmapi`, which addresses
-  entries by path with no escaping, and are reported as `unreachable`: names
-  containing `/`, and two siblings in one folder sharing a name (`no matches
-  for X` / `file doesn't exist`). Rename either one on the tablet to fetch it.
-  The local mirror path is sanitised while the remote path keeps the original
-  names, so ordinary names with spaces or punctuation work.
+- Mirror files no live document claims are removed (deleted in the cloud,
+  renamed, re-suffixed), and emptied directories are pruned. This is safe only
+  because the tree arrives in one call: if it fails, `rmsync` aborts before the
+  cleanup. `trash` is skipped.
+- Nothing is addressed by path, because `rmapi`'s path syntax has no escaping:
+  a name containing `/` and two siblings sharing a name are both unresolvable
+  (`file doesn't exist` / `no matches for X`). The whole tree comes from one
+  `rmapi -json find /` call and documents are fetched with `get --id`, which
+  handles both. Locally, `/` in a name becomes `_`, and a name collision inside
+  one folder gets an ` (<id prefix>)` suffix so the two documents cannot
+  overwrite each other; entries are processed in id order so that suffix never
+  moves between runs. Each fetch runs in a scratch directory, because rmapi
+  writes its output under the visible name and would otherwise clobber the
+  other document's archive before it can be renamed apart. `get --id` still writes its output under the document's
+  visible name, so those directories are created before the fetch and pruned
+  after.
 - `rmapi` refreshes its user token on every invocation, so walking a whole
   library makes hundreds of token requests and the service starts answering
   `failed to create user token from device token request`. `rmsync` retries

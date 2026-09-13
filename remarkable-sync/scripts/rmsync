@@ -7,18 +7,21 @@ Layout (MIRROR defaults to ~/Documents/Remarkable, override with RM_MIRROR):
     <MIRROR>/pdf/<tree>/<name>.pdf     rendered by ./rmrender
     <MIRROR>/.state.json               id -> {path, modifiedClient}
 
+Everything is addressed by document ID, never by path:
+
+- The whole tree comes from one `rmapi -json find /` call, and paths are rebuilt
+  locally from the `parent` pointers. Walking folder by folder with `ls` instead
+  loses every subtree whose folder name is ambiguous, and makes hundreds of
+  token requests, which the cloud starts refusing.
+- Documents are fetched with `rmapi get --id <id>`, so names containing "/" and
+  siblings sharing a name - neither addressable by path - work like any other.
+
 Incremental: a document is re-downloaded only when its cloud `modifiedClient`
-differs from the recorded one. Re-running after an interrupted run costs no
-bandwidth, because existing archives are kept and only re-rendered.
+differs from the recorded one. Archives are kept, so an interrupted run is
+resumed by re-rendering locally rather than re-downloading.
 
-`rmapi get` cannot fetch a directory, so the tree is walked with
-`rmapi -json ls` and every document fetched individually. Folder listings do
-fail occasionally; such a subtree is reported and skipped instead of aborting
-the whole run.
-
-The trash collection is skipped. Documents that disappeared from the cloud have
-their mirror entries removed - but only when every listing succeeded, since a
-failed listing looks exactly like an emptied folder.
+Documents that disappeared from the cloud have their mirror files removed. The
+trash collection is skipped.
 
 Environment: RM_MIRROR, RMAPI (rmapi binary, default `rmapi` on PATH),
 RM_SKIP_DIRS (comma-separated folder names to skip, default `trash`).
@@ -27,8 +30,8 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
-from collections import Counter
 from pathlib import Path
 
 BASE = Path(os.environ.get("RM_MIRROR", Path.home() / "Documents/Remarkable")).expanduser()
@@ -46,9 +49,9 @@ SKIP_DIRS = {
 def rmapi(*args, retries=3, **kw):
     """Run rmapi, retrying transient cloud-auth failures.
 
-    rmapi refreshes its user token per invocation, so a whole-tree walk makes
-    hundreds of token requests and the service starts answering `failed to
-    create user token from device token request`. Backing off clears it."""
+    rmapi refreshes its user token on every invocation, so a large run makes
+    many token requests and the service starts answering `failed to create
+    user token from device token request`. Backing off clears it."""
     detail = ""
     for attempt in range(retries):
         r = subprocess.run([RMAPI, *args], capture_output=True, text=True, **kw)
@@ -61,39 +64,54 @@ def rmapi(*args, retries=3, **kw):
     raise RuntimeError(f"{RMAPI} {' '.join(args)}: {detail}")
 
 
-LIST_FAILURES = []
-AMBIGUOUS = []
+def cloud_documents():
+    """Yield (entry, local_relative_path) for every live document."""
+    entries = json.loads(rmapi("-json", "find", "/"))
+    by_id = {e["id"]: e for e in entries}
 
+    def ancestry(entry):
+        """Entry plus its ancestor folders, innermost first."""
+        chain, cur, seen = [], entry, set()
+        while cur is not None and cur["id"] and cur["id"] not in seen:
+            seen.add(cur["id"])
+            chain.append(cur)
+            cur = by_id.get(cur["parent"])
+        return chain
 
-def walk(path="/", rel=""):
-    """Yield (entry, local_relative_path, remote_path).
-
-    The local path is sanitised (a document name may contain "/"), the remote
-    path keeps the original names so `rmapi get` can resolve it."""
-    try:
-        entries = json.loads(rmapi("-json", "ls", path))
-    except (RuntimeError, json.JSONDecodeError) as err:
-        print(f"WARN cannot list {path}: {str(err)[:120]}")
-        LIST_FAILURES.append(path)
-        return
-    # rmapi addresses entries by name, so two siblings sharing a name cannot be
-    # resolved at all ("no matches for X" / "file doesn't exist"). Skip them.
-    counts = Counter(e["name"] for e in entries)
-    for e in entries:
-        name = e["name"].replace("/", "_")
-        rpath = f"{rel}/{name}" if rel else name
-        remote = f"{path.rstrip('/')}/{e['name']}"
-        if counts[e["name"]] > 1:
-            if rpath not in AMBIGUOUS:
-                AMBIGUOUS.append(rpath)
-                print(f"SKIP ambiguous name (duplicate sibling): {rpath}")
+    used = {}
+    # sorted by id: the document that keeps the unsuffixed path must not change
+    # from run to run, otherwise the mirror renames files on every sync
+    for e in sorted(entries, key=lambda x: x["id"]):
+        if e["type"] != "DocumentType":
             continue
-        if e["type"] == "CollectionType":
-            if name.lower() in SKIP_DIRS:
-                continue
-            yield from walk(remote, rpath)
-        else:
-            yield e, rpath, remote
+        chain = ancestry(e)
+        if any(node["name"].lower() in SKIP_DIRS for node in chain[1:]):
+            continue
+        # a document name may contain "/", which must not become a directory
+        parts = [node["name"].replace("/", "_") for node in reversed(chain)]
+        rpath = "/".join(parts)
+        # two documents may share a name inside one folder, which would make
+        # them overwrite each other locally; keep both by adding an id suffix
+        if used.setdefault(rpath, e["id"]) != e["id"]:
+            rpath = f"{rpath} ({e['id'][:8]})"
+        yield e, rpath
+
+
+def download(entry, raw_f):
+    """Fetch a document by id and move it to raw_f.
+
+    rmapi names its output after the document's visible name, so the fetch runs
+    in a scratch directory: otherwise a name containing "/" fails on the missing
+    directories, and two documents sharing a name overwrite each other's
+    archive before we can rename them apart."""
+    with tempfile.TemporaryDirectory(dir=raw_f.parent) as tmp:
+        tmpdir = Path(tmp)
+        written = tmpdir / f"{entry['name']}.rmdoc"
+        written.parent.mkdir(parents=True, exist_ok=True)
+        rmapi("get", "--id", entry["id"], cwd=tmpdir, timeout=900)
+        if not written.exists():
+            raise RuntimeError(f"no archive at {written.name}")
+        written.replace(raw_f)
 
 
 def main():
@@ -101,19 +119,12 @@ def main():
     PDF.mkdir(parents=True, exist_ok=True)
     state = json.loads(STATE.read_text()) if STATE.exists() else {}
     newstate = {}
-    stats = {"downloaded": 0, "rendered": 0, "skipped": 0, "epub": 0, "failed": 0, "unreachable": 0, "deleted": 0}
+    stats = {"downloaded": 0, "rendered": 0, "skipped": 0, "epub": 0, "failed": 0, "deleted": 0}
 
-    for e, rpath, remote in walk():
+    for e, rpath in cloud_documents():
         eid = e["id"]
         newstate[eid] = {"path": rpath, "modifiedClient": e["modifiedClient"]}
         raw_f, pdf_f = RAW / f"{rpath}.rmdoc", PDF / f"{rpath}.pdf"
-
-        if "/" in e["name"] and not raw_f.exists():
-            # rmapi addresses documents by path and has no escaping, so a name
-            # containing "/" is unreachable; rename it on the tablet to fetch it
-            print(f"SKIP unreachable name (contains '/'): {rpath}")
-            stats["unreachable"] += 1
-            continue
 
         unchanged = (
             eid in state
@@ -141,18 +152,11 @@ def main():
         pdf_f.parent.mkdir(parents=True, exist_ok=True)
         if need_download:
             try:
-                rmapi("get", remote, cwd=raw_f.parent, timeout=600)
+                download(e, raw_f)
             except (RuntimeError, subprocess.TimeoutExpired) as err:
-                print(f"FAIL download {remote}: {str(err)[:160]}")
+                print(f"FAIL download {rpath}: {str(err)[:160]}")
                 stats["failed"] += 1
                 continue
-            got = next(raw_f.parent.glob(f"{e['name']}*.rmdoc"), None)
-            if got is None:
-                print(f"FAIL download {remote}: no archive appeared")
-                stats["failed"] += 1
-                continue
-            if got != raw_f:
-                got.rename(raw_f)
             stats["downloaded"] += 1
 
         if (
@@ -175,23 +179,23 @@ def main():
             print(f"FAIL render {rpath}: {last[:160]}")
             stats["failed"] += 1
 
-    # Never treat a document as deleted when part of the tree could not be
-    # listed: a failed listing is indistinguishable from an emptied folder.
-    if LIST_FAILURES:
-        print(f"NOTE {len(LIST_FAILURES)} listing(s) failed; skipping deletion pass")
-    else:
-        protected = set(AMBIGUOUS)
-        for eid, old in state.items():
-            if eid not in newstate and old.get("path") not in protected:
-                for f in (RAW / f"{old['path']}.rmdoc", PDF / f"{old['path']}.pdf"):
-                    if f.exists():
-                        f.unlink()
-                        stats["deleted"] += 1
+    # Remove mirror files that no live document claims: documents deleted in the
+    # cloud, and paths left behind when a document was renamed or re-suffixed.
+    # Safe because the tree arrived in one call, so `newstate` is complete.
+    live = {v["path"] for v in newstate.values()}
+    for root, ext in ((RAW, ".rmdoc"), (PDF, ".pdf")):
+        for f in root.rglob(f"*{ext}"):
+            if str(f.relative_to(root))[: -len(ext)] not in live:
+                f.unlink()
+                stats["deleted"] += 1
+    for root in (RAW, PDF):
+        for d in sorted(root.rglob("*"), key=lambda x: -len(x.parts)):
+            if d.is_dir() and not any(d.iterdir()):
+                d.rmdir()
 
     STATE.write_text(json.dumps(newstate, indent=1, ensure_ascii=False))
-    stats["unreachable"] += len(AMBIGUOUS)
     print(json.dumps(stats))
-    return 0
+    return 1 if stats["failed"] else 0
 
 
 if __name__ == "__main__":
