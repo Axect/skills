@@ -1,6 +1,6 @@
 # Client Setup Guide
 
-This document explains how to use the skills in this repository from different clients, with a focus on Claude Code, Codex, Forge-style local setups, Pi, and Antigravity (agy).
+This document explains how to use the skills in this repository from different clients, with a focus on Claude Code, Codex, Forge-style local setups, Pi, omp, and Antigravity (agy).
 
 ## What this repository provides
 
@@ -317,6 +317,48 @@ After installation, start Pi and either:
 
 - run `/skill:<name>` for an installed skill, or
 - ask for a task that should naturally trigger the skill.
+
+## omp (Oh My Pi)
+
+omp reads a YAML config at `~/.omp/agent/config.yml` and scans registered
+directories recursively, so the whole collection is registered once and a
+`git pull` is the only update step. This is the recommended setup: no symlinks,
+and deprecated skills stay out because their entrypoint is renamed to
+`SKILL.md.deprecated`.
+
+### Option 1: register the collection in config.yml (recommended)
+
+```yaml
+skills:
+  customDirectories:
+    - ~/Documents/Project/AI_Project/skills
+```
+
+Several roots may be listed. Paths may use `~`.
+
+### Option 2: symlink individual skills
+
+omp also honours the shared per-skill layout, so the `~/.pi/agent/skills` and
+`~/.agents/skills` patterns in the Pi section work if you prefer explicit
+symlinks.
+
+### Behavior notes
+
+- `~/.omp/agent/managed-skills/` is omp's own writable area for skills it
+  authors during a session. Do not put repository skills there and do not let
+  an agent edit them from this checkout; keep the two sources separate.
+- Registration is by directory, so a skill added to this repository becomes
+  available without touching any client configuration.
+
+### Quick verification
+
+```bash
+grep -A3 '^skills:' ~/.omp/agent/config.yml
+```
+
+Then, inside a session, resolve the skill by name - `skill://remarkable-sync`
+should return its `SKILL.md`. A skill that exists on disk but does not resolve
+usually means its directory is not under a registered root.
 
 ## Antigravity (agy)
 
