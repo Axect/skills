@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-09-22
+
+### Added
+- `clickup-cli`: a portable skill for an existing authenticated ClickUp CLI, covering task and hierarchy discovery, deadlines, priorities, checklists, comments, custom fields, attachments, docs and time tracking. Registered in the skill index, chooser, directory trees and client installation lists.
+
+### Notes
+- Checked against `clickup-cli` v0.18.0 with live read-only authentication, task and list queries. Singleton JSON detail responses are arrays, `--fields` does not project JSON output, and list statuses can differ from their parent space; the skill handles these explicitly rather than assuming object-shaped responses or universal completion labels.
+- Writes require explicit targets and independent readback; response-loss recovery reconciles remote state before retrying. No account IDs, personal task data, credentials or machine-specific installation paths are included in the skill.
+
 ## 2026-09-13
 
 ### Added

@@ -27,6 +27,7 @@ Directories created before this convention keep their names, and a directory is 
 | `academic-jobs` | Curate academic opportunities from AJO/InspireHEP **and official institution/group recruitment**. Broad postdoc searches include both tracks; explicit board-only requests remain narrow. Merge verified vacancies while separating standing routes, prospects and conflicting evidence. Bundles the `ajo` board CLI and a portable direct-snapshot validator/diff. | `academic-jobs/SKILL.md` | `uv` for the board CLI; Python 3 for the standard-library snapshot helper; web search/read tools for direct discovery |
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
+| `clickup-cli` | Manage ClickUp tasks, deadlines, priorities, checklists, comments and workspace resources with read-after-write verification | `clickup-cli/SKILL.md` | Installed `clickup-cli` with configured authentication |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; every explanation is archived to `~/Dropbox/ConceptExplainer/<Topic>/YYYYMMDD_<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
@@ -88,6 +89,18 @@ No external setup required. The HEP (InspireHEP), publisher-fallback (CrossRef),
 - Source-native bibtex keys are preserved verbatim: `Author:YYYYabc` (InspireHEP), `firstauthorYYYYword` (Scholar), `Lastname_Year` (CrossRef). The skill does not rewrite keys.
 - The orchestrator sleeps 0.5 s between batch queries by default to stay polite with all three APIs (`--sleep 0` to disable).
 - Helper script: `bibtex-gen/scripts/bibtex_gen.py`. See `bibtex-gen/references/examples.md` for full CLI patterns.
+
+### clickup-cli
+
+Requires an installed and authenticated `clickup-cli` on `PATH`. Reuses its existing configuration; no helper scripts or second credential store are needed.
+
+```bash
+clickup-cli --version
+clickup-cli auth check
+clickup-cli --output json space list
+```
+
+The skill covers hierarchy discovery, task creation and updates, deadlines, priorities, checklists, comments, custom fields, attachments, docs and time tracking. It requires explicit task IDs, list-specific status discovery and independent readback after writes. Command details were checked against v0.18.0; remote verification was read-only. Use `morgen` instead for Morgen calendars and tasks.
 
 ### commit-triage
 
@@ -371,6 +384,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `academic-jobs` for academic opportunity curation: broad postdoc requests combine AJO/InspireHEP with official institution/group discovery automatically. Explicit board-only requests stay narrow; named-lab searches start with the employer. Results separate verified vacancies, standing routes, research-fit leads and conflicts, with source-aware deduplication and dated update tracking.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
+- Choose `clickup-cli` to inspect or manage ClickUp tasks and workspace resources through an already configured CLI, with duplicate prevention and saved-value verification.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (archived to Dropbox under a date-prefixed folder).
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
@@ -403,6 +417,8 @@ skills/
 ├── academic-jobs/
 ├── adversarial-review/
 ├── bibtex-gen/
+├── clickup-cli/
+│   └── SKILL.md
 ├── commit-triage/
 ├── concept-explainer/
 ├── deprecated/              # retired skills, entrypoint renamed so nothing loads them
