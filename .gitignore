@@ -27,3 +27,6 @@ journal-club-review/reviews/
 
 # Per-skill uv virtualenvs
 **/.venv/
+
+# academic-jobs lock resolves against a machine-local PyPI mirror
+academic-jobs/uv.lock
