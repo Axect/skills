@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-09-28
+
+### Added
+- `chrome-session`: read pages from the user's logged-in Chrome through Playwright MCP's `--extension` mode. `scripts/chrome_session.py` runs one command per invocation (`text`, `fetch`, `eval`, `snapshot`) in its own tab inside the agent's tab group, closes the tab, and deletes the server's `.playwright-mcp/` output. The extension token is read from the environment or a chmod-600 file, so no approval dialog appears per connection. Registered in the skill index and client installation lists.
+
+### Notes
+- Chosen after comparing ego-lite (macOS only), Stagehand and other remote-debugging-port tools (Chrome 136+ ignores the port on the default profile, so logins do not carry over) and Chrome DevTools MCP `--autoConnect` (Allow dialog on every new connection, access to every open window).
+
 ## 2026-09-22
 
 ### Added
