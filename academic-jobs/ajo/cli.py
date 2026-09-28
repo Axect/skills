@@ -150,7 +150,7 @@ def cmd_config(args: argparse.Namespace) -> int:
 
 def cmd_fetch(args: argparse.Namespace) -> int:
     now = datetime.now()
-    if args.keyword:
+    if args.keyword is not None:  # "" = unfiltered full-board sweep, not preset fallback
         keywords = [args.keyword]
         position_types, countries = _split(args.types) or [], _split(args.countries) or []
         preferred_tiers = _split_tiers(args.preferred) or []
@@ -517,7 +517,7 @@ def build_parser() -> argparse.ArgumentParser:
     f = sub.add_parser("fetch", help="search AJO and store valid postings")
     g = f.add_mutually_exclusive_group()
     g.add_argument("--preset", help="preset name (default: config default)")
-    g.add_argument("--keyword", help="single ad-hoc keyword instead of a preset")
+    g.add_argument("--keyword", help='single ad-hoc keyword instead of a preset ("" = whole board)')
     f.add_argument("--limit", type=int, default=fetchmod.DEFAULT_LIMIT, help="page size")
     f.add_argument("--source", choices=["ajo", "inspire", "both"],
                    help="override preset sources: just one board, or both")
