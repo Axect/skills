@@ -39,6 +39,7 @@ Directories created before this convention keep their names, and a directory is 
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
 | `overleaf-section-workflow` | Disciplined section-by-section workflow for Overleaf physics-paper drafts: Korean intermediate draft → user iteration → Opus-direct English LaTeX → out-of-tree build. Codifies non-negotiables (no em/en-dashes, no forward refs in background, citation content verified, scienceplots conventions, build never inside sync folder) and orchestrates `overleap`, `scienceplot-py`, `reference-search`, `bibtex-gen`, and `commit-triage` in turn. | `overleaf-section-workflow/SKILL.md` | TeX distribution (`pdflatex`, `bibtex`) + the companion skills it orchestrates |
+| `peer-agent-review` | Get a second AI agent's verdict or discussion on your work: by default the live GPT-6-Astra omp session in the same Orca worktree, or any other live omp/Claude Code/Codex session, or a headless one-shot CLI (`codex exec`, `claude -p`, `omp -p`). Writes a durable brief, sends a one-line pointer, verifies delivery in the agent's session store, waits for the turn to finish, and reads the answer from the store. Accept mode (first line 수락/수정 필요 with replacement sentences) and discussion mode. | `peer-agent-review/SKILL.md` | Orca CLI (`orca-ide`) for live sessions; the chosen agent CLI for one-shot reviews |
 | `proton-mail` | Read and search Proton Mail through a locally running Proton Bridge (read-only IMAP over STARTTLS on 127.0.0.1); does not send, delete, or move messages | `proton-mail/SKILL.md` | Proton Bridge running locally + `~/.proton-imap` credentials file (chmod 600) |
 | `reference-search` | Search and curate academic references via domain-aware routing across InspireHEP, OpenAlex, and Semantic Scholar for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python; optional `S2_API_KEY` env var) |
 | `remarkable-sync` | Read reMarkable tablet documents on Linux, where no official desktop app exists: installs the ddvk `rmapi` cloud client and the `rmrl` renderer without sudo, mirrors the cloud tree into `<mirror>/raw/` and renders every notebook and annotated PDF into `<mirror>/pdf/`. Handles firmware-3.x documents that stock rmrl cannot read at all: the `.rmdoc` container's `cPages` page list and the v6 `.rm` stroke format (bundled parser), text highlights, which live in their own block type and are not strokes at all; plus five rmrl defects patched in-process (pagedata indexing, 3-colour palette, unresolved inherited `/MediaBox`, 0-byte output on failure, square line caps that overhang every highlight band). Incremental on `modifiedClient`, so an interrupted run re-renders locally instead of re-downloading. | `remarkable-sync/SKILL.md` | `uv` or `python3.11` for the renderer venv, `curl` for the `rmapi` binary; one-time reMarkable Cloud device code |
@@ -244,6 +245,10 @@ Requires a working TeX distribution on `PATH` and the companion skills it orches
 - Translation is **Opus-only** by user mandate — this skill explicitly forbids delegating section translation to a Sonnet subagent, even where the general lab convention would. See `references/05_translation_rules.md`.
 - All draft text and final LaTeX must be em/en-dash-free; verify with `grep -cP "[\x{2013}\x{2014}]" <file>` (must return 0).
 
+### peer-agent-review
+
+Sends a brief to another agent and returns its answer. Live sessions are reached through Orca (`orca-ide terminal send`), so the reviewer must already be running in an Orca terminal; delivery and the answer are read from the agent's own session store (`~/.omp/agent/sessions`, `~/.claude/projects`, `~/.codex/sessions`). Targets are built in (`astra`, `sol`, `luna`, `opus`, `codex`, `claude`) and can be extended with `~/.config/peer-agent-review/targets.json` (or `$PEER_REVIEW_TARGETS`); `PEER_REVIEW_DEFAULT` changes the default target and `ORCA_CLI` the Orca binary name.
+
 ### proton-mail
 
 Requires a locally running Proton Bridge instance and a credentials file at `~/.proton-imap` (chmod 600).
@@ -396,6 +401,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
 - Choose `overleaf-section-workflow` when you are drafting a physics paper section-by-section on Overleaf and want the disciplined Korean-draft → user-iteration → Opus-direct English-LaTeX → out-of-tree-build loop, with citation-content verification, scienceplots-grade plots, and em/en-dash-free output. This is the orchestration layer; `overleap` is just the sync primitive it builds on.
+- Choose `peer-agent-review` when you want another agent (Astra by default) to accept or reject a change, or to debate a structural decision with you, and you want delivery and the answer verified rather than scraped from a terminal.
 - Choose `proton-mail` to search or read Proton Mail messages and threads through a locally running Proton Bridge, useful for retrieving paper notifications, calendar invites, or collaboration emails without leaving the terminal.
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
 - Choose `remarkable-sync` to read, back up, or render reMarkable tablet documents on Linux: it mirrors the reMarkable Cloud into a local directory and renders notebooks and annotated PDFs to PDF, including firmware-3.x `.rmdoc` / v6 `.rm` documents that `rmrl` alone cannot open.
@@ -431,6 +437,9 @@ skills/
 ├── morgen/
 ├── overleap/
 ├── overleaf-section-workflow/
+├── peer-agent-review/
+│   ├── SKILL.md
+│   └── scripts/peer_review.py
 ├── proton-mail/
 ├── reference-search/
 ├── remarkable-sync/

@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-10-07
+
+### Added
+- `peer-agent-review`: ask another agent to review or discuss a brief and read its answer. `scripts/peer_review.py targets|resolve|send|wait|ask|read`, default target `astra` (the live omp session in the same Orca worktree whose model matches `/astra/`), other live omp sessions by model regex or handle, Claude Code/Codex sessions by handle or title regex, and headless one-shot targets (`codex exec -s read-only`, `claude -p --permission-mode plan`, `omp -p`). Accept and discussion modes; optional `~/.config/peer-agent-review/targets.json`.
+
+### Notes
+- The manual loop it replaces failed in four ways during a manuscript revision: terminal handles went stale after every Orca restart and messages were silently not delivered (Orca returned `accepted: true`); a reviewer terminal was misidentified because Orca titles lag behind session titles; `tui-idle` waits fired mid-turn; and answers scraped from the TUI were hard-wrapped. The helper resolves the reviewer from the session store, proves delivery by finding the marker in that store, waits for a settled assistant record with no busy token, and excludes the caller's own terminal (`$ORCA_TERMINAL_HANDLE`).
+
 ## 2026-09-28
 
 ### Added
