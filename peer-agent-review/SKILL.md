@@ -1,6 +1,6 @@
 ---
 name: peer-agent-review
-description: "Ask another AI agent to review or discuss your work and act on its answer: by default a live omp session running GPT-6-Astra in the same Orca worktree (\"Astra 확인\", \"Astra와 논의해봐\", \"Astra에게 검토\"), or any other live omp/Claude Code/Codex session, or a headless one-shot CLI (codex exec, claude -p, omp -p). Writes a durable brief, sends a one-line pointer, verifies delivery in the agent's session store, waits for the turn to finish, and reads the answer from the store. Encodes the accept loop (first line 수락/수정 필요 with replacement sentences, re-send until accepted) and the discussion mode (judgments, reasons, counterarguments, no verdict). Use adversarial-review for a parallel persona swarm inside your own session; use workshop-paper-review for OpenReview reports."
+description: "Ask another AI agent to review or discuss your work and act on its answer: by default a permanent live omp session running GPT-6-Astra in the same Orca worktree, launched automatically in a new Orca terminal when none exists and reused for every later brief (\"Astra 확인\", \"Astra와 논의해봐\", \"Astra에게 검토\"), or any other live omp/Claude Code/Codex session, or a headless one-shot CLI (codex exec, claude -p, omp -p). Writes a durable brief, sends a one-line pointer, verifies delivery in the agent's session store, waits for the turn to finish, and reads the answer from the store. Encodes the accept loop (first line 수락/수정 필요 with replacement sentences, re-send until accepted) and the discussion mode (judgments, reasons, counterarguments, no verdict). Use adversarial-review for a parallel persona swarm inside your own session; use workshop-paper-review for OpenReview reports."
 ---
 
 # peer-agent-review: get a second agent's verdict or discussion, then act on it
@@ -8,11 +8,20 @@ description: "Ask another AI agent to review or discuss your work and act on its
 One helper, `scripts/peer_review.py`. A reviewer is a *target*. The default target
 `astra` is the live omp session in the current worktree whose session model matches
 `/astra/`. Other built-in targets: `sol`, `luna`, `opus` (live omp sessions by model),
-`codex` and `claude` (headless one-shot). Any unknown target name is treated as a model
-regex for a live omp session. Your own terminal (`$ORCA_TERMINAL_HANDLE`) is never chosen.
+`codex` and `claude` (live Codex / Claude Code TUIs). Any unknown target name is treated as a
+model regex for a live omp session. Your own terminal (`$ORCA_TERMINAL_HANDLE`) is never chosen.
+
+**The reviewer is permanent.** If no live reviewer exists in the worktree, `send`/`ask` launch
+one in a new Orca terminal (`omp --model gpt-6-astra --thinking medium` for astra; override the
+level with `--thinking`) and remember its handle in `~/.cache/peer-agent-review/reviewers.json`.
+Every later brief goes to the same session, so the reviewer keeps its own earlier answers and
+the loop below can run to agreement. Do not use a headless one-shot unless the user asks for
+it (`--oneshot`): it forgets everything after one answer and cannot be argued with.
 
     P=<skill dir>/scripts/peer_review.py
-    python3 $P targets                       # what each target resolves to here
+    python3 $P targets                       # what each target resolves to here (never launches)
+    python3 $P spawn [-t sol] [--thinking high]   # launch or reuse the permanent reviewer
+    python3 $P close [-t sol]                # close the reviewer terminal when the work is done
     python3 $P ask --brief _guide/x.md --marker 'sec3 KO check'                # Astra, accept mode
     python3 $P ask -t sol --mode discuss --brief _guide/x.md --marker '구조 논의'
     python3 $P ask -t codex --brief notes/brief.md --marker 'second opinion' --out ans.md
@@ -62,18 +71,21 @@ holds an unsubmitted user draft (never send over it without asking).
 ## Choosing another reviewer
 
 - Same live agent, different model: `-t sol`, `-t luna`, `-t <regex>`; or `--handle term_…`.
+  Named targets are launched when missing; `--no-launch` makes a missing reviewer an error.
 - Another worktree's agent (e.g. the experiment repo's session for recipe facts):
   `--cwd <that worktree>` with `-t <model regex>` or `--handle`. Give it full context in the
   brief; it has not seen your conversation.
-- Claude Code or Codex TUI sessions: pass `--handle`, or add a target with
-  `"agent": "claude"` / `"codex"` and a `"title"` regex in the targets file.
-- No live session: `--oneshot` (or a oneshot target) runs the configured CLI with the brief
-  on stdin. Codex runs with `-s read-only`; Claude with `--permission-mode plan`.
+- Claude Code or Codex TUI sessions: `-t codex` / `-t claude` launch them read-only
+  (`codex -s read-only`, `claude --permission-mode plan`); an existing one needs `--handle` or
+  a `"title"` regex in the targets file.
+- Headless one-shot only when the user asks: `--oneshot` runs the target's `oneshot` CLI with
+  the brief on stdin (no memory between briefs).
 
 Targets file (optional): `$PEER_REVIEW_TARGETS`, default
 `~/.config/peer-agent-review/targets.json`, merged over the built-ins, e.g.
 
-    {"astra": {"oneshot": ["omp", "-p", "--no-session", "--model", "gpt-6-astra", "--thinking", "high"]},
+    {"astra": {"thinking": "high"},
+     "mylab": {"transport": "session", "agent": "omp", "model": "glm", "launch": ["omp", "--model", "glm-5"]},
      "gemini": {"transport": "oneshot", "agent": "gemini", "oneshot": ["gemini", "-p"]}}
 
 `PEER_REVIEW_DEFAULT` changes the default target; `ORCA_CLI` overrides the Orca binary
@@ -81,7 +93,13 @@ name (default `orca-ide`; a bare `orca` can be the GNOME screen reader on Linux)
 
 ## How it works and why (traps it handles)
 
-- Resolution: for omp targets it scans the worktree's session store
+- Resolution order: `--handle`; the remembered permanent reviewer if its terminal still exists;
+  a `"title"` regex; for omp targets the session store (below); otherwise launch. A stale
+  handle is forgotten and the reviewer re-resolved or relaunched.
+- Launch: `orca terminal create --worktree id:<this worktree> --command <launch>` then
+  `terminal wait --for tui-idle` (must report `satisfied`) before the first send; a prompt typed
+  into a TUI that is still starting is lost.
+- Session-store resolution: for omp targets it scans the worktree's session store
   (`~/.omp/agent/sessions/-<cwd relative to $HOME, / → ->`), picks the newest session whose
   dominant `"model"` matches the regex, reads its title (first record), and finds the omp
   terminal in that worktree whose title contains it. Terminal titles and handles change

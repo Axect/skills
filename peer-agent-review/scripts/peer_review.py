@@ -5,15 +5,22 @@ Two transports:
   session  a live agent session in an Orca terminal (omp, Claude Code or Codex TUI).
            A one-line pointer to the brief file is typed into the terminal, delivery is
            verified in the agent's session store, and the answer is read from that store.
-  oneshot  a headless CLI call (omp -p, codex exec, claude -p) with the brief on stdin.
+           If no live reviewer exists in the worktree, one is launched in a new Orca terminal
+           (the target's `launch` command) and kept running, so later briefs go to the same
+           session and the discussion can continue until agreement. The handle is remembered in
+           ~/.cache/peer-agent-review/reviewers.json per (worktree, target).
+  oneshot  a headless CLI call (omp -p, codex exec, claude -p) with the brief on stdin. Used only
+           with --oneshot: a one-shot reviewer forgets everything after one answer.
 
 Targets come from built-in defaults merged with an optional JSON file
 ($PEER_REVIEW_TARGETS, default ~/.config/peer-agent-review/targets.json). The default
 target is "astra": the live omp session in the current worktree whose model matches /astra/.
 
 Commands
-  targets                      list targets and what each resolves to here
+  targets                      list targets and what each resolves to here (never launches)
   resolve  [-t T]              show the terminal handle and session file for a target
+  spawn    [-t T] [--thinking L]   launch (or reuse) the permanent reviewer and print its handle
+  close    [-t T]              close the reviewer terminal and forget it
   send     [-t T] --brief F --marker M [--mode accept|discuss|free] [--note TEXT]
   wait     [-t T] --marker M [--out FILE] [--timeout S]
   ask      [-t T] --brief F --marker M [...]       send, then wait (session or oneshot)
@@ -44,18 +51,26 @@ BUSY = {
     'codex': ['esc to interrupt', 'Working'],
 }
 
+# `launch` starts the permanent reviewer in an Orca terminal (thinking level from --thinking or
+# the target's `thinking`); `oneshot` is the headless fallback used only with --oneshot.
 BUILTIN_TARGETS = {
-    'astra': {'transport': 'session', 'agent': 'omp', 'model': r'astra',
+    'astra': {'transport': 'session', 'agent': 'omp', 'model': r'astra', 'thinking': 'medium',
+              'launch': ['omp', '--model', 'gpt-6-astra'],
               'oneshot': ['omp', '-p', '--no-session', '--model', 'gpt-6-astra']},
-    'sol': {'transport': 'session', 'agent': 'omp', 'model': r'\bsol\b|-sol',
+    'sol': {'transport': 'session', 'agent': 'omp', 'model': r'\bsol\b|-sol', 'thinking': 'medium',
+            'launch': ['omp', '--model', 'sol'],
             'oneshot': ['omp', '-p', '--no-session', '--model', 'sol']},
-    'luna': {'transport': 'session', 'agent': 'omp', 'model': r'luna'},
-    'opus': {'transport': 'session', 'agent': 'omp', 'model': r'opus'},
-    'codex': {'transport': 'oneshot', 'agent': 'codex',
+    'luna': {'transport': 'session', 'agent': 'omp', 'model': r'luna', 'thinking': 'medium',
+             'launch': ['omp', '--model', 'luna']},
+    'opus': {'transport': 'session', 'agent': 'omp', 'model': r'opus', 'thinking': 'medium',
+             'launch': ['omp', '--model', 'opus']},
+    'codex': {'transport': 'session', 'agent': 'codex', 'launch': ['codex', '-s', 'read-only'],
               'oneshot': ['codex', 'exec', '--skip-git-repo-check', '-s', 'read-only', '-']},
-    'claude': {'transport': 'oneshot', 'agent': 'claude',
+    'claude': {'transport': 'session', 'agent': 'claude', 'launch': ['claude', '--permission-mode', 'plan'],
                'oneshot': ['claude', '-p', '--permission-mode', 'plan']},
 }
+REGISTRY = HOME / '.cache/peer-agent-review/reviewers.json'
+
 
 MODE_SUFFIX = {
     'accept': "첫 줄에 '수락' 또는 '수정 필요'를 쓰고, 필수 수정은 대안 문장으로 줘. 파일은 수정하지 마.",
@@ -99,6 +114,60 @@ def terminals() -> list[dict]:
 def terminal_tail(handle: str, limit: int = 25) -> str:
     d = orca('terminal', 'read', '--terminal', handle, '--limit', str(limit))
     return '\n'.join(d.get('result', {}).get('terminal', {}).get('tail', []))
+
+
+# ---------------------------------------------------------------- permanent reviewers
+def registry() -> dict:
+    try:
+        return json.loads(REGISTRY.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def remember(cwd: str, target: str, handle: str | None) -> None:
+    reg = registry()
+    key = f'{cwd}::{target}'
+    if handle:
+        reg[key] = handle
+    else:
+        reg.pop(key, None)
+    REGISTRY.parent.mkdir(parents=True, exist_ok=True)
+    REGISTRY.write_text(json.dumps(reg, indent=1))
+
+
+def launch_command(spec: dict, thinking: str | None) -> str:
+    cmd = list(spec.get('launch') or [])
+    if not cmd:
+        raise SystemExit(f"spawn: target '{spec['name']}' has no launch command; add 'launch' in the targets file")
+    level = thinking or spec.get('thinking')
+    if level and spec.get('agent', 'omp') == 'omp':
+        cmd += ['--thinking', level]
+    elif level and spec.get('agent') == 'codex':
+        cmd += ['-c', f'model_reasoning_effort="{level}"']
+    return ' '.join(cmd if all(re.fullmatch(r'[\w@%+=:,./-]+', c) for c in cmd)
+                    else [json.dumps(c) for c in cmd])
+
+
+def spawn(spec: dict, cwd: str, thinking: str | None) -> str:
+    """Launch the target's agent in a new Orca terminal of this worktree and wait until its TUI is ready."""
+    terms = terminals()
+    wt = next((t.get('worktreeId') for t in terms
+               if os.path.realpath(t.get('worktreePath', '')) == os.path.realpath(cwd) and t.get('worktreeId')), None)
+    if not wt:
+        raise SystemExit(f'spawn: no Orca worktree found for {cwd}; open it in Orca first')
+    r = orca('terminal', 'create', '--worktree', f'id:{wt}', '--title', f"{spec['name']} reviewer",
+             '--command', launch_command(spec, thinking))
+    handle = r.get('result', {}).get('terminal', {}).get('handle')
+    if not r.get('ok', False) or not handle:
+        raise SystemExit(f"spawn: terminal create failed: {r.get('error')}")
+    w = orca('terminal', 'wait', '--terminal', handle, '--for', 'tui-idle', '--timeout-ms', '120000')
+    if not w.get('result', {}).get('wait', {}).get('satisfied'):
+        w = orca('terminal', 'wait', '--terminal', handle, '--for', 'tui-idle', '--timeout-ms', '240000')
+        if not w.get('result', {}).get('wait', {}).get('satisfied'):
+            raise SystemExit(f'spawn: {handle} did not become ready; check the terminal before sending')
+    remember(cwd, spec['name'], handle)
+    print(f"spawn: launched {spec['name']} reviewer in {handle}", file=sys.stderr)
+    return handle
 
 
 # ---------------------------------------------------------------- session stores
@@ -172,13 +241,29 @@ def find_marker_file(agent: str, cwd: str, marker: str) -> Path | None:
 
 
 # ---------------------------------------------------------------- resolution
-def resolve(spec: dict, cwd: str, handle: str | None = None) -> tuple[str, Path | None]:
-    """Return (terminal handle, session file) for a session target in this worktree."""
+def resolve(spec: dict, cwd: str, handle: str | None = None, launch: bool = False,
+            thinking: str | None = None) -> tuple[str, Path | None]:
+    """Return (terminal handle, session file) for a session target in this worktree.
+
+    Order: explicit handle, the remembered permanent reviewer (if its terminal still exists), a
+    'title' regex, the omp session store; with launch=True a missing reviewer is spawned."""
     self_handle = os.environ.get('ORCA_TERMINAL_HANDLE')   # never review with yourself
     terms = [t for t in terminals() if os.path.realpath(t.get('worktreePath', '')) == os.path.realpath(cwd)
              and t.get('handle') != self_handle]
     if handle:
         return handle, None
+    known = registry().get(f"{cwd}::{spec['name']}")
+    if known and any(t.get('handle') == known for t in terms):
+        return known, None
+    try:
+        return _resolve_live(spec, cwd, terms)
+    except SystemExit:
+        if not launch:
+            raise
+        return spawn(spec, cwd, thinking), None
+
+
+def _resolve_live(spec: dict, cwd: str, terms: list[dict]) -> tuple[str, Path | None]:
     if spec.get('title'):
         hits = [t for t in terms if re.search(spec['title'], t.get('title') or '')]
         if len(hits) == 1:
@@ -232,7 +317,7 @@ def composer_busy(tail: str) -> bool:
 
 
 def cmd_send(a, spec, cwd) -> int:
-    handle, _ = resolve(spec, cwd, a.handle)
+    handle, _ = resolve(spec, cwd, a.handle, launch=not a.no_launch, thinking=a.thinking)
     brief = Path(a.brief)
     if not brief.exists():
         print(f'send: brief {brief} not found', file=sys.stderr)
@@ -247,7 +332,8 @@ def cmd_send(a, spec, cwd) -> int:
         if not r.get('ok', False):
             code = r.get('error', {}).get('code', '?')
             if code == 'terminal_handle_stale' and attempt == 0:
-                handle, _ = resolve(spec, cwd, None)
+                remember(cwd, spec['name'], None)
+                handle, _ = resolve(spec, cwd, None, launch=not a.no_launch, thinking=a.thinking)
                 continue
             print(f'send: orca error {code}', file=sys.stderr)
             return 3
@@ -257,7 +343,7 @@ def cmd_send(a, spec, cwd) -> int:
             if path:
                 print(json.dumps({'handle': handle, 'session': str(path), 'marker': a.marker}, ensure_ascii=False))
                 return 0
-        if attempt == 0:
+        if attempt == 0 and not a.handle:
             handle, _ = resolve(spec, cwd, None)
     print('send: accepted by Orca but not found in the session store (not delivered)', file=sys.stderr)
     return 3
@@ -341,7 +427,7 @@ def cmd_targets(a, cwd) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('command', choices=['targets', 'resolve', 'send', 'wait', 'ask', 'read'])
+    ap.add_argument('command', choices=['targets', 'resolve', 'spawn', 'close', 'send', 'wait', 'ask', 'read'])
     ap.add_argument('-t', '--target', default=DEFAULT_TARGET)
     ap.add_argument('--handle', help='explicit Orca terminal handle (skips resolution)')
     ap.add_argument('--cwd', default=os.getcwd(), help='worktree of the target session (default: here)')
@@ -353,7 +439,9 @@ def main() -> int:
     ap.add_argument('--timeout', type=float, default=3600)
     ap.add_argument('--poll', type=float, default=30)
     ap.add_argument('--settle', type=float, default=20)
-    ap.add_argument('--oneshot', action='store_true', help='force the headless transport')
+    ap.add_argument('--oneshot', action='store_true', help='force the headless transport (no memory)')
+    ap.add_argument('--no-launch', action='store_true', help='fail instead of launching a missing reviewer')
+    ap.add_argument('--thinking', help='thinking level for a newly launched reviewer (default: target spec)')
     ap.add_argument('--force', action='store_true', help='send even if the composer holds text')
     a = ap.parse_args()
     cwd = os.path.realpath(a.cwd)
@@ -362,6 +450,19 @@ def main() -> int:
     if a.command == 'targets':
         return cmd_targets(a, cwd)
     spec = target_spec(a.target)
+    if a.command == 'spawn':
+        h, _ = resolve(spec, cwd, a.handle, launch=True, thinking=a.thinking)
+        print(json.dumps({'target': spec['name'], 'handle': h}, ensure_ascii=False))
+        return 0
+    if a.command == 'close':
+        h = a.handle or registry().get(f"{cwd}::{spec['name']}")
+        if not h:
+            print('close: no remembered reviewer here', file=sys.stderr)
+            return 2
+        orca('terminal', 'close', '--terminal', h)
+        remember(cwd, spec['name'], None)
+        print(json.dumps({'closed': h}))
+        return 0
     if a.command == 'resolve':
         h, p = resolve(spec, cwd, a.handle)
         print(json.dumps({'target': spec['name'], 'handle': h, 'session': str(p) if p else None}, ensure_ascii=False))
