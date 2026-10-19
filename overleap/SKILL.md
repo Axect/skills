@@ -85,10 +85,21 @@ Run this when the user wants to start using overleap on a new machine, in a new 
 | `--url`, `-u` | `OVERLEAF_URL` | Server URL (default: `https://www.overleaf.com`) |
 
 Project selection:
-- `-p 3` — pick the 3rd project from the list
+- `-p 64a1b2c3d4e5f6...` — direct 24-hex Overleaf project ID. **The only form Claude uses in non-interactive calls.** `overleap projects` prints the ID next to each name.
 - `-p "quantum"` — fuzzy match by name (must be unique; otherwise overleap re-prompts)
-- `-p 64a1b2c3d4e5f6...` — direct 24-hex Overleaf project ID
+- `-p 3` — pick the 3rd project from the list. Interactive use only: see below.
 - omit `-p` — interactive numbered list (requires a TTY)
+
+## Project identity safety (mandatory)
+
+Project numbers follow the **last-modified** order of the list. Any write, including your own sync a minute earlier, reorders it, so `-p 5` names a different project on the next call. Observed 2026-10-20: an upload to project 5 moved it to 2, and a verification pull with `-p 5` joined a collaborator's project instead; the shell redirect `> sync.log` inside that directory was uploaded as a new document and streamed line by line until it was deleted.
+
+1. Resolve the project once with `overleap projects`, then always pass the **24-hex ID**. Also write `OVERLEAF_PROJECT_ID=<id>` into the sync directory's `.env`.
+2. Check the first output line (`Selected:` / `Matched:` / `[daemon] Connected to project:`) against the intended name before any local write. If it differs, stop the daemon at once.
+3. Since the 2026-10-20 overleap change, the first sync writes `.overleap-project` and later `sync`/`compile` in that directory refuse any other project. A fresh directory has no binding yet, so rule 1 is what protects it.
+4. **Never redirect output, write logs, or create scratch files inside a sync directory.** Send logs to `/tmp` or the service log. `.log` and LaTeX build artifacts are now ignored, but any other file type (`.txt`, `.md`, `.pdf`, `.json`) is still uploaded.
+5. Verification pulls go into a new empty directory under `~/scratch`, by ID, with the log outside it. Delete the directory afterwards.
+6. If something was uploaded to the wrong project: restart sync in that same directory by ID, wait for `Initial sync complete`, delete the file locally, and confirm `[local→remote] Deleted <file>` in the log. If the log shows nothing, recreate the file, wait a few seconds, and delete it again. Tell the user; Overleaf History keeps the create/delete record.
 
 ## Sync workflow
 
@@ -186,7 +197,7 @@ Output is a numbered table of `name [accessLevel] lastUpdated`. The number is wh
 - `overleap` always operates relative to `--dir` (or cwd). Never run sync from `~` or any directory containing unrelated files — it will try to upload everything that's not in `IGNORE_PATTERNS`.
 - The watcher ignores common noise (`.git/`, `node_modules/`, dotfiles handled by chokidar defaults, plus the patterns in `overleap/src/constants.js`). Still, **start sync in a clean directory** dedicated to that one Overleaf project.
 - Do not put `.env` (with the cookie) in the same directory committed to git without first ensuring it's in `.gitignore`. The setup script does this automatically.
-- **Do not run local LaTeX compilation inside the sync directory.** `pdflatex` / `latexmk` / `bibtex` / `biber` / `xelatex` produce `.aux`, `.log`, `.bbl`, `.bcf`, `.blg`, `.toc`, `.out`, `.fls`, `.fdb_latexmk`, `.synctex.gz`, and `.pdf` artifacts. `overleap`'s `IGNORE_PATTERNS` does **not** filter any of these — they will all be uploaded to Overleaf as if you'd added them to the project. Real consequences seen in the past: duplicate bibliography rendering on the server, conflicting compile state, noisy collaborator diffs, accidental `output.pdf` overwrite. Use **`overleap compile`** for PDF generation (server-side, returns `output.pdf` only — see Compile workflow above), or **copy `.tex` files to a separate scratch directory** for local compile testing and never touch them in the sync dir while compiling. If you've already leaked artifacts, clean them up via the Overleaf web UI's file panel or, if the project is git-tracked, `git rm` and let overleap propagate the deletes.
+- **Do not run local LaTeX compilation inside the sync directory.** `pdflatex` / `latexmk` / `bibtex` / `biber` / `xelatex` produce `.aux`, `.log`, `.bbl`, `.bcf`, `.blg`, `.toc`, `.out`, `.fls`, `.fdb_latexmk`, `.synctex.gz`, and `.pdf` artifacts. Since the 2026-10-20 change `IGNORE_PATTERNS` skips `.log`, `.aux`, `.out`, `.fls`, `.fdb_latexmk`, `.synctex(.gz)`, `.xdv`, `.blg`, `.bcf`, `.run.xml`, `.toc`, `.lof`, `.lot`, `.nav`, `.snm`, `.vrb`, but **`.bbl` and the compiled `.pdf` are still uploaded**, and installations older than that change upload everything. Real consequences seen in the past: duplicate bibliography rendering on the server, conflicting compile state, noisy collaborator diffs, accidental `output.pdf` overwrite. Use **`overleap compile`** for PDF generation (server-side, returns `output.pdf` only — see Compile workflow above), or **copy `.tex` files to a separate scratch directory** for local compile testing and never touch them in the sync dir while compiling. If you've already leaked artifacts, clean them up via the Overleaf web UI's file panel or, if the project is git-tracked, `git rm` and let overleap propagate the deletes.
 
 ## Failure modes & how to react
 
@@ -197,7 +208,9 @@ Output is a numbered table of `name [accessLevel] lastUpdated`. The number is wh
 | `Disconnected: ...` in sync log, repeating | Network blip or session expired | If brief, ignore — auto-reconnect handles it. If persistent, check cookie freshness. |
 | `inotify watcher limit reached` | Linux `fs.inotify.max_user_watches` too low | Daemon prints the exact `sysctl` command — surface it to the user; they need sudo to apply |
 | Compile fails with no PDF | LaTeX error on Overleaf side | Open the project in the browser and inspect the log; overleap surfaces only `success/failure` |
-| `Multiple matches for "<query>":` followed by an interactive prompt | Fuzzy `-p` match was ambiguous; in a non-TTY context the prompt fails immediately with `Input stream closed` or `Invalid selection` | Re-run with a more specific name, the project number from `overleap projects`, or the 24-char Overleaf ID |
+| `Multiple matches for "<query>":` followed by an interactive prompt | Fuzzy `-p` match was ambiguous; in a non-TTY context the prompt fails immediately with `Input stream closed` or `Invalid selection` | Re-run with the 24-char Overleaf ID from `overleap projects` (not the list number, which shifts) |
+| `<dir> is bound to project "<name>" (<id>), but the selected project is <id2>. Refusing to continue.` | `-p` resolved to a different project than the one this directory was first synced with (usually a stale list number) | Do not delete `.overleap-project` to get past it. Re-run with the bound ID printed in the message; only delete the binding when the user wants the directory re-pointed |
+| `Connected to project:` names a project you did not intend | Numeric `-p` after the list reordered, in an unbound directory | Stop the daemon immediately. Do not write anything in the directory. Follow rule 6 of Project identity safety if anything was uploaded |
 | Local file overwritten unexpectedly | Two writers (Claude + collaborator) racing | Sync engine uses OT to merge, but if a collaborator deletes a file you just created, the server wins. Restore from git or Overleaf history. |
 | Mysterious duplicate bibliography on Overleaf, or `.aux` / `.log` / `.bbl` / `.fls` / `.fdb_latexmk` files appearing in the project | Local LaTeX compile (`pdflatex`, `latexmk`, etc.) was run inside the sync directory and the build artifacts uploaded | Stop the local compile. Move it to a scratch directory outside `--dir`. Clean up the leaked artifacts on Overleaf via the web UI's file panel (or `git rm` if the project is git-tracked). For PDF output, prefer `overleap compile` instead. |
 
