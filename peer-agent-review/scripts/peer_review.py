@@ -12,6 +12,12 @@ Two transports:
   oneshot  a headless CLI call (omp -p, codex exec, claude -p) with the brief on stdin. Used only
            with --oneshot: a one-shot reviewer forgets everything after one answer.
 
+Agents without a readable session store (Antigravity `agy`, target "argon") use the session
+transport with a file answer: the pointer line asks the reviewer to write its whole answer to
+~/.cache/peer-agent-review/answers/<target>/<marker>.md, delivery is checked in the terminal
+tail, and the answer is complete when that file is non-empty, unchanged for --settle seconds
+and the terminal shows no busy token.
+
 Targets come from built-in defaults merged with an optional JSON file
 ($PEER_REVIEW_TARGETS, default ~/.config/peer-agent-review/targets.json). The default
 target is "astra": the live omp session in the current worktree whose model matches /astra/.
@@ -21,7 +27,7 @@ Commands
   resolve  [-t T]              show the terminal handle and session file for a target
   spawn    [-t T] [--thinking L]   launch (or reuse) the permanent reviewer and print its handle
   close    [-t T]              close the reviewer terminal and forget it
-  send     [-t T] --brief F --marker M [--mode accept|discuss|free] [--note TEXT]
+  send     [-t T] --brief F --marker M [--mode accept|discuss|free|propose] [--note TEXT]
   wait     [-t T] --marker M [--out FILE] [--timeout S]
   ask      [-t T] --brief F --marker M [...]       send, then wait (session or oneshot)
   read     [-t T] --marker M                       print an answer that already exists
@@ -49,7 +55,11 @@ BUSY = {
     'omp': ['Working', '⟨esc⟩', 'Completing'],
     'claude': ['esc to interrupt'],
     'codex': ['esc to interrupt', 'Working'],
+    'agy': ['esc to', 'Thinking', 'Working'],
 }
+# Agents whose answer is collected from a file the reviewer writes (no readable session store).
+FILE_ANSWER_AGENTS = {'agy'}
+ANSWERS = HOME / '.cache/peer-agent-review/answers'
 
 # `launch` starts the permanent reviewer in an Orca terminal (thinking level from --thinking or
 # the target's `thinking`); `oneshot` is the headless fallback used only with --oneshot.
@@ -68,14 +78,25 @@ BUILTIN_TARGETS = {
               'oneshot': ['codex', 'exec', '--skip-git-repo-check', '-s', 'read-only', '-']},
     'claude': {'transport': 'session', 'agent': 'claude', 'launch': ['claude', '--permission-mode', 'plan'],
                'oneshot': ['claude', '-p', '--permission-mode', 'plan']},
+    # Antigravity CLI; '{level}' in launch is replaced by the thinking level (low|medium|high).
+    'argon': {'transport': 'session', 'agent': 'agy', 'thinking': 'medium',
+              'launch': ['agy', '--model', 'gemini-4-argon-{level}', '--mode', 'accept-edits']},
 }
 REGISTRY = HOME / '.cache/peer-agent-review/reviewers.json'
 
 
+# Default stance: hostile. The reviewer looks for reasons to reject, not to approve.
+HOSTILE = ("적대적(hostile) 검토자로서 이 결과물을 거절할 이유를 찾는 가장 비판적인 심사자처럼 읽어줘. "
+           "근거 없는 주장, 과장, 논리 비약, 출처·수치 오류, 빠진 반례를 원문 인용과 함께 지적하고, "
+           "결정을 바꾸지 않는 칭찬은 하지 마.")
 MODE_SUFFIX = {
-    'accept': "첫 줄에 '수락' 또는 '수정 필요'를 쓰고, 필수 수정은 대안 문장으로 줘. 파일은 수정하지 마.",
-    'discuss': "수락 판정이 아니라 쟁점별 판단·이유·반론과 네가 생각하는 최선안을 줘. 파일은 수정하지 마.",
-    'free': "파일은 수정하지 마.",
+    'accept': HOSTILE + " 첫 줄에 '수락' 또는 '수정 필요'를 쓰고, 필수 수정은 대안 문장으로 줘. 파일은 수정하지 마.",
+    'discuss': HOSTILE + " 수락 판정이 아니라 쟁점별 판단·이유·반론과 네가 생각하는 최선안을 줘. 파일은 수정하지 마.",
+    'free': HOSTILE + " 파일은 수정하지 마.",
+    # Generative stance for a proposer (magi-research uses it for Argon). Not hostile.
+    'propose': ("제안자로서 읽어줘. 기존 형태나 현재 안에 얽매이지 말고 서로 다른 대안 2~3개를 구체 사양, "
+                "독자에게 요구하는 사전 지식, 장단점, 위험과 함께 제안하고 하나를 추천해. 시안(그림·스크립트)은 "
+                "브리프가 지정한 폴더에만 만들고, 사실·수치는 파일에서 확인한 것만 써. 파일은 수정하지 마."),
 }
 
 
@@ -140,12 +161,23 @@ def launch_command(spec: dict, thinking: str | None) -> str:
     if not cmd:
         raise SystemExit(f"spawn: target '{spec['name']}' has no launch command; add 'launch' in the targets file")
     level = thinking or spec.get('thinking')
-    if level and spec.get('agent', 'omp') == 'omp':
+    if any('{level}' in c for c in cmd):
+        cmd = [c.replace('{level}', level or 'medium') for c in cmd]
+    elif level and spec.get('agent', 'omp') == 'omp':
         cmd += ['--thinking', level]
     elif level and spec.get('agent') == 'codex':
         cmd += ['-c', f'model_reasoning_effort="{level}"']
     return ' '.join(cmd if all(re.fullmatch(r'[\w@%+=:,./-]+', c) for c in cmd)
                     else [json.dumps(c) for c in cmd])
+
+
+def file_answer(spec: dict) -> bool:
+    return spec.get('agent', 'omp') in FILE_ANSWER_AGENTS
+
+
+def answer_path(spec: dict, marker: str) -> Path:
+    slug = re.sub(r'[^\w.-]+', '_', marker).strip('_') or 'answer'
+    return ANSWERS / spec['name'] / f'{slug}.md'
 
 
 def spawn(spec: dict, cwd: str, thinking: str | None) -> str:
@@ -271,7 +303,7 @@ def _resolve_live(spec: dict, cwd: str, terms: list[dict]) -> tuple[str, Path | 
         raise SystemExit(f"resolve: title /{spec['title']}/ matched {len(hits)} terminals")
     agent = spec.get('agent', 'omp')
     if agent != 'omp':
-        raise SystemExit(f"resolve: agent '{agent}' needs --handle or a 'title' regex in the target spec")
+        raise SystemExit(f"resolve: agent '{agent}' needs --handle, a remembered reviewer or a 'title' regex")
     rx = re.compile(spec['model'], re.I)
     for path in store_files('omp', cwd):
         model = dominant_model(path)
@@ -289,7 +321,8 @@ def _resolve_live(spec: dict, cwd: str, terms: list[dict]) -> tuple[str, Path | 
 
 
 # ---------------------------------------------------------------- commands
-def pointer_line(brief: Path, cwd: str, marker: str, mode: str, note: str | None) -> str:
+def pointer_line(brief: Path, cwd: str, marker: str, mode: str, note: str | None,
+                 answer_file: Path | None = None) -> str:
     try:
         ref = os.path.relpath(brief.resolve(), cwd)
         ref = ref if not ref.startswith('..') else str(brief.resolve())
@@ -298,18 +331,32 @@ def pointer_line(brief: Path, cwd: str, marker: str, mode: str, note: str | None
     parts = [f"[{marker}]", f"@{ref} 를 읽고 답해줘."]
     if note:
         parts.append(note.replace('\n', ' '))
-    parts.append(MODE_SUFFIX[mode])
+    suffix = MODE_SUFFIX[mode]
+    if answer_file:
+        rest = ('시안 폴더 밖의 다른 파일은 수정하지 마.' if mode == 'propose'
+                else '그 밖의 파일은 만들거나 수정하지 마.')
+        suffix = suffix.replace('파일은 수정하지 마.', f'답 전체를 {answer_file} 한 파일에 쓰고, {rest}')
+    parts.append(suffix)
     return ' '.join(parts)
 
 
-def composer_busy(tail: str) -> bool:
+def composer_busy(tail: str, agent: str = 'omp') -> bool:
     """True when the input area holds text (an unsubmitted user draft).
 
     The omp/Claude/Codex TUIs draw the input area between the last two full-width rule
     lines (────). Boxed tool output (│ … │) higher up in the transcript is not the composer.
+    The agy TUI draws one rule and the '>' prompt line directly below it; in a permission mode
+    such as accept-edits the empty prompt shows a placeholder ending in '(shift+tab to cycle)'.
     """
     lines = tail.splitlines()
     rules = [i for i, l in enumerate(lines) if l.strip() and set(l.strip()) <= set('─━')]
+    if agent == 'agy':
+        if not rules:
+            return False
+        start = rules[-2] if len(rules) >= 2 and rules[-1] - rules[-2] <= 3 else rules[-1]
+        inner = [l for l in lines[start + 1:start + 3] if not (set(l.strip()) <= set('─━'))]
+        inner = [l for l in inner if '(shift+tab to cycle)' not in l]
+        return any(re.sub(r'[\s>]', '', l) for l in inner[:1])
     if len(rules) < 2:
         return False
     inner = lines[rules[-2] + 1:rules[-1]]
@@ -322,10 +369,17 @@ def cmd_send(a, spec, cwd) -> int:
     if not brief.exists():
         print(f'send: brief {brief} not found', file=sys.stderr)
         return 3
-    if not a.force and composer_busy(terminal_tail(handle)):
+    if not a.force and composer_busy(terminal_tail(handle), spec.get('agent', 'omp')):
         print('send: the target composer holds unsubmitted text; ask the user (or --force)', file=sys.stderr)
         return 5
-    line = pointer_line(brief, cwd, a.marker, a.mode, a.note)
+    ans = None
+    if file_answer(spec):
+        ans = answer_path(spec, a.marker)
+        if ans.exists():
+            print(f'send: answer file {ans} already exists; use a new marker', file=sys.stderr)
+            return 3
+        ans.parent.mkdir(parents=True, exist_ok=True)
+    line = pointer_line(brief, cwd, a.marker, a.mode, a.note, ans)
     agent = spec.get('agent', 'omp')
     for attempt in range(2):
         r = orca('terminal', 'send', '--terminal', handle, '--text', line, '--enter')
@@ -339,13 +393,19 @@ def cmd_send(a, spec, cwd) -> int:
             return 3
         for _ in range(15):
             time.sleep(2)
+            if file_answer(spec):
+                if a.marker in terminal_tail(handle, 60):
+                    print(json.dumps({'handle': handle, 'answer_file': str(answer_path(spec, a.marker)),
+                                      'marker': a.marker}, ensure_ascii=False))
+                    return 0
+                continue
             path = find_marker_file(agent, cwd, a.marker)
             if path:
                 print(json.dumps({'handle': handle, 'session': str(path), 'marker': a.marker}, ensure_ascii=False))
                 return 0
         if attempt == 0 and not a.handle:
             handle, _ = resolve(spec, cwd, None)
-    print('send: accepted by Orca but not found in the session store (not delivered)', file=sys.stderr)
+    print('send: accepted by Orca but not seen by the agent (not delivered)', file=sys.stderr)
     return 3
 
 
@@ -371,6 +431,18 @@ def cmd_wait(a, spec, cwd) -> int:
     except SystemExit:
         handle = a.handle
     deadline = time.time() + a.timeout
+    if file_answer(spec):
+        ans_file = answer_path(spec, a.marker)
+        while time.time() < deadline:
+            if ans_file.exists() and ans_file.stat().st_size and not is_busy(handle, agent):
+                m0 = ans_file.stat().st_mtime
+                time.sleep(a.settle)
+                if not is_busy(handle, agent) and ans_file.stat().st_mtime == m0:
+                    emit(ans_file.read_text(), a.out)
+                    return 0
+            time.sleep(a.poll)
+        print('wait: timeout', file=sys.stderr)
+        return 4
     path = None
     while time.time() < deadline:
         path = path or find_marker_file(agent, cwd, a.marker)
@@ -473,8 +545,12 @@ def main() -> int:
         ap.error('--marker is required')
     oneshot = a.oneshot or spec.get('transport') == 'oneshot'
     if a.command == 'read':
-        path = find_marker_file(spec.get('agent', 'omp'), cwd, a.marker)
-        ans = answer_after(path, a.marker) if path else ''
+        if file_answer(spec):
+            f = answer_path(spec, a.marker)
+            ans = f.read_text() if f.exists() else ''
+        else:
+            path = find_marker_file(spec.get('agent', 'omp'), cwd, a.marker)
+            ans = answer_after(path, a.marker) if path else ''
         if not ans:
             print('read: no answer yet', file=sys.stderr)
             return 4

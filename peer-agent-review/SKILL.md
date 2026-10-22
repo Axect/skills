@@ -8,8 +8,15 @@ description: "Ask another AI agent to review or discuss your work and act on its
 One helper, `scripts/peer_review.py`. A reviewer is a *target*. The default target
 `astra` is the live omp session in the current worktree whose session model matches
 `/astra/`. Other built-in targets: `sol`, `luna`, `opus` (live omp sessions by model),
-`codex` and `claude` (live Codex / Claude Code TUIs). Any unknown target name is treated as a
-model regex for a live omp session. Your own terminal (`$ORCA_TERMINAL_HANDLE`) is never chosen.
+`codex` and `claude` (live Codex / Claude Code TUIs), and `argon` (Antigravity CLI `agy`,
+Gemini 4 Argon; "Agy Argon Medium" = `-t argon --thinking medium`). Any unknown target name is
+treated as a model regex for a live omp session. Your own terminal (`$ORCA_TERMINAL_HANDLE`) is never chosen.
+
+**Reviews are hostile by default** (every mode except `propose`). Every pointer line tells the reviewer to read as the most
+critical judge looking for reasons to reject: unsupported claims, overstatement, logical gaps,
+source and number errors and missing counterexamples, each with a quotation, and no praise that
+does not change the decision. Put any extra stance (e.g. "act as a selection committee member")
+in the brief.
 
 **The reviewer is permanent.** If no live reviewer exists in the worktree, `send`/`ask` launch
 one in a new Orca terminal (`omp --model gpt-6-astra --thinking medium` for astra; override the
@@ -23,6 +30,7 @@ it (`--oneshot`): it forgets everything after one answer and cannot be argued wi
     python3 $P spawn [-t sol] [--thinking high]   # launch or reuse the permanent reviewer
     python3 $P close [-t sol]                # close the reviewer terminal when the work is done
     python3 $P ask --brief _guide/x.md --marker 'sec3 KO check'                # Astra, accept mode
+    python3 $P ask -t argon --thinking medium --brief _guide/x.md --marker 'sec3 argon'   # agy Argon
     python3 $P ask -t sol --mode discuss --brief _guide/x.md --marker '구조 논의'
     python3 $P ask -t codex --brief notes/brief.md --marker 'second opinion' --out ans.md
     python3 $P send / wait / read ...        # split steps (e.g. send, keep working, wait later)
@@ -32,6 +40,14 @@ background when the platform allows and keep working; a substantive review takes
 Exit codes: 2 resolution failure, 3 not delivered, 4 timeout, 5 the reviewer's composer
 holds an unsubmitted user draft (never send over it without asking).
 
+**argon (agy) answers through a file.** agy has no session store this helper can read, so the
+pointer asks it to write its whole answer to
+`~/.cache/peer-agent-review/answers/argon/<marker>.md` and to touch no other file; it runs in
+`--mode accept-edits` so it can write that file. Delivery is the marker appearing in the
+terminal tail; completion is the file non-empty, unchanged for `--settle` seconds, and no busy
+token (`esc to`, `Thinking`, `Working`). A reused marker is refused (the answer file exists).
+The `{level}` in the launch command becomes the model suffix (`gemini-4-argon-medium`).
+
 ## Modes (the pointer line ends with the matching instruction)
 
 | Mode | Use when | Reviewer is told |
@@ -39,6 +55,7 @@ holds an unsubmitted user draft (never send over it without asking).
 | `accept` (default) | you changed a file and need sign-off | first line 수락 or 수정 필요; required fixes as replacement sentences; do not edit files |
 | `discuss` | structure, framing, or a decision the user wants debated ("단순히 수락을 묻지 말고 논의") | judgments, reasons, counterarguments and its own best proposal per issue; no verdict |
 | `free` | anything else | do not edit files |
+| `propose` | you want options rather than a verdict (the proposer role in `magi-research`, usually Argon) | not hostile: 2 to 3 distinct alternatives with specs, required reader knowledge, trade-offs, risks and one recommendation; mockups only in the folder the brief names; facts only from files |
 
 ## The brief (write it before sending)
 
