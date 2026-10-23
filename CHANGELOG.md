@@ -13,6 +13,7 @@ All notable changes to this repository are documented in this file.
 
 ### Fixed
 - `zoom-summary`: a missing scope comes back as HTTP 400 code 4711, not 403; `auth.sh` now maps it to exit 3 like other scope errors. `recordings.sh list` feeds pages to `jq` on stdin, because passing the accumulated JSON as an argument hit `Argument list too long` on a 68-meeting account.
+- `md2pdf-typora`: newer pandoc emits `mathjax@4/tex-*.js`, which the SVG rewrite missed, so math fell back to CHTML. `patch_html.py` now matches both URL forms and fails if a MathJax script survives unrewritten.
 
 ## 2026-10-07
 

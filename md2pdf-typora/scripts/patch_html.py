@@ -122,7 +122,10 @@ LINK_RE = re.compile(r'<link\s+rel="stylesheet"\s+href="[^"]*\.css"\s*/?>')
 HEADER_RE = re.compile(r'<header\s+id="title-block-header">.*?</header>\s*', re.DOTALL)
 TITLE_H1_RE = re.compile(r'<h1\s+class="title">.*?</h1>\s*', re.DOTALL)
 TOC_RE = re.compile(r'<nav\s+id="TOC"[^>]*>.*?</nav>\s*', re.DOTALL)
-MATHJAX_RE = re.compile(r'(cdn\.jsdelivr\.net/npm/mathjax@3/es5/)tex-[a-z-]+\.js')
+# Older pandoc emits mathjax@3/es5/tex-*.js; newer pandoc emits mathjax@4/tex-*.js.
+# Match both and pin to the v3 SVG build, which renders under Chrome headless.
+MATHJAX_RE = re.compile(r'https://cdn\.jsdelivr\.net/npm/mathjax@[0-9.]+/(?:es5/)?tex-[a-z-]+\.js')
+MATHJAX_SVG = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg-full.js"
 
 
 def patch(html: str, css: str, *, paper: str, font_px: int, break_on_hr: bool) -> str:
@@ -144,7 +147,7 @@ def patch(html: str, css: str, *, paper: str, font_px: int, break_on_hr: bool) -
     # 2) MathJax CHTML depends on webfonts that Chrome headless often fails to
     #    load, which turns Greek letters into empty boxes. SVG has no font
     #    dependency.
-    html = MATHJAX_RE.sub(r"\1tex-svg-full.js", html)
+    html = MATHJAX_RE.sub(MATHJAX_SVG, html)
 
     # 3) pandoc's duplicate title, wrapper included
     html = HEADER_RE.sub("", html)
@@ -174,6 +177,8 @@ def patch(html: str, css: str, *, paper: str, font_px: int, break_on_hr: bool) -
         raise SystemExit("patch_html: duplicate title survived")
     if m and 'id="TOC"' not in html:
         raise SystemExit("patch_html: TOC was removed but never reinserted")
+    if "mathjax" in html.lower().split("</style>")[-1] and MATHJAX_SVG not in html:
+        raise SystemExit("patch_html: MathJax script was not rewritten to SVG")
     return html
 
 
