@@ -4,8 +4,14 @@ All notable changes to this repository are documented in this file.
 
 ## 2026-10-23
 
+### Added
+- `zoom-summary`: `scripts/recordings.sh` for cloud-recording cleanup. `list` walks 30-day windows (the endpoint rejects longer ranges) and prints start time, topic, size, file count and UUID with a count and GB total; `delete` moves each meeting's recordings to the Zoom trash (30-day recovery), is a dry run without `--yes`, and needs `--permanent` to skip the trash. Recording scopes may live on a separate Server-to-Server app whose credentials go in `~/.config/zoom-skill/recordings-credentials.json` with their own token cache, so the summary app stays untouched.
+
 ### Changed
 - `research-log`: routes hypothesis/experiment status, comparisons and session resume to `research-board`, and links journal entries to cards with a `**Card**:` line.
+
+### Fixed
+- `zoom-summary`: a missing scope comes back as HTTP 400 code 4711, not 403; `auth.sh` now maps it to exit 3 like other scope errors. `recordings.sh list` feeds pages to `jq` on stdin, because passing the accumulated JSON as an argument hit `Argument list too long` on a 68-meeting account.
 
 ## 2026-10-07
 

@@ -7,7 +7,7 @@
 #   zoom_api             <METHOD> <path_with_query>                 -> response body on stdout
 #   zoom_encode_uuid     <meeting_uuid>                             -> path-safe uuid on stdout
 #
-# Nothing here is executed directly; summaries.sh and setup.sh source it.
+# Nothing here is executed directly; summaries.sh, recordings.sh and setup.sh source it.
 
 ZOOM_SKILL_CREDS="${ZOOM_SKILL_CREDS:-$HOME/.config/zoom-skill/credentials.json}"
 ZOOM_SKILL_CACHE="${ZOOM_SKILL_CACHE:-$HOME/.cache/zoom-skill}"
@@ -146,7 +146,7 @@ zoom_token_scope() {
 #
 # <path_with_query> must start with "/" and is appended to ZOOM_API_BASE.
 # 2xx bodies go to stdout. Otherwise the body goes to stderr and the return is:
-#   3 on 401/403 (auth or missing scope), 4 on 404, 6 on 429, 5 otherwise.
+#   3 on 401/403 or 400 code 4711 (auth or missing scope), 4 on 404, 6 on 429, 5 otherwise.
 zoom_api() {
   local method="$1" path="$2"
   local token
@@ -169,6 +169,10 @@ zoom_api() {
   fi
 
   echo "zoom: API error (HTTP $http_code) on $path: $body" >&2
+  # A missing scope comes back as HTTP 400 with code 4711, not 403.
+  if [[ "$http_code" == 400 ]] && [[ "$(printf '%s' "$body" | jq -r '.code // empty' 2>/dev/null)" == 4711 ]]; then
+    return 3
+  fi
   case "$http_code" in
     401|403) return 3 ;;
     404)     return 4 ;;

@@ -856,6 +856,13 @@ Requires a paid Zoom account with AI Companion meeting summaries enabled, and a 
   bash zoom-summary/scripts/summaries.sh list --from "$(date -u -d '30 days ago' +%F)"
   ```
 - `references/glossary.tsv` ships as a template with no real terms. Put every real entry in `~/.config/zoom-skill/glossary.tsv` so project vocabulary and personal names stay out of this repository, and back that file up separately — it is not version controlled.
+- Optional, for cloud-recording cleanup: add `cloud_recording:read:list_user_recordings:admin` and `cloud_recording:delete:meeting_recording:admin` to an app and activate it. If that is a separate app, register it to its own file so the summary credentials stay intact:
+  ```bash
+  ZOOM_SKILL_CREDS=~/.config/zoom-skill/recordings-credentials.json \
+    bash zoom-summary/scripts/setup.sh --stdin <<< '{"account_id":"...","client_id":"...","client_secret":"..."}'
+  bash zoom-summary/scripts/recordings.sh list --from "$(date -u -d '30 days ago' +%F)"
+  ```
+  `setup.sh` reports the summary scopes as `MISSING` for a recording-only app; that is expected. If `list` fails with code 4711 right after adding scopes, delete the cached token (`~/.cache/zoom-skill/token.json`, or `~/.cache/zoom-skill/recordings/token.json` for the separate app) and retry.
 
 ## Choosing a scope
 
