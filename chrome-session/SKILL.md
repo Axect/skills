@@ -1,13 +1,16 @@
 ---
 name: chrome-session
-description: "Read auth-walled pages from the user's own logged-in Chrome (Overleaf comments/threads JSON, Google Scholar, university-VPN resources, any site that CAPTCHAs or login-walls agent browsers) through Playwright MCP's Chrome extension. Use when a page needs the user's existing login and the agent's own browser is blocked or signed out. Opens and closes its own tab in a separate tab group; never touches the user's tabs; no per-connection approval dialog once the token is saved."
+description: "Read auth-walled pages from the user's own logged-in Chrome (Overleaf comments/threads JSON, Google Scholar, university-VPN resources, any site that CAPTCHAs or login-walls agent browsers) through Playwright MCP's Chrome extension. Use when a page needs the user's existing login and the agent's own browser is blocked or signed out. All commands share one agent tab in a separate tab group (background daemon, idle auto-close); never touches the user's tabs; no per-connection approval dialog once the token is saved."
 ---
 
 # chrome-session: the user's logged-in Chrome, via Playwright extension
 
-One helper, `scripts/chrome_session.py`, starts `@playwright/mcp --extension`
-for a single command, opens a new tab in the agent's own tab group, does the
-read, closes the tab, and exits. The user's tabs are invisible to it.
+One helper, `scripts/chrome_session.py`. The first command starts a background
+daemon that owns one `@playwright/mcp --extension` session and therefore ONE
+tab in the agent's own tab group; every later command reuses that tab over a
+Unix socket (`$XDG_RUNTIME_DIR/chrome-session-<uid>.sock`, log `….sock.log`).
+The daemon closes the tab and exits after `CHROME_SESSION_IDLE` seconds idle
+(default 600) or on `stop`. The user's tabs are invisible to it.
 
 ## Why this tool (checked 2026-09-28, Linux, Chrome 153)
 
@@ -39,14 +42,27 @@ token is stale: ask the user to open the extension and copy the current token.
     python3 $S fetch    https://www.overleaf.com/project/<id> /project/<id>/threads /project/<id>/ranges
     python3 $S eval     https://example.com "async () => document.title"
     python3 $S snapshot https://example.com
+    python3 $S nav      https://example.com/next     # navigate only
+    python3 $S eval     - "() => location.href"      # `-` = stay on the current page
+    python3 $S tool     - browser_click '{"element":"Next","ref":"e12"}'  # raw MCP tool call
+    python3 $S status                                # alive? current URL
+    python3 $S stop                                  # close the tab now
 
 - `fetch` runs same-origin `fetch()` inside the logged-in page, so cookies and
   CSRF context apply. Prints `{path: {status, body}}` JSON. Best choice for sites
-  with JSON APIs.
+  with JSON APIs. `fetch -` reuses the current page's origin.
 - The final URL goes to stderr as `# landed on:`; a login URL there means the
   user is not signed in to that site.
-- One command = one tab. Run commands sequentially per site; several helpers can
-  run at once (each MCP client gets its own tab group).
+- Single tab, serial: commands queue on the daemon; do not run helpers in
+  parallel. Page state (JS globals, open modals) persists between commands.
+- Run `stop` when finished so the tab does not linger until the idle timeout.
+- SPA pages: `text` right after navigation can be empty; use `nav`, then
+  `eval - "async () => { await new Promise(r=>setTimeout(r,6000)); return document.body.innerText }"`.
+- Clicks that navigate inside `eval` raise "Execution context was destroyed";
+  the navigation still happened. Read the new page with a second `eval -`.
+- Links that open new tabs: install `window.open=(u)=>{location.href=String(u);return window;}`
+  before clicking, or better, find the target URL from
+  `performance.getEntriesByType('resource')` / the site's JSON API and `nav` to it.
 
 ## Recipe: Overleaf review comments
 
@@ -62,7 +78,8 @@ token is stale: ask the user to open the extension and copy the current token.
 ## Rules
 
 - Read-only by default. Never click, type, or submit in the user's accounts
-  unless the user asked for that exact action.
+  unless the user asked for that exact action; `tool` exists for those cases
+  (refs come from `snapshot`).
 - Do not navigate to URLs that trigger actions (logout, delete, confirm links).
 - The helper deletes the `.playwright-mcp/` output directory it runs in; if you
   drive the MCP server another way, delete that directory yourself.

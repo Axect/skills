@@ -8,6 +8,7 @@ All notable changes to this repository are documented in this file.
 - `zoom-summary`: `scripts/recordings.sh` for cloud-recording cleanup. `list` walks 30-day windows (the endpoint rejects longer ranges) and prints start time, topic, size, file count and UUID with a count and GB total; `delete` moves each meeting's recordings to the Zoom trash (30-day recovery), is a dry run without `--yes`, and needs `--permanent` to skip the trash. Recording scopes may live on a separate Server-to-Server app whose credentials go in `~/.config/zoom-skill/recordings-credentials.json` with their own token cache, so the summary app stays untouched.
 
 ### Changed
+- `chrome-session`: the helper is now a background daemon owning one tab; later commands reuse it over a Unix socket and it closes after `CHROME_SESSION_IDLE` seconds (default 600) or `stop`. New `nav`, `status`, `stop`, `tool` (raw Playwright MCP call, for explicitly requested clicks), and `-` for the current page; SPA, navigation-in-`eval` and new-tab notes.
 - `research-log`: routes hypothesis/experiment status, comparisons and session resume to `research-board`, and links journal entries to cards with a `**Card**:` line.
 
 ### Fixed
