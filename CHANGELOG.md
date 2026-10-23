@@ -14,6 +14,16 @@ All notable changes to this repository are documented in this file.
 ### Fixed
 - `zoom-summary`: a missing scope comes back as HTTP 400 code 4711, not 403; `auth.sh` now maps it to exit 3 like other scope errors. `recordings.sh list` feeds pages to `jq` on stdin, because passing the accumulated JSON as an argument hit `Argument list too long` on a 68-meeting account.
 - `md2pdf-typora`: newer pandoc emits `mathjax@4/tex-*.js`, which the SVG rewrite missed, so math fell back to CHTML. `patch_html.py` now matches both URL forms and fails if a MathJax script survives unrewritten.
+- `zai-web-search`: the key check in `SKILL.md`, `README.md` and `CLIENT_SETUP.md` no longer hardcodes one user's home directory.
+
+## 2026-10-22
+
+### Added
+- `magi-research`: three fixed roles for research work. The main session (Claude Opus) plans, decides and edits; Argon (agy, Gemini 4 Argon) proposes alternatives and mockups; Astra (omp, GPT-6-Astra) criticizes and corrects. Transport is `peer-agent-review`; `scripts/magi.py propose|critique|both` routes by role. Runs inside Orca only (exit 6 without the Orca CLI). Argon is launched with `--dangerously-skip-permissions` by default (`MAGI_ARGON_SAFE=1` disables it). The critic falls back to a read-only Codex session when omp is missing or Astra cannot be resolved or reached (peer_review exit 2 or 3).
+- `peer-agent-review`: `--mode propose`, the only non-hostile mode: 2 to 3 alternatives with specs, trade-offs, risks and a recommendation; mockups only in the folder the brief names. With the agy answer file, the pointer still allows that folder.
+
+### Notes
+- During a manuscript revision the same two agents were used in both roles for two weeks. Astra corrected the main session's draft claims (a shared lookup table described as unused, a pooled range that inflated a figure count about fourfold, a 'within statistical error' sentence with 2.7 to 3.4 SEM counterexamples). Argon produced the two figure designs the author chose after the main session and Astra had only iterated on the existing layout, but its prose also invented section names and misquoted a line. A wrapper that asked Argon for '수락 또는 수정 필요' on every brief made it write a verdict line even in discussion requests; `propose` removes that bias.
 
 ## 2026-10-07
 

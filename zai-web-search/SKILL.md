@@ -37,7 +37,7 @@ Invoke this skill when the user says any of:
 The key is the **single source of truth** — pi's own credential store, not a duplicate:
 
     test -f ~/.pi/agent/auth.json
-    python3 -c "import json;print(json.load(open('/home/axect/.pi/agent/auth.json'))['zai-coding-cn']['key'])" >/dev/null
+    python3 -c "import json,os;print(json.load(open(os.path.expanduser('~/.pi/agent/auth.json')))['zai-coding-cn']['key'])" >/dev/null
 
 If either fails, tell the user:
 > The z.ai key is not configured in `~/.pi/agent/auth.json` under `zai-coding-cn.key`. This key ships with the GLM Coding Plan login — it is the same key pi already uses for the default model. Re-login via pi if it is missing.

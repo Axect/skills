@@ -36,6 +36,7 @@ Directories created before this convention keep their names, and a directory is 
 | `hep-rumor-mill` | Analyze the HEP-theory postdoc rumor mill (a public Google Sheet) via the `prm` CLI: pull a year's offer list, resolve each offer-holder's InspireHEP record (plus OpenAlex by ORCID and Semantic Scholar by name for interdisciplinary people), and study what kind of profile lands where. Institute cohort profiles and self-benchmarking against the accepted cohort, with Korean report output. State in a local SQLite store under `~/.local/share/hep-rumor-mill/`. Self-reported data, treated as descriptive not predictive. | `hep-rumor-mill/SKILL.md` | `uv` (the bundled `prm` uv project auto-installs `requests` on first `uv run`) |
 | `handdrawn-schematic` | Generate a single friendly hand-drawn whiteboard schematic (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) on a **pure white background** that explains a concept, pipeline, architecture, or algorithm at a glance. Composes the load-bearing style block + a 3-6 panel figure brief and by default renders a PNG via the bundled `codex` image_generation tool (ChatGPT OAuth); falls back to emitting the copy-paste prompt when codex is unavailable. The reusable single-figure generator extracted from `journal-club-review`, retuned from cream to white. | `handdrawn-schematic/SKILL.md` | Logged-in bundled `codex` for rendering (optional; prompt-only without it) |
 | `journal-club-review` | Turn an arXiv id/URL, a PDF, or raw text into a journal-club paper presentation (nine sections: TL;DR, The Problem, Key Idea, How It Works, Key Results, Why It Matters, Strengths/Limitations/Open Questions, Discussion Questions, Takeaways) meant to help a reading group understand and discuss a paper, not produce a referee report. LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures (method + results). | `journal-club-review/SKILL.md` | `uv` (extractor deps auto-installed via PEP 723); logged-in bundled `codex` for figures (optional) |
+| `magi-research` | Run research with three agents in fixed roles: the main session (Claude Opus) decides and edits, Argon (agy, Gemini 4 Argon) proposes options and mockups, Astra (omp, GPT-6-Astra; Codex fallback) criticizes and corrects; runs inside Orca | `magi-research/SKILL.md`, `scripts/magi.py` | Orca CLI, `peer-agent-review`, `agy`, `omp` (or `codex`) |
 | `md2pdf-typora` | Convert Markdown to PDF that mimics Typora's Whitey-theme export (pandoc + Chrome headless, MathJax SVG, Korean serif fallback) | `md2pdf-typora/SKILL.md` | `pandoc` + Chrome/Chromium |
 | `morgen` | Manage calendars, events, tasks, and tags across Google/Microsoft/iCloud/CalDAV accounts via the Morgen API | `morgen/SKILL.md` | Morgen API key |
 | `overleap` | Bidirectional real-time sync between an Overleaf project and a local directory via the `overleap` Node.js CLI | `overleap/SKILL.md` | `overleap` CLI + Overleaf session cookie |
@@ -182,6 +183,10 @@ Requires `uv` (the extractor declares its deps inline via PEP 723: pdfplumber, h
 - Output language auto-matches the source paper unless the user asks otherwise; all math is rendered as LaTeX.
 - Two optional friendly-whiteboard infographics (method + results) are generated in parallel via `codex exec`.
 - This is a teaching/discussion artifact (no scores, no accept/reject). For a referee report use `workshop-paper-review`; for an adversarial audit use `adversarial-review`.
+
+### magi-research
+
+Built for Orca: the proposer and the critic are permanent sessions in Orca terminals of the worktree. `scripts/magi.py propose|critique|both` routes a brief through `peer-agent-review`: Argon via agy in `propose` mode for alternatives and mockups, Astra via omp in `accept`/`discuss` mode for criticism (falling back to a read-only Codex session when omp is missing or Astra cannot be reached), and keeps decisions and file edits in the main session. The SKILL.md gives the three loops (open problem: propose, screen, critique, apply; change to existing work: edit, critique; disagreement: parallel discuss, merge by role) and the main session's verification duties.
 
 ### md2pdf-typora
 
@@ -381,7 +386,7 @@ Requires the z.ai key under `zai-coding-cn.key` in `~/.pi/agent/auth.json` — t
 
 - Verify the key is present:
   ```bash
-  test -f ~/.pi/agent/auth.json && python3 -c "import json;print(json.load(open('/home/axect/.pi/agent/auth.json'))['zai-coding-cn']['key'])" >/dev/null && echo OK
+  test -f ~/.pi/agent/auth.json && python3 -c "import json,os;print(json.load(open(os.path.expanduser('~/.pi/agent/auth.json')))['zai-coding-cn']['key'])" >/dev/null && echo OK
   ```
 - The MCP endpoint (`web_search_prime`) is covered by the Coding Plan — no separate API recharge. Do **not** duplicate the key into a second file; `auth.json` is the single source of truth.
 - `--domain example.com` is checked locally against result hostnames because the upstream filter can return off-domain results; the requested domain and its subdomains are accepted.
@@ -415,6 +420,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `hep-rumor-mill` to study the HEP-theory postdoc job market from the rumor mill: who got offers at which institutions, the publication profiles of the people who got them (citations, papers, venues, subfield, PhD-age, named fellowships, with OpenAlex cross-disciplinary augmentation for interdisciplinary candidates), and how your own InspireHEP profile sits against the accepted cohort. Self-reported data, descriptive not predictive.
 - Choose `handdrawn-schematic` to generate a single friendly hand-drawn whiteboard schematic on a **pure white background** (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) that explains a concept, pipeline, architecture, or algorithm at a glance. Renders a PNG by default via the bundled `codex` image_generation tool, or emits the copy-paste prompt when codex is unavailable. Use `wide-slide-illustrator` instead for a prompt-only composer across six other styles, `journal-club-review` for the paired method+results figures inside a paper walkthrough, and `scienceplot-py` / `xkcd-py` for real matplotlib data plots.
 - Choose `journal-club-review` to turn an arXiv id/URL, a PDF, or raw text into a journal-club presentation (nine sections from TL;DR to Takeaways) meant to help a reading group understand and discuss a paper, with LaTeX math, source-language auto-matching, and two optional friendly-whiteboard figures. Use `workshop-paper-review` instead for an OpenReview referee report, or `adversarial-review` for a hostile pre-submission audit.
+- Choose `magi-research` when a research task needs fresh alternatives (figure redesign, section structure, framing) and a hard check, and you want Argon to propose, Astra to criticize, and the main session to decide; choose `peer-agent-review` alone for a single sign-off.
 - Choose `md2pdf-typora` to convert a Markdown report or note (especially one with LaTeX math, Korean text, and embedded plots) into a print-ready PDF that visually matches Typora's Whitey-theme export.
 - Choose `morgen` for calendar and task management across accounts connected to Morgen (Google, Microsoft 365, iCloud, Fastmail, CalDAV) and native Morgen tasks/tags.
 - Choose `overleap` to edit Overleaf projects locally with real-time bidirectional sync — local edits propagate to Overleaf and vice versa, so Claude can edit `.tex` files and collaborators see them on Overleaf instantly.
@@ -458,6 +464,9 @@ skills/
 ├── handdrawn-schematic/
 ├── hep-rumor-mill/
 ├── journal-club-review/
+├── magi-research/
+│   ├── SKILL.md
+│   └── scripts/magi.py
 ├── md2pdf-typora/
 ├── morgen/
 ├── overleap/
