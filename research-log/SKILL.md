@@ -42,6 +42,10 @@ Read the matching workflow reference for the user's request:
 - Recalling past lessons / how a blocker was solved before (M3) → `references/recall.md`
 - Explicitly checking a planned approach against past mistakes (M1) → `references/check.md`
 - Weekly review, dashboard refresh, lesson promotion, archive scan → `references/review.md`
+- Current status of a hypothesis or experiment, the board, comparing experiments, attaching results or
+  plots, or resuming the session working on an experiment → the `research-board` skill (cards under
+  `projects/{slug}/cards/`). Decision reasoning and lessons stay here; when an entry concerns a
+  card, add a `**Card**: {slug}:Q{n}/E{m}` line to the new journal entry.
 
 ## Working rules
 

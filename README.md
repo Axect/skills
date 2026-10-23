@@ -44,6 +44,7 @@ Directories created before this convention keep their names, and a directory is 
 | `reference-search` | Search and curate academic references via domain-aware routing across InspireHEP, OpenAlex, and Semantic Scholar for reports, claims, and section-level citation support | `reference-search/SKILL.md` | None (stdlib Python; optional `S2_API_KEY` env var) |
 | `remarkable-sync` | Read reMarkable tablet documents on Linux, where no official desktop app exists: installs the ddvk `rmapi` cloud client and the `rmrl` renderer without sudo, mirrors the cloud tree into `<mirror>/raw/` and renders every notebook and annotated PDF into `<mirror>/pdf/`. Handles firmware-3.x documents that stock rmrl cannot read at all: the `.rmdoc` container's `cPages` page list and the v6 `.rm` stroke format (bundled parser), text highlights, which live in their own block type and are not strokes at all; plus five rmrl defects patched in-process (pagedata indexing, 3-colour palette, unresolved inherited `/MediaBox`, 0-byte output on failure, square line caps that overhang every highlight band). Incremental on `modifiedClient`, so an interrupted run re-renders locally instead of re-downloading. | `remarkable-sync/SKILL.md` | `uv` or `python3.11` for the renderer venv, `curl` for the `rmapi` binary; one-time reMarkable Cloud device code |
 | `research-backup` | Mirror untracked research report directories (`outputs/`, `results/`, `report(s)/`) into the locally synced Dropbox folder with rsync, preserving the `<category>/<project>` layout so same-named projects never collide. `discover.sh` scans for candidate directories git does not track (ignored / untracked / outside any repo) and a registry under `~/.config/research-backup/` keeps the backup set explicit; backups are additive (no `--delete`), so local deletions never propagate. | `research-backup/SKILL.md` | `rsync` + the official Dropbox client syncing `~/Dropbox` locally |
+| `research-board` | Hypothesis- and experiment-centred kanban over `~/.research`: cards are research questions with experiments, headline metrics with recomputable `extract` specs, key `scienceplot-py` plots and linked omp/Orca sessions. The bundled `rboard` CLI shows the board, a resume view per card, cross-experiment comparison that refuses to align numbers whose name, unit and scope differ, static HTML pages, and switches to (or resumes) the Orca terminal of the session working on an experiment. Complements `research-log`; never replaces compass, journal or Morgen. | `research-board/SKILL.md` | `uv` (PyYAML auto-installed); Orca CLI (`orca-ide`) and Linux `/proc` for session jump/resume |
 | `research-log` | Register projects and record decisions; surfaces the lesson/rule corpus at decision time (check step warns against past anti-patterns) and on cross-project recall when stuck | `research-log/SKILL.md` | `~/.research/` workspace (auto) |
 | `research-portal` | Build and manage a local MkDocs Material research portal over a folder of Typora/markdown notes: project-grouped sidebar via mkdocs-literate-nav, full LaTeX rendering via MathJax 3, and safe project tagging/renaming that repairs image links | `research-portal/SKILL.md` | `uv`; mkdocs-material and mkdocs-literate-nav are auto-installed by the scaffold script |
 | `research-report` | Create or revise understanding-first research and experiment reports (why it matters, the core idea, what it achieved) backed by traceable evidence, plots, manifests, and validation helpers | `research-report/SKILL.md` | None (stdlib Python) |
@@ -286,6 +287,14 @@ Requires `rsync` and the official Dropbox client syncing a local folder (default
 - Workflow: `discover.sh` scans and classifies candidates (NEW / REGISTERED / TRACKED / MISSING; git-tracked directories are never registered), `discover.sh --register` appends the NEW ones, `backup.sh --dry-run --all` previews, `backup.sh --all` (or a path filter like `backup.sh MyProject`) syncs.
 - Backups are additive by design: no `--delete` is ever passed, so files removed locally remain in Dropbox.
 
+### research-board
+
+Requires `uv` on `PATH`; `scripts/rboard.py` declares PyYAML in its PEP 723 header. Cards live in `~/.research/projects/<slug>/cards/`; the generated HTML goes to `~/.research/board/` (add `board/` to that repository's `.gitignore`).
+
+- Session jump/resume needs Linux `/proc` and the Orca CLI (`orca-ide`; never bare `orca`) on the same host. `rboard open` refuses to resume a session another process already holds open.
+- Optional convenience: `ln -s "$REPO/research-board/scripts/rboard.py" ~/.local/bin/rboard`.
+- See `research-board/references/schema.md` for the card schema and `references/workflows.md` for procedures.
+
 ### research-log
 
 No external setup required. The skill creates and manages `~/.research/` on first use. The redesign shifts focus from a write-heavy diary to an advisor: a `check` step surfaces relevant past lessons and rules before a decision, and a `recall` step surfaces cross-project findings when you are stuck. The workspace still holds per-project decision entries and session state.
@@ -406,6 +415,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `reference-search` for literature search, citation curation, and section-level reference support when drafting reports.
 - Choose `remarkable-sync` to read, back up, or render reMarkable tablet documents on Linux: it mirrors the reMarkable Cloud into a local directory and renders notebooks and annotated PDFs to PDF, including firmware-3.x `.rmdoc` / v6 `.rm` documents that `rmrl` alone cannot open.
 - Choose `research-backup` to back up the untracked `outputs/` / `results/` / `report(s)/` directories of your research projects into the locally synced Dropbox folder, organized as `<category>/<project>` so nothing collides. Additive rsync mirroring, no API calls. Choose `dropbox` instead for one-off file upload/download/share through the API.
+- Choose `research-board` to see which hypotheses and experiments are open per project, what each experiment showed (headline numbers and key plots), to compare experiments without mixing incomparable scopes, and to jump back into (or resume) the Orca session that was working on one. Choose `research-log` for the reasoning and lessons behind a decision.
 - Choose `research-log` to register projects, record decisions, check past lessons before committing to a new approach (the `check` step warns against known anti-patterns), or recall cross-project findings when stuck (the `recall` step).
 - Choose `research-portal` to build a browsable, math-rendered MkDocs Material site over a folder of existing Typora/markdown notes without modifying the originals.
 - Choose `research-report` to turn research or experiment outputs into an understanding-first report: one that explains why the work matters, what the core idea is (intuition before formalism), and what it achieved, with every claim earned by traceable evidence and plots.
@@ -444,6 +454,7 @@ skills/
 ├── reference-search/
 ├── remarkable-sync/
 ├── research-backup/
+├── research-board/
 ├── research-log/
 ├── research-portal/
 ├── research-report/

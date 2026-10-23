@@ -2,6 +2,11 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-10-23
+
+### Changed
+- `research-log`: routes hypothesis/experiment status, comparisons and session resume to `research-board`, and links journal entries to cards with a `**Card**:` line.
+
 ## 2026-10-07
 
 ### Added
@@ -9,6 +14,18 @@ All notable changes to this repository are documented in this file.
 
 ### Notes
 - The manual loop it replaces failed in four ways during a manuscript revision: terminal handles went stale after every Orca restart and messages were silently not delivered (Orca returned `accepted: true`); a reviewer terminal was misidentified because Orca titles lag behind session titles; `tui-idle` waits fired mid-turn; and answers scraped from the TUI were hard-wrapped. The helper resolves the reviewer from the session store, proves delivery by finding the marker in that store, waits for a settled assistant record with no busy token, and excludes the caller's own terminal (`$ORCA_TERMINAL_HANDLE`).
+
+## 2026-09-29
+
+### Added
+- `research-board`: hypothesis- and experiment-centred kanban over `~/.research`. A card is one research question or attempt with three separate axes (work state, evidence verdict, dated run observation), owner-held experiments whose assessments are recorded per question and scope, headline metrics carrying recomputable `extract` specs and source hashes, key plots drawn with `scienceplot-py`, and linked omp/Orca sessions. `scripts/rboard.py` (PEP 723, PyYAML) provides `board`, `show`, `compare`, `refresh`, `lint`, `html`, `render`, `link`, `open` and `sessions`.
+- `rboard compare` aligns metrics across experiments only when name, unit and the whole scope are identical, otherwise it reports `NOT COMPARABLE` with the differing scope keys or values; overlapping min/max ranges and `n=1` are flagged in every arm comparison.
+- `rboard open` switches to the Orca terminal of the linked session, or resumes it with `orca terminal create --worktree path:<cwd> --command "omp --resume <file>"`, and refuses when another process holds the session open (two writers corrupt a session file).
+- `rboard serve` serves the board on `127.0.0.1` and regenerates it on every page load. Orca's embedded browser blocks navigation started by a `file://` page (link clicks and `location` changes are ignored; only an explicit `orca goto` loads), so the board is opened over HTTP there.
+- HTML pages render LaTeX (`$...$`, `$$...$$`, `\(...\)`, `\[...\]`) anywhere in card text with a vendored KaTeX 0.16.47 (`research-board/assets/katex/`, MIT, copied next to the generated pages), so math works offline. Metrics take an optional `label` for a typeset display name.
+
+### Notes
+- Session liveness is read from the OS: a running `omp` holds its session `.jsonl` open once it has written and carries `ORCA_TERMINAL_HANDLE`, so file, process and terminal map exactly with no title matching. An idle resumed session has not opened its file yet, so the `--resume` argument counts as weaker evidence; without it a resume was found to start a second process on the same session. Orca's session-history index is opt-in and not used.
 
 ## 2026-09-28
 
