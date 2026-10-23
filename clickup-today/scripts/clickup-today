@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source=${BASH_SOURCE[0]}
+while [[ -L "$source" ]]; do
+    directory=$(cd -P -- "$(dirname -- "$source")" && pwd)
+    link=$(readlink -- "$source")
+    if [[ "$link" = /* ]]; then
+        source=$link
+    else
+        source=$directory/$link
+    fi
+done
+directory=$(cd -P -- "$(dirname -- "$source")" && pwd)
+exec "${PYTHON:-python3}" "$directory/../today.py" "$@"

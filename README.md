@@ -29,6 +29,7 @@ Directories created before this convention keep their names, and a directory is 
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `chrome-session` | Read auth-walled pages (Overleaf comment threads, Google Scholar, university-VPN resources) from the user's own logged-in Chrome through Playwright MCP's Chrome extension: one helper opens its own tab in a separate tab group, runs `text`/`fetch`/`eval`/`snapshot`, closes the tab. No per-connection approval dialog once the token is saved; the user's tabs stay invisible to the agent. Includes the Overleaf threads/ranges/line-mapping recipe and why remote-debugging-port tools cannot reuse the default profile on Chrome ≥136. | `chrome-session/SKILL.md` | Chrome + Playwright Extension; `~/.config/playwright-mcp/token.env` (chmod 600); Node `npx` |
 | `clickup-cli` | Manage ClickUp tasks, deadlines, priorities, checklists, comments and workspace resources with read-after-write verification | `clickup-cli/SKILL.md` | Installed `clickup-cli` with configured authentication |
+| `clickup-today` | Refresh a local daily ClickUp Markdown sheet, publish its nested subtasks without duplicates, and push local checkbox changes only on request | `clickup-today/SKILL.md` | Authenticated `clickup-cli`; private list IDs in `clickup-today/config.json` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; every explanation is archived to `~/Dropbox/ConceptExplainer/<Topic>/YYYYMMDD_<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
@@ -104,6 +105,12 @@ clickup-cli --output json space list
 ```
 
 The skill covers hierarchy discovery, task creation and updates, deadlines, priorities, checklists, comments, custom fields, attachments, docs and time tracking. It requires explicit task IDs, list-specific status discovery and independent readback after writes. Command details were checked against v0.18.0; remote verification was read-only. Use `morgen` instead for Morgen calendars and tasks.
+
+### clickup-today
+
+Requires an authenticated `clickup-cli` and a private, gitignored `clickup-today/config.json` containing `{"lists":["LIST_ID"]}` with real list IDs substituted. Daily sheets under `clickup-today/days/` are also gitignored. Install the standard-library Python launcher idempotently with `bash clickup-today/scripts/install.sh`; it links `clickup-today/scripts/clickup-today` into `${PREFIX:-$HOME/.local/bin}`.
+
+Use `clickup-today refresh` to read ClickUp; use `clickup-today publish` after editing the daily sheet to register unlinked handwritten subtasks, or `clickup-today push` only on an explicit completion request. `--date YYYY-MM-DD` selects a day and `--focus ID` works only with `refresh`. Refresh includes undated subtasks nested under their parents and keeps handwritten checkboxes; publish deduplicates by parent+title, verifies saved values, and does not auto-complete checked items.
 
 ### commit-triage
 
@@ -400,6 +407,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `clickup-cli` to inspect or manage ClickUp tasks and workspace resources through an already configured CLI, with duplicate prevention and saved-value verification.
+- Choose `clickup-today` for a local daily Markdown sheet of ClickUp tasks and nested subtasks, preserving handwritten checkboxes; use `publish` for deduplicated creation and explicit `push` for checkbox synchronization. Choose `clickup-cli` for general workspace operations.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (archived to Dropbox under a date-prefixed folder).
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
@@ -436,6 +444,12 @@ skills/
 ├── bibtex-gen/
 ├── clickup-cli/
 │   └── SKILL.md
+├── clickup-today/
+│   ├── SKILL.md
+│   ├── today.py
+│   └── scripts/
+│       ├── clickup-today
+│       └── install.sh
 ├── commit-triage/
 ├── concept-explainer/
 ├── deprecated/              # retired skills, entrypoint renamed so nothing loads them

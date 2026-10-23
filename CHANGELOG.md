@@ -15,6 +15,14 @@ All notable changes to this repository are documented in this file.
 ### Notes
 - The manual loop it replaces failed in four ways during a manuscript revision: terminal handles went stale after every Orca restart and messages were silently not delivered (Orca returned `accepted: true`); a reviewer terminal was misidentified because Orca titles lag behind session titles; `tui-idle` waits fired mid-turn; and answers scraped from the TUI were hard-wrapped. The helper resolves the reviewer from the session store, proves delivery by finding the marker in that store, waits for a settled assistant record with no busy token, and excludes the caller's own terminal (`$ORCA_TERMINAL_HANDLE`).
 
+## 2026-09-30
+
+### Added
+- `clickup-today`: portable daily Markdown sheets for ClickUp with `clickup-today refresh|publish|push [--date YYYY-MM-DD] [--focus ID]`, an idempotent launcher installed via `bash clickup-today/scripts/install.sh`, and private gitignored list configuration and day sheets.
+
+### Notes
+- Earlier daily sheets omitted undated subtasks and exposed inline ID comments in Typora. Refresh now nests subtasks under their parents and preserves handwritten checkboxes. Publish deduplicates by the same parent and title and verifies saved subtasks; checked boxes do not complete tasks automatically. Checkbox synchronization requires explicit `push`.
+
 ## 2026-09-29
 
 ### Added
