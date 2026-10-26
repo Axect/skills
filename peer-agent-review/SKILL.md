@@ -18,9 +18,11 @@ source and number errors and missing counterexamples, each with a quotation, and
 does not change the decision. Put any extra stance (e.g. "act as a selection committee member")
 in the brief.
 
-**The reviewer is permanent.** If no live reviewer exists in the worktree, `send`/`ask` launch
-one in a new Orca terminal (`omp --model gpt-6-astra --thinking medium` for astra; override the
-level with `--thinking`) and remember its handle in `~/.cache/peer-agent-review/reviewers.json`.
+**The reviewer is permanent.** `send`/`ask` reuse a live reviewer of the target in the worktree
+(the remembered one, else one found running there, e.g. after an Orca restart); only if none
+exists do they launch one in a new Orca terminal (`omp --model gpt-6-astra --thinking medium` for
+astra; override the level with `--thinking`). Its handle and Orca pane are remembered in
+`~/.cache/peer-agent-review/reviewers.json`.
 Every later brief goes to the same session, so the reviewer keeps its own earlier answers and
 the loop below can run to agreement. Do not use a headless one-shot unless the user asks for
 it (`--oneshot`): it forgets everything after one answer and cannot be argued with.
@@ -110,9 +112,15 @@ name (default `orca-ide`; a bare `orca` can be the GNOME screen reader on Linux)
 
 ## How it works and why (traps it handles)
 
-- Resolution order: `--handle`; the remembered permanent reviewer if its terminal still exists;
-  a `"title"` regex; for omp targets the session store (below); otherwise launch. A stale
-  handle is forgotten and the reviewer re-resolved or relaunched.
+- Resolution order: `--handle`; the remembered permanent reviewer, by handle or, when Orca has
+  reissued handles after a restart, by its pane (`tabId:leafId`, stable across restarts); a
+  `"title"` regex; a live pane found through Orca's agent-hook status
+  (`~/.config/orca/agent-hooks/last-status.json`, override `ORCA_HOOK_STATUS`: agent kind per
+  pane, and for omp the session transcript, whose model must match the target regex; for agy any
+  live agy pane); for omp targets the session store (below); otherwise launch. A reviewer found
+  live is adopted as the permanent one by `send`/`ask`/`spawn` (not by `targets`/`resolve`).
+  Several matches: the most recently active pane wins, with a note on stderr. A stale handle is
+  forgotten and the reviewer re-resolved or relaunched.
 - Launch: `orca terminal create --worktree id:<this worktree> --command <launch>` then
   `terminal wait --for tui-idle` (must report `satisfied`) before the first send; a prompt typed
   into a TUI that is still starting is lost.

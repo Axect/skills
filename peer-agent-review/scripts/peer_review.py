@@ -5,10 +5,11 @@ Two transports:
   session  a live agent session in an Orca terminal (omp, Claude Code or Codex TUI).
            A one-line pointer to the brief file is typed into the terminal, delivery is
            verified in the agent's session store, and the answer is read from that store.
-           If no live reviewer exists in the worktree, one is launched in a new Orca terminal
-           (the target's `launch` command) and kept running, so later briefs go to the same
-           session and the discussion can continue until agreement. The handle is remembered in
-           ~/.cache/peer-agent-review/reviewers.json per (worktree, target).
+           A live reviewer already running in the worktree is reused (found by its remembered handle
+           or Orca pane, or through Orca's agent-hook status); only if none exists is one launched in
+           a new Orca terminal (the target's `launch` command) and kept running, so later briefs go to
+           the same session and the discussion can continue until agreement. Handle and pane are
+           remembered in ~/.cache/peer-agent-review/reviewers.json per (worktree, target).
   oneshot  a headless CLI call (omp -p, codex exec, claude -p) with the brief on stdin. Used only
            with --oneshot: a one-shot reviewer forgets everything after one answer.
 
@@ -83,6 +84,11 @@ BUILTIN_TARGETS = {
               'launch': ['agy', '--model', 'gemini-4-argon-{level}', '--mode', 'accept-edits']},
 }
 REGISTRY = HOME / '.cache/peer-agent-review/reviewers.json'
+# Orca's agent-hook status: one entry per pane ("<tabId>:<leafId>") with the agent kind and, for omp,
+# the session transcript. Pane keys survive Orca restarts; terminal handles do not.
+HOOK_STATUS = Path(os.environ.get('ORCA_HOOK_STATUS', HOME / '.config/orca/agent-hooks/last-status.json'))
+# Orca's agentIdentity / agentPresence name for each agent kind that live discovery supports.
+AGENT_IDENTITY = {'omp': 'omp', 'agy': 'antigravity'}
 
 
 # Default stance: hostile. The reviewer looks for reasons to reject, not to approve.
@@ -132,12 +138,19 @@ def terminals() -> list[dict]:
     return d.get('result', {}).get('terminals', []) if d.get('ok', True) else []
 
 
-def terminal_tail(handle: str, limit: int = 25) -> str:
-    d = orca('terminal', 'read', '--terminal', handle, '--limit', str(limit))
+def terminal_tail(handle: str, limit: int = 25, screen: bool = False) -> str:
+    """Last lines of a terminal. screen=True reads the rendered screen, which for a full-screen TUI (agy) includes
+    the live input box that the scrollback tail omits."""
+    args = ['terminal', 'read', '--terminal', handle, '--limit', str(limit)] + (['--screen'] if screen else [])
+    d = orca(*args)
     return '\n'.join(d.get('result', {}).get('terminal', {}).get('tail', []))
 
 
 # ---------------------------------------------------------------- permanent reviewers
+def pane_key(term: dict) -> str | None:
+    return f"{term['tabId']}:{term['leafId']}" if term.get('tabId') and term.get('leafId') else None
+
+
 def registry() -> dict:
     try:
         return json.loads(REGISTRY.read_text())
@@ -145,15 +158,27 @@ def registry() -> dict:
         return {}
 
 
-def remember(cwd: str, target: str, handle: str | None) -> None:
+def remembered(cwd: str, target: str) -> dict:
+    """{'handle', 'pane'} of the permanent reviewer; entries written before panes were stored are bare handles."""
+    v = registry().get(f'{cwd}::{target}')
+    return {'handle': v} if isinstance(v, str) else (v or {})
+
+
+def remember(cwd: str, target: str, term: dict | None) -> None:
     reg = registry()
     key = f'{cwd}::{target}'
-    if handle:
-        reg[key] = handle
+    if term:
+        reg[key] = {'handle': term['handle'], 'pane': pane_key(term)}
     else:
         reg.pop(key, None)
     REGISTRY.parent.mkdir(parents=True, exist_ok=True)
     REGISTRY.write_text(json.dumps(reg, indent=1))
+
+
+def identity_ok(spec: dict, term: dict) -> bool:
+    """The terminal runs the target's agent kind (agentIdentity is empty for a while after an Orca restart)."""
+    want = AGENT_IDENTITY.get(spec.get('agent', 'omp'))
+    return want is None or term.get('agentIdentity') in (want, None)
 
 
 def launch_command(spec: dict, thinking: str | None) -> str:
@@ -197,7 +222,7 @@ def spawn(spec: dict, cwd: str, thinking: str | None) -> str:
         w = orca('terminal', 'wait', '--terminal', handle, '--for', 'tui-idle', '--timeout-ms', '240000')
         if not w.get('result', {}).get('wait', {}).get('satisfied'):
             raise SystemExit(f'spawn: {handle} did not become ready; check the terminal before sending')
-    remember(cwd, spec['name'], handle)
+    remember(cwd, spec['name'], next((t for t in terminals() if t.get('handle') == handle), {'handle': handle}))
     print(f"spawn: launched {spec['name']} reviewer in {handle}", file=sys.stderr)
     return handle
 
@@ -274,50 +299,100 @@ def find_marker_file(agent: str, cwd: str, marker: str) -> Path | None:
 
 # ---------------------------------------------------------------- resolution
 def resolve(spec: dict, cwd: str, handle: str | None = None, launch: bool = False,
-            thinking: str | None = None) -> tuple[str, Path | None]:
+            thinking: str | None = None, adopt: bool = False) -> tuple[str, Path | None]:
     """Return (terminal handle, session file) for a session target in this worktree.
 
-    Order: explicit handle, the remembered permanent reviewer (if its terminal still exists), a
-    'title' regex, the omp session store; with launch=True a missing reviewer is spawned."""
+    Order: explicit handle; the remembered permanent reviewer, by handle or by its Orca pane (Orca
+    reissues handles on restart); a 'title' regex; a live pane of the target's agent kind (and model)
+    from Orca's agent-hook status; the omp session store. adopt=True remembers a reviewer found live
+    as the permanent one; with launch=True a missing reviewer is spawned."""
     self_handle = os.environ.get('ORCA_TERMINAL_HANDLE')   # never review with yourself
     terms = [t for t in terminals() if os.path.realpath(t.get('worktreePath', '')) == os.path.realpath(cwd)
              and t.get('handle') != self_handle]
     if handle:
         return handle, None
-    known = registry().get(f"{cwd}::{spec['name']}")
-    if known and any(t.get('handle') == known for t in terms):
-        return known, None
+    term = known_terminal(spec, cwd, terms)
+    if term:
+        return term['handle'], None
     try:
-        return _resolve_live(spec, cwd, terms)
+        term, path = _resolve_live(spec, cwd, terms)
     except SystemExit:
         if not launch:
             raise
         return spawn(spec, cwd, thinking), None
+    if adopt:
+        remember(cwd, spec['name'], term)
+    return term['handle'], path
 
 
-def _resolve_live(spec: dict, cwd: str, terms: list[dict]) -> tuple[str, Path | None]:
+def known_terminal(spec: dict, cwd: str, terms: list[dict]) -> dict | None:
+    """Live terminal of the remembered reviewer; refreshes the stored handle when Orca reissued it."""
+    known = remembered(cwd, spec['name'])
+    hit = (next((t for t in terms if known.get('handle') and t.get('handle') == known['handle']), None)
+           or next((t for t in terms if known.get('pane') and pane_key(t) == known['pane']
+                    and identity_ok(spec, t)), None))
+    if hit and (hit['handle'] != known.get('handle') or known.get('pane') != pane_key(hit)):
+        remember(cwd, spec['name'], hit)
+    return hit
+
+
+def _resolve_live(spec: dict, cwd: str, terms: list[dict]) -> tuple[dict, Path | None]:
     if spec.get('title'):
         hits = [t for t in terms if re.search(spec['title'], t.get('title') or '')]
         if len(hits) == 1:
-            return hits[0]['handle'], None
+            return hits[0], None
         raise SystemExit(f"resolve: title /{spec['title']}/ matched {len(hits)} terminals")
+    found = _resolve_hooks(spec, terms)
+    if found:
+        return found
     agent = spec.get('agent', 'omp')
     if agent != 'omp':
-        raise SystemExit(f"resolve: agent '{agent}' needs --handle, a remembered reviewer or a 'title' regex")
+        raise SystemExit(f"resolve: no live '{agent}' terminal in {cwd}; use --handle or a 'title' regex")
     rx = re.compile(spec['model'], re.I)
     for path in store_files('omp', cwd):
         model = dominant_model(path)
         if not rx.search(model):
             continue
         title = session_title(path)
-        # agentIdentity can be empty for a while after an Orca restart; the title match decides.
-        hits = [t for t in terms if t.get('agentIdentity') in ('omp', None) and title
-                and title in (t.get('title') or '')]
+        hits = [t for t in terms if identity_ok(spec, t) and title and title in (t.get('title') or '')]
         if len(hits) == 1:
-            return hits[0]['handle'], path
+            return hits[0], path
     cands = '\n'.join(f"  {t['handle']}  {t.get('title')}" for t in terms)
     raise SystemExit(f"resolve: no live omp terminal in {cwd} whose session model matches "
                      f"/{spec['model']}/. Terminals here:\n{cands}\nUse --handle.")
+
+
+def _resolve_hooks(spec: dict, terms: list[dict]) -> tuple[dict, Path | None] | None:
+    """A live terminal whose Orca pane runs the target's agent kind and, if the target names one, its model.
+
+    Orca's hook status names the agent of each pane and, for omp, the session transcript, so a reviewer
+    restored after an Orca restart (new handle, generic title such as 'OMP ready') is still found."""
+    want = AGENT_IDENTITY.get(spec.get('agent', 'omp'))
+    if not want:
+        return None
+    try:
+        entries = json.loads(HOOK_STATUS.read_text()).get('entries', {})
+    except (OSError, json.JSONDecodeError):
+        return None
+    rx = re.compile(spec['model'], re.I) if spec.get('model') else None
+    cands = []
+    for t in terms:
+        e = entries.get(pane_key(t) or '')
+        # A pane whose agent has exited keeps its hook entry; require the live identity too.
+        if not e or (e.get('agentPresence') or {}).get('agent') != want or t.get('agentIdentity') != want:
+            continue
+        tp = (e.get('providerSession') or {}).get('transcriptPath')
+        path = Path(tp) if tp and Path(tp).is_file() else None
+        if rx and not rx.search((e.get('payload') or {}).get('model') or (dominant_model(path) if path else '')):
+            continue
+        cands.append((e.get('receivedAt') or 0, t, path))
+    if not cands:
+        return None
+    cands.sort(key=lambda c: c[0], reverse=True)
+    if len(cands) > 1:
+        print(f"resolve: {len(cands)} live {spec['name']} sessions here; using the most recently active, "
+              f"{cands[0][1]['handle']}", file=sys.stderr)
+    return cands[0][1], cands[0][2]
 
 
 # ---------------------------------------------------------------- commands
@@ -364,12 +439,13 @@ def composer_busy(tail: str, agent: str = 'omp') -> bool:
 
 
 def cmd_send(a, spec, cwd) -> int:
-    handle, _ = resolve(spec, cwd, a.handle, launch=not a.no_launch, thinking=a.thinking)
+    handle, _ = resolve(spec, cwd, a.handle, launch=not a.no_launch, thinking=a.thinking, adopt=True)
     brief = Path(a.brief)
     if not brief.exists():
         print(f'send: brief {brief} not found', file=sys.stderr)
         return 3
-    if not a.force and composer_busy(terminal_tail(handle), spec.get('agent', 'omp')):
+    agent = spec.get('agent', 'omp')
+    if not a.force and composer_busy(terminal_tail(handle, screen=agent == 'agy'), agent):
         print('send: the target composer holds unsubmitted text; ask the user (or --force)', file=sys.stderr)
         return 5
     ans = None
@@ -387,7 +463,7 @@ def cmd_send(a, spec, cwd) -> int:
             code = r.get('error', {}).get('code', '?')
             if code == 'terminal_handle_stale' and attempt == 0:
                 remember(cwd, spec['name'], None)
-                handle, _ = resolve(spec, cwd, None, launch=not a.no_launch, thinking=a.thinking)
+                handle, _ = resolve(spec, cwd, None, launch=not a.no_launch, thinking=a.thinking, adopt=True)
                 continue
             print(f'send: orca error {code}', file=sys.stderr)
             return 3
@@ -404,7 +480,7 @@ def cmd_send(a, spec, cwd) -> int:
                 print(json.dumps({'handle': handle, 'session': str(path), 'marker': a.marker}, ensure_ascii=False))
                 return 0
         if attempt == 0 and not a.handle:
-            handle, _ = resolve(spec, cwd, None)
+            handle, _ = resolve(spec, cwd, None, adopt=True)
     print('send: accepted by Orca but not seen by the agent (not delivered)', file=sys.stderr)
     return 3
 
@@ -523,13 +599,16 @@ def main() -> int:
         return cmd_targets(a, cwd)
     spec = target_spec(a.target)
     if a.command == 'spawn':
-        h, _ = resolve(spec, cwd, a.handle, launch=True, thinking=a.thinking)
+        h, _ = resolve(spec, cwd, a.handle, launch=True, thinking=a.thinking, adopt=True)
         print(json.dumps({'target': spec['name'], 'handle': h}, ensure_ascii=False))
         return 0
     if a.command == 'close':
-        h = a.handle or registry().get(f"{cwd}::{spec['name']}")
+        term = None if a.handle else known_terminal(
+            spec, cwd, [t for t in terminals() if os.path.realpath(t.get('worktreePath', '')) == cwd])
+        h = a.handle or (term or {}).get('handle')
         if not h:
-            print('close: no remembered reviewer here', file=sys.stderr)
+            remember(cwd, spec['name'], None)
+            print('close: no live remembered reviewer here', file=sys.stderr)
             return 2
         orca('terminal', 'close', '--terminal', h)
         remember(cwd, spec['name'], None)
