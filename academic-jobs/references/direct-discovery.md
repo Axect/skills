@@ -38,6 +38,18 @@ Keep known `(source,id)` matches. `not_in_local_store` means precisely that, not
 
 No email, referee contact, application submission, calendar changes or scheduled monitoring is authorized by discovery itself.
 
+## Alert-mail lead sources (academics.de, AcademicPositions)
+
+These boards are lead sources, not board collectors. Never fetch, scrape or browser-automate their search or job pages, and never add them to `ajo`:
+
+- [academics.de](https://www.academics.de/stellenanzeigen) (ZEIT/DHV German academic board, Germany/Austria): its `robots.txt` forbids automated access or data collection without express permission (§ 44 b UrhG).
+- [AcademicPositions](https://academicpositions.com/find-jobs) (Sweden-based, Europe-wide aggregator): its [terms of use](https://academicpositions.com/terms-of-use) say information "may not be copied, processed or used without written permission", and Cloudflare serves a bot challenge even to `robots.txt` and headless browsers.
+
+- Input is the user's own alert subscriptions delivered to the user's Proton Mail inbox: academics.de Job-Mail ("Suche abonnieren" on a search result page) and AcademicPositions job alerts. Read them with the `proton-mail` skill: `search --from academics.de` / `search --from academicpositions` with `--since DD-Mon-YYYY`, then `read <uid>`.
+- An alert row (title, employer, city, link) is a lead only. Verify each relevant one from the employer's own career page or application portal under the rules above; that official page is the evidence URL. The board's job link may be recorded as identity, not read by the agent.
+- If no official employer posting can be found, keep it as `unknown` with the alert text as the only evidence and ask the user to open the board page manually.
+- Filter by rank in the body: German `Wissenschaftliche/r Mitarbeiter/in` (E13 TV-L/TVöD) can be postdoc or PhD; `Promotion` as a requirement establishes the postdoc branch, `Promotionsmöglichkeit` indicates PhD. Record German-language requirements (e.g. B2) under eligibility.
+
 ## Portable snapshot ledger
 
 Use `~/.local/share/academic-direct-opportunities/` by default. This retains compatibility with earlier local research records without changing `ajo`'s DB schema or the meaning of `AJO_DATA_DIR`. Save immutable `snapshots/<UTC-timestamp>.json` and source extracts; never overwrite a dated snapshot. Keep application materials, credentials and private research artifacts out of a public skills repository.
@@ -104,3 +116,4 @@ These sites exercised the procedure in September 2026. Re-read their current sou
 - [MPI-IS Empirical Inference route](https://is.mpg.de/jobs/postdoc-applicant): occasional unsolicited postdoc applications; distinguish already-postdoc document requirements and unknown funding capacity.
 - Amsterdam: [AMLab joining policy](https://amlab-amsterdam.github.io/joining/), [UvA vacancies](https://werkenbij.uva.nl/en/vacancies), [AI4SMM past call](https://ai4science-amsterdam.github.io/ai4smm_call1/). The last was a supervisors-only funding competition, not a current candidate fellowship. A live UvA vacancy was found through the employer portal, without proving global board absence.
 - Cambridge: [CBL BLG route](https://cbl.eng.cam.ac.uk/vacancies/blg-postdocs/), [university jobs](https://www.cam.ac.uk/jobs). BLG's external-fellowship months were approximate and old; verify current funder rules rather than copying that calendar. Closed historic Physics-of-AI call [Inspire3097379](https://inspirehep.net/jobs/3097379) was not a new direct vacancy. Employer call LE50980 demonstrated an actual new posting with a specified publication date, explicit three-year funding, and no stated start date.
+- [Max Planck Postdoc Program](https://postdocprogram.mpg.de/all-postdoc-positions): PI-specific postdoc positions in two collective calls per year, opening March 1 and September 1 and each open six weeks ([program page](https://www.mpg.de/en/max-planck-postdoc-program)); no applications outside a call, 2–3 letters due by the call deadline, at least three-year TVöD contracts. The list page carries no deadline, and stale rows stay visible after a call closes: take the cutoff from the position body (the September 2026 call stated October 13, 2026) and check the `Application Round` label. Fetching is allowed by its robots.txt; read it directly in the March and September windows. It does not cover every MPG vacancy, so institute job pages remain separate sources.

@@ -37,7 +37,10 @@ this integration changes the assistant workflow, not CLI source options.
    [references/direct-discovery.md](references/direct-discovery.md). Start with
    2–3 relevant institutional ecosystems in preferred regions and declare the scope;
    expand for promising leads or requested breadth. This is not a global census or
-   a quota of recommendations. Do not ask whether to add this track.
+   a quota of recommendations. Do not ask whether to add this track. When Europe
+   is in scope, also read recent academics.de and AcademicPositions alert mails from
+   Proton Mail as leads (never scrape either site; see the alert-mail section of the
+   direct reference).
 3. Read official research, recruitment policy and linked calls. The direct reference
    owns the evidence/status schema and uses the bundled
    `scripts/direct_ledger.py` validator/diff. No managed or externally installed
