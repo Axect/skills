@@ -13,7 +13,8 @@ Usage:
   chrome_session.py eval     URL|- JS_FUNCTION  # run an async arrow function in the page, print result
   chrome_session.py snapshot URL|-              # accessibility snapshot (Playwright YAML)
   chrome_session.py nav      URL                # navigate only
-  chrome_session.py tool     URL|- NAME JSON    # raw Playwright MCP tool call, e.g. browser_click {"element":..,"ref":..}
+  chrome_session.py tool     URL|- NAME JSON    # raw Playwright MCP tool call, e.g. browser_click {"element":..,"target":"e12"}
+  chrome_session.py schema   NAME|all           # input schema of a Playwright MCP tool (arg names change between releases)
   chrome_session.py status                      # is the daemon/tab alive, and where is it
   chrome_session.py stop                        # close the tab and stop the daemon
 
@@ -25,6 +26,7 @@ Token: PLAYWRIGHT_MCP_EXTENSION_TOKEN from the environment, else from
 import fcntl
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -38,7 +40,7 @@ SOCK = os.path.join(RUNTIME_DIR, f"chrome-session-{os.getuid()}.sock")
 LOCK = SOCK + ".lock"
 LOG = SOCK + ".log"
 IDLE = float(os.environ.get("CHROME_SESSION_IDLE", "600"))
-COMMANDS = {"text", "fetch", "eval", "snapshot", "nav", "tool"}
+COMMANDS = {"text", "fetch", "eval", "snapshot", "nav", "tool", "schema"}
 
 
 def load_env():
@@ -127,6 +129,10 @@ def run(s, cmd, url, args):
         out = json.dumps(s.evaluate(args[0]), ensure_ascii=False, indent=1)
     elif cmd == "tool":
         out = s.call(args[0], json.loads(args[1]))
+    elif cmd == "schema":
+        tools = {t["name"]: t["inputSchema"] for t in s._rpc("tools/list", {})["tools"]}
+        out = " ".join(sorted(tools)) if args[0] == "all" else json.dumps(tools[args[0]], indent=1)
+        return out, None
     else:  # fetch
         fn = ("async () => { const out = {}; for (const p of %s) {"
               " const r = await fetch(p, {credentials: 'include'});"
@@ -257,13 +263,18 @@ def main(argv):
                 or (cmd == "nav" and argv[2] == "-"):
             sys.exit(__doc__)
         ensure_daemon()
-        resp = request({"cmd": cmd, "url": argv[2], "args": argv[3:]})
+        if cmd == "schema":
+            resp = request({"cmd": cmd, "url": "-", "args": argv[2:3]})
+        else:
+            resp = request({"cmd": cmd, "url": argv[2], "args": argv[3:]})
     if not resp["ok"]:
         sys.exit(resp["err"])
     if resp["out"]:
         print(resp["out"])
     if resp.get("landed"):
-        print(f"# landed on: {resp['landed']}", file=sys.stderr)
+        # The fresh tab sits on the extension's connect page, whose URL carries the token.
+        landed = re.sub(r"token=[^&]*", "token=<redacted>", resp["landed"])
+        print(f"# landed on: {landed}", file=sys.stderr)
 
 
 if __name__ == "__main__":
