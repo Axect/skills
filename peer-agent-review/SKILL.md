@@ -45,9 +45,9 @@ holds an unsubmitted user draft (never send over it without asking).
 **argon (agy) answers through a file.** agy has no session store this helper can read, so the
 pointer asks it to write its whole answer to
 `~/.cache/peer-agent-review/answers/argon/<marker>.md` and to touch no other file; it runs in
-`--mode accept-edits` so it can write that file. Delivery is the marker appearing in the
-terminal tail; completion is the file non-empty, unchanged for `--settle` seconds, and no busy
-token (`esc to`, `Thinking`, `Working`). A reused marker is refused (the answer file exists).
+`--mode accept-edits` so it can write that file. Delivery is the marker in Orca's hook status
+(below) or the terminal tail; completion is Orca's turn-end hook (`Stop`) for the marker's turn,
+then the file is read. A reused marker is refused (the answer file exists).
 The `{level}` in the launch command becomes the model suffix (`gemini-4-argon-medium`).
 
 ## Modes (the pointer line ends with the matching instruction)
@@ -129,12 +129,22 @@ name (default `orca-ide`; a bare `orca` can be the GNOME screen reader on Linux)
   dominant `"model"` matches the regex, reads its title (first record), and finds the omp
   terminal in that worktree whose title contains it. Terminal titles and handles change
   after Orca restarts; resolution is redone on `terminal_handle_stale`.
-- Delivery: Orca's `accepted: true` is not delivery. The tool waits for a user record
-  containing the marker in the agent's session store and retries once after re-resolving.
-- Completion: an assistant text record after the marker, no busy token in the terminal
-  tail (`Working`, `⟨esc⟩`, `Completing` for omp; `esc to interrupt` for Claude/Codex), and
-  the session file unchanged for `--settle` seconds. `orca terminal wait --for tui-idle`
-  fires mid-turn and is not used.
+- Delivery: Orca's `accepted: true` is not delivery. The tool waits until Orca's hook status
+  shows the pane's current prompt carrying `[marker]`, or a user record containing the marker
+  in the agent's session store, and retries once after re-resolving.
+- Completion (omp, agy): Orca's agent-hook status (`last-status.json`) records each pane's turn
+  with its prompt and state; the turn end (`agent_end` for omp, `Stop` for agy) sets `done`.
+  `wait` reads it every 2 s and returns when the `[marker]` turn is `done` and still `done` 3 s
+  later (a background job can resume a turn), so the answer arrives about 5 s after the turn
+  ends. A finished turn with no answer (agy wrote no file) exits 4 at once instead of waiting
+  for `--timeout`. While the turn is `working`, nothing is returned: an omp reviewer writes
+  preamble text before its tool calls and may wait on subagents without a busy token in the tail,
+  which earlier made `wait` return that preamble as the answer.
+- Completion fallback (Claude/Codex, or the hook no longer shows the marker's turn because
+  another prompt replaced it): an assistant text record after the marker, no busy token in the
+  terminal tail (`Working`, `⟨esc⟩`, `Completing` for omp; `esc to interrupt` for
+  Claude/Codex), and the file unchanged for `--settle` seconds, checked every `--poll` seconds.
+  `orca terminal wait --for tui-idle` fires mid-turn and is not used.
 - The answer is read from the session store, never scraped from the TUI (hard-wrapped,
   redraw noise). Orca JSON is parsed after replacing invalid UTF-8; never pipe it to `jq`.
 - Composer hazard: if the reviewer's input box holds text, sending would submit the

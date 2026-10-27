@@ -87,6 +87,8 @@ REGISTRY = HOME / '.cache/peer-agent-review/reviewers.json'
 # Orca's agent-hook status: one entry per pane ("<tabId>:<leafId>") with the agent kind and, for omp,
 # the session transcript. Pane keys survive Orca restarts; terminal handles do not.
 HOOK_STATUS = Path(os.environ.get('ORCA_HOOK_STATUS', HOME / '.config/orca/agent-hooks/last-status.json'))
+HOOK_POLL = 2      # seconds between hook-status reads while waiting (one small JSON read)
+HOOK_SETTLE = 3    # a 'done' turn must stay done this long (a background job can resume the turn)
 # Orca's agentIdentity / agentPresence name for each agent kind that live discovery supports.
 AGENT_IDENTITY = {'omp': 'omp', 'agy': 'antigravity'}
 
@@ -467,8 +469,15 @@ def cmd_send(a, spec, cwd) -> int:
                 continue
             print(f'send: orca error {code}', file=sys.stderr)
             return 3
+        pane = pane_key(next((t for t in terminals() if t.get('handle') == handle), {}))
         for _ in range(15):
             time.sleep(2)
+            turn = hook_turn(pane, a.marker)
+            if turn:
+                where = ({'answer_file': str(answer_path(spec, a.marker))} if file_answer(spec)
+                         else {'session': str(turn[2]) if turn[2] else None})
+                print(json.dumps({'handle': handle, **where, 'marker': a.marker}, ensure_ascii=False))
+                return 0
             if file_answer(spec):
                 if a.marker in terminal_tail(handle, 60):
                     print(json.dumps({'handle': handle, 'answer_file': str(answer_path(spec, a.marker)),
@@ -500,40 +509,77 @@ def is_busy(handle: str | None, agent: str) -> bool:
     return any(tok in tail for tok in BUSY.get(agent, []))
 
 
+def hook_turn(pane: str | None, marker: str) -> tuple | None:
+    """(state, receivedAt, transcript) of the pane's current turn in Orca's agent-hook status, when that
+    turn's prompt is the pointer line carrying [marker]; None when the hook does not track it.
+
+    Orca records the turn end itself (omp `agent_end`, agy `Stop` → state 'done'), so this is exact and
+    needs neither busy tokens in the terminal tail nor a quiet period."""
+    if not pane:
+        return None
+    try:
+        e = json.loads(HOOK_STATUS.read_text()).get('entries', {}).get(pane)
+    except (OSError, json.JSONDecodeError):
+        return None
+    p = (e or {}).get('payload') or {}
+    if f'[{marker}]' not in (p.get('prompt') or ''):
+        return None
+    tp = (e.get('providerSession') or {}).get('transcriptPath')
+    return p.get('state'), e.get('receivedAt'), Path(tp) if tp and Path(tp).is_file() else None
+
+
 def cmd_wait(a, spec, cwd) -> int:
     agent = spec.get('agent', 'omp')
     try:
         handle, _ = resolve(spec, cwd, a.handle)
     except SystemExit:
         handle = a.handle
+    pane = pane_key(next((t for t in terminals() if t.get('handle') == handle), {})) if handle else None
+    ans_file = answer_path(spec, a.marker) if file_answer(spec) else None
     deadline = time.time() + a.timeout
-    if file_answer(spec):
-        ans_file = answer_path(spec, a.marker)
-        while time.time() < deadline:
-            if ans_file.exists() and ans_file.stat().st_size and not is_busy(handle, agent):
-                m0 = ans_file.stat().st_mtime
-                time.sleep(a.settle)
-                if not is_busy(handle, agent) and ans_file.stat().st_mtime == m0:
-                    emit(ans_file.read_text(), a.out)
-                    return 0
-            time.sleep(a.poll)
-        print('wait: timeout', file=sys.stderr)
-        return 4
     path = None
+    next_fallback = 0.0
     while time.time() < deadline:
-        path = path or find_marker_file(agent, cwd, a.marker)
-        if path:
-            ans = answer_after(path, a.marker)
-            if ans and not is_busy(handle, agent):
-                m0 = path.stat().st_mtime
-                time.sleep(a.settle)
-                if not is_busy(handle, agent) and path.stat().st_mtime == m0:
-                    ans = answer_after(path, a.marker)
+        turn = hook_turn(pane, a.marker)
+        if turn and turn[0] == 'done':
+            time.sleep(HOOK_SETTLE)           # a turn resumed by a finished background job flips back
+            if hook_turn(pane, a.marker) == turn:
+                if ans_file:
+                    ans = ans_file.read_text() if ans_file.exists() else ''
+                else:
+                    path = path or turn[2] or find_marker_file(agent, cwd, a.marker)
+                    ans = answer_after(path, a.marker) if path else ''
+                if ans.strip():
                     emit(ans, a.out)
                     return 0
-        time.sleep(a.poll)
+                print(f"wait: the reviewer finished the [{a.marker}] turn without an answer"
+                      f"{f' in {ans_file}' if ans_file else ''}; read its terminal {handle}", file=sys.stderr)
+                return 4
+        elif not turn and time.time() >= next_fallback:
+            # Hook status does not track this turn (no pane, or another prompt replaced it): heuristics.
+            if ans_file:
+                ans = settled(ans_file, handle, agent, a.settle, lambda: ans_file.read_text()
+                              if ans_file.exists() and ans_file.stat().st_size else '')
+            else:
+                path = path or find_marker_file(agent, cwd, a.marker)
+                ans = settled(path, handle, agent, a.settle,
+                              lambda: answer_after(path, a.marker)) if path else ''
+            if ans:
+                emit(ans, a.out)
+                return 0
+            next_fallback = time.time() + a.poll
+        time.sleep(HOOK_POLL)
     print('wait: timeout', file=sys.stderr)
     return 4
+
+
+def settled(path: Path, handle: str | None, agent: str, settle: float, read) -> str:
+    """Answer from read() once the terminal shows no busy token and path is unchanged for settle seconds."""
+    if not read() or is_busy(handle, agent):
+        return ''
+    m0 = path.stat().st_mtime
+    time.sleep(settle)
+    return read() if not is_busy(handle, agent) and path.stat().st_mtime == m0 else ''
 
 
 def emit(text: str, out: str | None) -> None:
