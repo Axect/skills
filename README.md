@@ -52,6 +52,7 @@ Directories created before this convention keep their names, and a directory is 
 | `research-log` | Register projects and record decisions; surfaces the lesson/rule corpus at decision time (check step warns against past anti-patterns) and on cross-project recall when stuck | `research-log/SKILL.md` | `~/.research/` workspace (auto) |
 | `research-portal` | Build and manage a local MkDocs Material research portal over a folder of Typora/markdown notes: project-grouped sidebar via mkdocs-literate-nav, full LaTeX rendering via MathJax 3, and safe project tagging/renaming that repairs image links | `research-portal/SKILL.md` | `uv`; mkdocs-material and mkdocs-literate-nav are auto-installed by the scaffold script |
 | `research-report` | Create or revise understanding-first research and experiment reports (why it matters, the core idea, what it achieved) backed by traceable evidence, plots, manifests, and validation helpers | `research-report/SKILL.md` | None (stdlib Python) |
+| `research-proposal` | Write, diagnose, and fit research or project proposals for fellowships and grants, from 1~5 page institute-fellowship proposals to templated project descriptions (Humboldt research outline, MSCA Part B, DFG, ERC Part I/II, NSF). Rules come from 17 sources (ERC, DFG, Humboldt, NSF, MSCA guides, Schmidt programmes, Oxford Physics, Ten Simple Rules for Getting Grants) with verbatim, string-checked quotes. Criteria map, logic chain, work plan, and risk table before prose; Korean draft, user revision, English final. `scripts/rp_check.py` checks required elements, objective count, length, dashes, hype, weak verbs, placeholders, and citations. | `research-proposal/SKILL.md` | None (stdlib Python) |
 | `research-statement` | Write, diagnose, and tailor research statements (the applicant's research narrative) from an evidence-based guideline compiled from 24 funder, physics-society, university, and practitioner sources (NASA Hubble, DFG, MSCA, Schmidt AI in Science, AAS, Oxford Physics, ...). Korean working draft, checklist diagnosis with line evidence, user revision, English final; per-call tailoring by call type and host. `scripts/rs_check.py` reports section balance, dashes, weak and hype words, placeholders, and citation consistency. | `research-statement/SKILL.md` | None (stdlib Python) |
 | `scienceplot-py` | Generate a Python matplotlib plot script following the user's mandatory `scienceplots` (`science`+`nature`) lab template, with parquet / CSV / NumPy data sources and four plot variants (single line, multi-line, scatter/errorbar, subplots). Writes the `.py` only — does not execute it. | `scienceplot-py/SKILL.md` | `matplotlib`, `scienceplots`, plus `pandas` / `numpy` as needed (in the user's runtime env) |
 | `vastai` | Search, create, and manage Vast.ai GPU cloud instances | `vastai/SKILL.md` | `vastai` CLI + API key |
@@ -347,6 +348,13 @@ No external setup required. Uses Python standard library only.
 - Helper scripts live in `research-report/scripts/` (`build_plot_manifest.py`, `record_report_version.py`, `validate_artifacts.py`).
 - Designed to be used from inside a project directory that already contains experiment outputs.
 
+### research-proposal
+
+No external setup required. `scripts/rp_check.py` uses the Python standard library only.
+
+- Route by the document the call names: statement to `research-statement`, proposal or project description to `research-proposal`.
+- `references/evidence.md` holds each rule with verbatim, string-checked quotes; `references/sources.md` lists the 17 sources.
+
 ### research-statement
 
 No external setup required. `scripts/rs_check.py` uses the Python standard library only.
@@ -460,6 +468,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `research-log` to register projects, record decisions, check past lessons before committing to a new approach (the `check` step warns against known anti-patterns), or recall cross-project findings when stuck (the `recall` step).
 - Choose `research-portal` to build a browsable, math-rendered MkDocs Material site over a folder of existing Typora/markdown notes without modifying the originals.
 - Choose `research-report` to turn research or experiment outputs into an understanding-first report: one that explains why the work matters, what the core idea is (intuition before formalism), and what it achieved, with every claim earned by traceable evidence and plots.
+- Choose `research-proposal` when the call asks for a research or project proposal, project description, research outline, or work plan: one sharp question, two or three verifiable objectives traced to methods, milestones, risks with fallbacks, and resources consistent with the plan.
 - Choose `research-statement` when the call asks for a research statement: the applicant's research narrative with one central question, past work as evidence of their own contribution, two or three objectives, and a specific fit paragraph.
 - Choose `scienceplot-py` to scaffold a publication-style matplotlib script following the lab's `scienceplots` (`science`+`nature`) template — single line, multi-line + legend, scatter / errorbar, or multi-panel subplots from parquet / CSV / NumPy data.
 - Choose `vastai` for renting GPUs, searching offers, or managing remote compute instances.
@@ -510,6 +519,7 @@ skills/
 ├── research-board/
 ├── research-log/
 ├── research-portal/
+├── research-proposal/
 ├── research-report/
 ├── research-statement/
 ├── scienceplot-py/
