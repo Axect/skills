@@ -32,6 +32,7 @@ Directories created before this convention keep their names, and a directory is 
 | `clickup-today` | Refresh a local daily ClickUp Markdown sheet, publish its nested subtasks without duplicates, and push local checkbox changes only on request | `clickup-today/SKILL.md` | Authenticated `clickup-cli`; private list IDs in `clickup-today/config.json` |
 | `commit-triage` | Classify uncommitted changes into commit / failure-archive / ambiguous buckets and produce clean grouped commits with no co-author attribution | `commit-triage/SKILL.md` | None |
 | `concept-explainer` | Explain a specific concept (physics / math / ML / stats / CS) to a named free-form audience with full mathematical rigor and many visualizations — `explanation.md` + executable matplotlib plot scripts (`scienceplots ["science", "nature"]`, never `no-latex`) + optional Friendly Whiteboard schematic prompts. Auto-renders PDF via `md2pdf-typora`; every explanation is archived to `~/Dropbox/ConceptExplainer/<Topic>/YYYYMMDD_<concept-slug>/`. | `concept-explainer/SKILL.md` | `matplotlib`, `scienceplots`, system TeX install (for LaTeX rendering); `md2pdf-typora` for the PDF step; optionally `wide-slide-illustrator` / `codex-image` for schematics |
+| `cover-letter` | Write, diagnose, and tailor academic cover letters for postdoc, fellowship, and early faculty applications, plus UK supporting statements against a person specification and motivation letters. Rules come from 17 sources (university career offices, UK recruitment guidance, Inside Higher Ed, Chronicle, physicists' notes) with verbatim, string-checked quotes. Korean working draft, user revision, English final. `scripts/cl_check.py` checks length, dashes, clichés, hedges, placeholders, and wrong institution names. | `cover-letter/SKILL.md` | None (stdlib Python) |
 | `dropbox` | Upload, download, and share files through the Dropbox API | `dropbox/SKILL.md` | OAuth credentials (interactive) |
 | `hep-rumor-mill` | Analyze the HEP-theory postdoc rumor mill (a public Google Sheet) via the `prm` CLI: pull a year's offer list, resolve each offer-holder's InspireHEP record (plus OpenAlex by ORCID and Semantic Scholar by name for interdisciplinary people), and study what kind of profile lands where. Institute cohort profiles and self-benchmarking against the accepted cohort, with Korean report output. State in a local SQLite store under `~/.local/share/hep-rumor-mill/`. Self-reported data, treated as descriptive not predictive. | `hep-rumor-mill/SKILL.md` | `uv` (the bundled `prm` uv project auto-installs `requests` on first `uv run`) |
 | `handdrawn-schematic` | Generate a single friendly hand-drawn whiteboard schematic (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) on a **pure white background** that explains a concept, pipeline, architecture, or algorithm at a glance. Composes the load-bearing style block + a 3-6 panel figure brief and by default renders a PNG via the bundled `codex` image_generation tool (ChatGPT OAuth); falls back to emitting the copy-paste prompt when codex is unavailable. The reusable single-figure generator extracted from `journal-club-review`, retuned from cream to white. | `handdrawn-schematic/SKILL.md` | Logged-in bundled `codex` for rendering (optional; prompt-only without it) |
@@ -131,6 +132,13 @@ Requires `matplotlib` and `scienceplots` in the runtime that executes the genera
 - Optional: `wide-slide-illustrator` for Friendly Whiteboard schematic prompts (the skill outputs prompts; the user — or the `codex-image` skill — renders them).
 - Every finished explanation is archived to `~/Dropbox/ConceptExplainer/<Topic>/YYYYMMDD_<concept-slug>/`, reusing the local folder name so the topic listing sorts chronologically. Skip this if you do not want Dropbox mirroring.
 - See `concept-explainer/references/`: `audience-calibration.md`, `rigor-checklist.md`, `visualization-playbook.md`, `structure-template.md`, `schematic_friendly.md`, plus `plot_skeletons/{function_plot,parametric_sweep,heatmap}.py`.
+
+### cover-letter
+
+No external setup required. `scripts/cl_check.py` uses the Python standard library only.
+
+- `references/evidence.md` holds each rule with verbatim, string-checked quotes from its sources; `references/sources.md` lists the 17 sources.
+- Pair with `research-statement`: the letter frames the statement and must not copy its paragraphs. Emails to hosts, mentors, and referees are in `contact-email`.
 
 ### dropbox
 
@@ -424,6 +432,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `clickup-today` for a local daily Markdown sheet of ClickUp tasks and nested subtasks, preserving handwritten checkboxes; use `publish` for deduplicated creation and explicit `push` for checkbox synchronization. Choose `clickup-cli` for general workspace operations.
 - Choose `commit-triage` to tidy a noisy working tree, archive failed experiments to `failure/`, and produce clean grouped commits.
 - Choose `concept-explainer` to write a kind-but-rigorous explanation of one concept for a named audience — `explanation.md` with full derivations (every symbol defined, every step's rule named, `=`/`≈`/`∼` disciplined), executable `scienceplots ["science", "nature"]` matplotlib plots (no-latex forbidden), optional Friendly Whiteboard schematics for "the big picture", and an auto-rendered PDF (archived to Dropbox under a date-prefixed folder).
+- Choose `cover-letter` to write or check a cover letter, UK supporting statement, or motivation letter for a specific post: the position and a fit thesis up front, one or two results with the applicant's own role, what the applicant would contribute, specific fit, and correct logistics.
 - Choose `dropbox` for file upload, download, or shared-link workflows in Dropbox.
 - Choose `hep-rumor-mill` to study the HEP-theory postdoc job market from the rumor mill: who got offers at which institutions, the publication profiles of the people who got them (citations, papers, venues, subfield, PhD-age, named fellowships, with OpenAlex cross-disciplinary augmentation for interdisciplinary candidates), and how your own InspireHEP profile sits against the accepted cohort. Self-reported data, descriptive not predictive.
 - Choose `handdrawn-schematic` to generate a single friendly hand-drawn whiteboard schematic on a **pure white background** (wavy marker strokes, numbered panels left-to-right, chunky chalk arrows, hand-written notes) that explains a concept, pipeline, architecture, or algorithm at a glance. Renders a PNG by default via the bundled `codex` image_generation tool, or emits the copy-paste prompt when codex is unavailable. Use `wide-slide-illustrator` instead for a prompt-only composer across six other styles, `journal-club-review` for the paired method+results figures inside a paper walkthrough, and `scienceplot-py` / `xkcd-py` for real matplotlib data plots.
@@ -468,6 +477,7 @@ skills/
 │       └── install.sh
 ├── commit-triage/
 ├── concept-explainer/
+├── cover-letter/
 ├── deprecated/              # retired skills, entrypoint renamed so nothing loads them
 ├── dropbox/
 ├── handdrawn-schematic/

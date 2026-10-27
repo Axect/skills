@@ -21,6 +21,7 @@ Current skill directories in this repository:
 - `clickup-today`
 - `commit-triage`
 - `concept-explainer`
+- `cover-letter`
 - `dropbox`
 - `handdrawn-schematic`
 - `hep-rumor-mill`
@@ -101,7 +102,7 @@ ln -s "$REPO/vastai" .claude/skills/vastai
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
+for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer cover-letter dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
   ln -s "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -149,7 +150,7 @@ ln -s "$REPO/vastai" ~/.codex/skills/vastai
 
 ```bash
 mkdir -p ~/.codex/skills
-for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
+for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer cover-letter dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
   ln -s "$REPO/$skill" "$HOME/.codex/skills/$skill"
 done
 ```
@@ -196,7 +197,7 @@ Use this when you want every skill in this repository available in Forge. This m
 
 ```bash
 mkdir -p ~/forge/skills
-for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
+for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer cover-letter dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
   rm -rf ~/forge/skills/$skill
   cp -R "$REPO/$skill" ~/forge/skills/$skill
 done
@@ -218,6 +219,7 @@ Use this when your local Forge setup allows the skill root itself to be configur
 ├── clickup-today/
 ├── commit-triage/
 ├── concept-explainer/
+├── cover-letter/
 ├── deprecated/
 ├── dropbox/
 ├── handdrawn-schematic/
@@ -259,7 +261,7 @@ Because Forge needs real directories (not symlinks), edits made in this reposito
 
 ```bash
 REPO=/absolute/path/to/skills
-for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
+for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer cover-letter dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
   rm -rf ~/forge/skills/$skill
   cp -R "$REPO/$skill" ~/forge/skills/$skill
 done
@@ -299,7 +301,7 @@ The scan is recursive, so every `SKILL.md` under this root is discovered, includ
 
 ```bash
 mkdir -p ~/.pi/agent/skills
-for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
+for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer cover-letter dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
   ln -s "$REPO/$skill" "$HOME/.pi/agent/skills/$skill"
 done
 ```
@@ -310,7 +312,7 @@ This location is shared by every harness that follows the Agent Skills standard,
 
 ```bash
 mkdir -p ~/.agents/skills
-for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
+for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer cover-letter dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
   ln -s "$REPO/$skill" "$HOME/.agents/skills/$skill"
 done
 ```
@@ -406,7 +408,7 @@ If you prefer explicit symlinks (mirroring Claude Code or Codex setups):
 
 ```bash
 mkdir -p ~/.gemini/config/skills
-for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
+for skill in academic-jobs adversarial-review bibtex-gen chrome-session clickup-cli clickup-today commit-triage concept-explainer cover-letter dropbox handdrawn-schematic hep-rumor-mill journal-club-review magi-research md2pdf-typora morgen overleaf-section-workflow overleap peer-agent-review proton-mail reference-search remarkable-sync research-backup research-board research-log research-portal research-report research-statement scienceplot-py vastai wide-slide-illustrator workshop-paper-review xkcd-py zai-web-search zoom-summary; do
   ln -s "$REPO/$skill" "$HOME/.gemini/config/skills/$skill"
 done
 ```
@@ -545,6 +547,10 @@ Requires `matplotlib` and `scienceplots` in the runtime that executes the genera
 - A system TeX distribution must be on `PATH` (e.g. TeX Live). Verify with `pdflatex --version` or `xelatex --version`.
 - Unlike `scienceplot-py`, this skill executes the plot scripts it generates (via `uv run`), because the PDF step depends on the PNGs existing.
 - Optionally install `wide-slide-illustrator` for Friendly Whiteboard schematic prompt generation, and `codex-image` if you want the prompts rendered automatically.
+
+### cover-letter — no setup required
+
+Uses only the Python standard library. Run `python3 cover-letter/scripts/cl_check.py LETTER.md --expect "<institution>"` (add `--strict` before submission).
 
 ### dropbox — OAuth credentials
 
