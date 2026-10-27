@@ -2,6 +2,14 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-10-28
+
+### Added
+- `research-statement`: drafting, checklist diagnosis, per-call tailoring, and translation of research statements. The rules come from 24 sources (NASA Hubble Fellowship 30-year review, DFG Walter Benjamin guidelines and proposal tips, MSCA handbook and annotated templates, Schmidt AI in Science and Schmidt Science Fellows, AAS, Oxford Physics, IOP, university career offices, and practising physicists); each quoted sentence in `references/evidence.md` was string-matched against a saved copy of its source (70 quotes, 0 misses). Source conflicts (which verbs, how ambitious, past-to-future balance, distance from the PhD) are resolved in one table. `scripts/rs_check.py` reports section shares, em/en dashes, non-Hangul CJK, weak verbs, hype words, placeholders, and cited-versus-listed references; `--strict` exits 1 on dashes, hype, CJK, or placeholders.
+
+### Notes
+- Run on two Korean drafts written before the guideline existed, the checklist found the failures that an earlier peer-agent review had flagged on a different statement: two aims joined only by a heading, five future directions where the guideline asks for two or three, no risks or fallbacks, one or three external references, and a generic fit paragraph. `rs_check.py` alone catches none of these; it only removes the mechanical defects so review time goes to structure.
+
 ## 2026-10-23
 
 ### Added

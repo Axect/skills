@@ -50,6 +50,7 @@ Directories created before this convention keep their names, and a directory is 
 | `research-log` | Register projects and record decisions; surfaces the lesson/rule corpus at decision time (check step warns against past anti-patterns) and on cross-project recall when stuck | `research-log/SKILL.md` | `~/.research/` workspace (auto) |
 | `research-portal` | Build and manage a local MkDocs Material research portal over a folder of Typora/markdown notes: project-grouped sidebar via mkdocs-literate-nav, full LaTeX rendering via MathJax 3, and safe project tagging/renaming that repairs image links | `research-portal/SKILL.md` | `uv`; mkdocs-material and mkdocs-literate-nav are auto-installed by the scaffold script |
 | `research-report` | Create or revise understanding-first research and experiment reports (why it matters, the core idea, what it achieved) backed by traceable evidence, plots, manifests, and validation helpers | `research-report/SKILL.md` | None (stdlib Python) |
+| `research-statement` | Write, diagnose, and tailor research statements (the applicant's research narrative) from an evidence-based guideline compiled from 24 funder, physics-society, university, and practitioner sources (NASA Hubble, DFG, MSCA, Schmidt AI in Science, AAS, Oxford Physics, ...). Korean working draft, checklist diagnosis with line evidence, user revision, English final; per-call tailoring by call type and host. `scripts/rs_check.py` reports section balance, dashes, weak and hype words, placeholders, and citation consistency. | `research-statement/SKILL.md` | None (stdlib Python) |
 | `scienceplot-py` | Generate a Python matplotlib plot script following the user's mandatory `scienceplots` (`science`+`nature`) lab template, with parquet / CSV / NumPy data sources and four plot variants (single line, multi-line, scatter/errorbar, subplots). Writes the `.py` only — does not execute it. | `scienceplot-py/SKILL.md` | `matplotlib`, `scienceplots`, plus `pandas` / `numpy` as needed (in the user's runtime env) |
 | `vastai` | Search, create, and manage Vast.ai GPU cloud instances | `vastai/SKILL.md` | `vastai` CLI + API key |
 | `wide-slide-illustrator` | Compose detailed image-generation prompts (ChatGPT Image 2.0, DALL-E, Sora, Midjourney) for wide cinematic 18:9 multi-panel infographic slides, six style variants: Friendly Whiteboard, Editorial Magazine, Engineering Blueprint, Swiss Minimalist, Dark Tech / Neon, Scientific Poster | `wide-slide-illustrator/SKILL.md` | None |
@@ -330,6 +331,13 @@ No external setup required. Uses Python standard library only.
 - Helper scripts live in `research-report/scripts/` (`build_plot_manifest.py`, `record_report_version.py`, `validate_artifacts.py`).
 - Designed to be used from inside a project directory that already contains experiment outputs.
 
+### research-statement
+
+No external setup required. `scripts/rs_check.py` uses the Python standard library only.
+
+- `references/evidence.md` holds each rule with verbatim, string-checked quotes from its sources; `references/sources.md` lists the 24 sources.
+- Use with `reference-search` and `bibtex-gen` when adding state-of-the-art citations; never cite from memory.
+
 ### scienceplot-py
 
 Requires `matplotlib` and `scienceplots` in the runtime environment that will execute the generated script. The skill writes the `.py` file but does not run it; the user runs it themselves (preferred: `uv run <path>`).
@@ -434,6 +442,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 - Choose `research-log` to register projects, record decisions, check past lessons before committing to a new approach (the `check` step warns against known anti-patterns), or recall cross-project findings when stuck (the `recall` step).
 - Choose `research-portal` to build a browsable, math-rendered MkDocs Material site over a folder of existing Typora/markdown notes without modifying the originals.
 - Choose `research-report` to turn research or experiment outputs into an understanding-first report: one that explains why the work matters, what the core idea is (intuition before formalism), and what it achieved, with every claim earned by traceable evidence and plots.
+- Choose `research-statement` when the call asks for a research statement: the applicant's research narrative with one central question, past work as evidence of their own contribution, two or three objectives, and a specific fit paragraph.
 - Choose `scienceplot-py` to scaffold a publication-style matplotlib script following the lab's `scienceplots` (`science`+`nature`) template — single line, multi-line + legend, scatter / errorbar, or multi-panel subplots from parquet / CSV / NumPy data.
 - Choose `vastai` for renting GPUs, searching offers, or managing remote compute instances.
 - Choose `wide-slide-illustrator` to compose image-generation prompts for wide cinematic 18:9 multi-panel infographic slides: pipeline diagrams, "how it works" figures, hero figures, paper figures, keynote backdrops. Six style variants by audience and target medium: Friendly Whiteboard (lab meeting), Editorial Magazine (Quanta / NYT paper hero), Engineering Blueprint (technical schematic), Swiss Minimalist (typographic poster on methodology content), Dark Tech / Neon (AI-lab keynote backdrop), Scientific Poster (Phys Rev / Nature journal figure).
@@ -482,6 +491,7 @@ skills/
 ├── research-log/
 ├── research-portal/
 ├── research-report/
+├── research-statement/
 ├── scienceplot-py/
 ├── vastai/
 ├── wide-slide-illustrator/
