@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import re
 import subprocess
 import sys
@@ -397,6 +398,26 @@ def _resolve_hooks(spec: dict, terms: list[dict]) -> tuple[dict, Path | None] | 
     return cands[0][1], cands[0][2]
 
 
+# ---------------------------------------------------------------- adash (optional)
+def adash_hook(args: list[str], stdin: str | None = None) -> None:
+    """Tell a running adash dashboard about this exchange (draws the review/propose edge).
+    No-op when adash is not installed or ADASH_HOOK=0; never affects the review itself."""
+    exe = shutil.which('adash')
+    if not exe or os.environ.get('ADASH_HOOK') == '0':
+        return
+    try:
+        subprocess.run([exe, 'thread', *args], input=stdin, text=True, capture_output=True, timeout=5)
+    except Exception:
+        pass
+
+
+def adash_register(a, handle: str, brief: Path) -> None:
+    me = os.environ.get('ORCA_TERMINAL_HANDLE')
+    if me:
+        adash_hook(['register', '--from', me, '--to', handle, '--marker', a.marker, '--brief', str(brief.resolve()),
+                    '--kind', 'propose' if a.mode == 'propose' else 'review', '--mode', a.mode])
+
+
 # ---------------------------------------------------------------- commands
 def pointer_line(brief: Path, cwd: str, marker: str, mode: str, note: str | None,
                  answer_file: Path | None = None) -> str:
@@ -477,16 +498,19 @@ def cmd_send(a, spec, cwd) -> int:
                 where = ({'answer_file': str(answer_path(spec, a.marker))} if file_answer(spec)
                          else {'session': str(turn[2]) if turn[2] else None})
                 print(json.dumps({'handle': handle, **where, 'marker': a.marker}, ensure_ascii=False))
+                adash_register(a, handle, brief)
                 return 0
             if file_answer(spec):
                 if a.marker in terminal_tail(handle, 60):
                     print(json.dumps({'handle': handle, 'answer_file': str(answer_path(spec, a.marker)),
                                       'marker': a.marker}, ensure_ascii=False))
+                    adash_register(a, handle, brief)
                     return 0
                 continue
             path = find_marker_file(agent, cwd, a.marker)
             if path:
                 print(json.dumps({'handle': handle, 'session': str(path), 'marker': a.marker}, ensure_ascii=False))
+                adash_register(a, handle, brief)
                 return 0
         if attempt == 0 and not a.handle:
             handle, _ = resolve(spec, cwd, None, adopt=True)
@@ -551,6 +575,7 @@ def cmd_wait(a, spec, cwd) -> int:
                     ans = answer_after(path, a.marker) if path else ''
                 if ans.strip():
                     emit(ans, a.out)
+                    adash_hook(['answered', '--marker', a.marker], stdin=ans)
                     return 0
                 print(f"wait: the reviewer finished the [{a.marker}] turn without an answer"
                       f"{f' in {ans_file}' if ans_file else ''}; read its terminal {handle}", file=sys.stderr)
@@ -566,6 +591,7 @@ def cmd_wait(a, spec, cwd) -> int:
                               lambda: answer_after(path, a.marker)) if path else ''
             if ans:
                 emit(ans, a.out)
+                adash_hook(['answered', '--marker', a.marker], stdin=ans)
                 return 0
             next_fallback = time.time() + a.poll
         time.sleep(HOOK_POLL)
