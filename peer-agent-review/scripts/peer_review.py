@@ -411,11 +411,12 @@ def adash_hook(args: list[str], stdin: str | None = None) -> None:
         pass
 
 
-def adash_register(a, handle: str, brief: Path) -> None:
+def adash_register(a, handle: str, brief: Path, role: str) -> None:
+    """--role names the helper session '<requester>-<role>' in adash unless it already has a name."""
     me = os.environ.get('ORCA_TERMINAL_HANDLE')
     if me:
         adash_hook(['register', '--from', me, '--to', handle, '--marker', a.marker, '--brief', str(brief.resolve()),
-                    '--kind', 'propose' if a.mode == 'propose' else 'review', '--mode', a.mode])
+                    '--kind', 'propose' if a.mode == 'propose' else 'review', '--mode', a.mode, '--role', role])
 
 
 # ---------------------------------------------------------------- commands
@@ -498,19 +499,19 @@ def cmd_send(a, spec, cwd) -> int:
                 where = ({'answer_file': str(answer_path(spec, a.marker))} if file_answer(spec)
                          else {'session': str(turn[2]) if turn[2] else None})
                 print(json.dumps({'handle': handle, **where, 'marker': a.marker}, ensure_ascii=False))
-                adash_register(a, handle, brief)
+                adash_register(a, handle, brief, spec['name'])
                 return 0
             if file_answer(spec):
                 if a.marker in terminal_tail(handle, 60):
                     print(json.dumps({'handle': handle, 'answer_file': str(answer_path(spec, a.marker)),
                                       'marker': a.marker}, ensure_ascii=False))
-                    adash_register(a, handle, brief)
+                    adash_register(a, handle, brief, spec['name'])
                     return 0
                 continue
             path = find_marker_file(agent, cwd, a.marker)
             if path:
                 print(json.dumps({'handle': handle, 'session': str(path), 'marker': a.marker}, ensure_ascii=False))
-                adash_register(a, handle, brief)
+                adash_register(a, handle, brief, spec['name'])
                 return 0
         if attempt == 0 and not a.handle:
             handle, _ = resolve(spec, cwd, None, adopt=True)
