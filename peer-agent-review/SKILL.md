@@ -1,6 +1,6 @@
 ---
 name: peer-agent-review
-description: "Ask another AI agent to review or discuss your work and act on its answer: by default a permanent live omp session running GPT-6-Astra in the same Orca worktree, launched automatically in a new Orca terminal when none exists and reused for every later brief (\"Astra 확인\", \"Astra와 논의해봐\", \"Astra에게 검토\"), or any other live omp/Claude Code/Codex session, or a headless one-shot CLI (codex exec, claude -p, omp -p). Writes a durable brief, sends a one-line pointer, verifies delivery in the agent's session store, waits for the turn to finish, and reads the answer from the store. Encodes the accept loop (first line 수락/수정 필요 with replacement sentences, re-send until accepted) and the discussion mode (judgments, reasons, counterarguments, no verdict). Use adversarial-review for a parallel persona swarm inside your own session; use workshop-paper-review for OpenReview reports."
+description: "Ask another AI agent to review or discuss your work and act on its answer: by default a permanent live omp session running GPT-6-Astra in the same worktree, launched automatically in a new adash terminal (`adash term`, adash's private tmux server) when none exists and reused for every later brief (\"Astra 확인\", \"Astra와 논의해봐\", \"Astra에게 검토\"), or any other live omp/Claude Code/Codex session, or a headless one-shot CLI (codex exec, claude -p, omp -p). Writes a durable brief, sends a one-line pointer, verifies delivery in the agent's session store, waits for the turn to finish, and reads the answer from the store. Encodes the accept loop (first line 수락/수정 필요 with replacement sentences, re-send until accepted) and the discussion mode (judgments, reasons, counterarguments, no verdict). Use adversarial-review for a parallel persona swarm inside your own session; use workshop-paper-review for OpenReview reports."
 ---
 
 # peer-agent-review: get a second agent's verdict or discussion, then act on it
@@ -10,7 +10,11 @@ One helper, `scripts/peer_review.py`. A reviewer is a *target*. The default targ
 `/astra/`. Other built-in targets: `sol`, `luna`, `opus` (live omp sessions by model),
 `codex` and `claude` (live Codex / Claude Code TUIs), and `argon` (Antigravity CLI `agy`,
 Gemini 4 Argon; "Agy Argon Medium" = `-t argon --thinking medium`). Any unknown target name is
-treated as a model regex for a live omp session. Your own terminal (`$ORCA_TERMINAL_HANDLE`) is never chosen.
+treated as a model regex for a live omp session. Your own terminal (`$ADASH_HANDLE`) is never chosen.
+
+Terminals are adash terminals: windows of adash's private tmux server (`tmux -L adash`), reached
+only through `adash term new|list|send|read|wait|close`. `adash` must be on PATH. Handles look
+like `t_1a2b3c4d` and stay the same across a tmux restart (adash restores its terminals).
 
 **Reviews are hostile by default** (every mode except `propose`). Every pointer line tells the reviewer to read as the most
 critical judge looking for reasons to reject: unsupported claims, overstatement, logical gaps,
@@ -19,9 +23,9 @@ does not change the decision. Put any extra stance (e.g. "act as a selection com
 in the brief.
 
 **The reviewer is permanent.** `send`/`ask` reuse a live reviewer of the target in the worktree
-(the remembered one, else one found running there, e.g. after an Orca restart); only if none
-exists do they launch one in a new Orca terminal (`omp --model gpt-6-astra --thinking medium` for
-astra; override the level with `--thinking`). Its handle and Orca pane are remembered in
+(the remembered one, else one found running there); only if none exists do they launch one in a
+new adash terminal opened in the worktree directory (`omp --model gpt-6-astra --thinking medium`
+for astra; override the level with `--thinking`). Its handle is remembered in
 `~/.cache/peer-agent-review/reviewers.json`.
 Every later brief goes to the same session, so the reviewer keeps its own earlier answers and
 the loop below can run to agreement. Do not use a headless one-shot unless the user asks for
@@ -37,17 +41,19 @@ it (`--oneshot`): it forgets everything after one answer and cannot be argued wi
     python3 $P ask -t codex --brief notes/brief.md --marker 'second opinion' --out ans.md
     python3 $P send / wait / read ...        # split steps (e.g. send, keep working, wait later)
 
-`ask` blocks until the answer is complete (default timeout 1 h, poll 30 s). Run it in the
-background when the platform allows and keep working; a substantive review takes 1 to 10 min.
+`ask` blocks until the answer is complete (default timeout 1 h; the session record is checked
+every 2 s). Run it in the background when the platform allows and keep working; a substantive
+review takes 1 to 10 min.
 Exit codes: 2 resolution failure, 3 not delivered, 4 timeout, 5 the reviewer's composer
 holds an unsubmitted user draft (never send over it without asking).
 
 **argon (agy) answers through a file.** agy has no session store this helper can read, so the
 pointer asks it to write its whole answer to
 `~/.cache/peer-agent-review/answers/argon/<marker>.md` and to touch no other file; it runs in
-`--mode accept-edits` so it can write that file. Delivery is the marker in Orca's hook status
-(below) or the terminal tail; completion is Orca's turn-end hook (`Stop`) for the marker's turn,
-then the file is read. A reused marker is refused (the answer file exists).
+`--mode accept-edits` so it can write that file. Delivery is the marker on the terminal screen;
+completion is the answer file non-empty and unchanged for `--settle` seconds (default 20) while
+the agent is not working (adash's state for the handle, else no busy token on the screen).
+A reused marker is refused (the answer file exists).
 The `{level}` in the launch command becomes the model suffix (`gemini-4-argon-medium`).
 
 ## Modes (the pointer line ends with the matching instruction)
@@ -89,14 +95,15 @@ The `{level}` in the launch command becomes the model suffix (`gemini-4-argon-me
 
 ## Choosing another reviewer
 
-- Same live agent, different model: `-t sol`, `-t luna`, `-t <regex>`; or `--handle term_…`.
+- Same live agent, different model: `-t sol`, `-t luna`, `-t <regex>`; or `--handle t_…`.
   Named targets are launched when missing; `--no-launch` makes a missing reviewer an error.
 - Another worktree's agent (e.g. the experiment repo's session for recipe facts):
   `--cwd <that worktree>` with `-t <model regex>` or `--handle`. Give it full context in the
   brief; it has not seen your conversation.
-- Claude Code or Codex TUI sessions: `-t codex` / `-t claude` launch them read-only
-  (`codex -s read-only`, `claude --permission-mode plan`); an existing one needs `--handle` or
-  a `"title"` regex in the targets file.
+- Claude Code or Codex TUI sessions: `-t codex` / `-t claude` find a live one in the worktree
+  through `adash ls`, else launch them read-only (`codex -s read-only`,
+  `claude --permission-mode plan`); `--handle` or a `"title"` regex in the targets file picks a
+  specific one.
 - Headless one-shot only when the user asks: `--oneshot` runs the target's `oneshot` CLI with
   the brief on stdin (no memory between briefs).
 
@@ -107,46 +114,45 @@ Targets file (optional): `$PEER_REVIEW_TARGETS`, default
      "mylab": {"transport": "session", "agent": "omp", "model": "glm", "launch": ["omp", "--model", "glm-5"]},
      "gemini": {"transport": "oneshot", "agent": "gemini", "oneshot": ["gemini", "-p"]}}
 
-`PEER_REVIEW_DEFAULT` changes the default target; `ORCA_CLI` overrides the Orca binary
-name (default `orca-ide`; a bare `orca` can be the GNOME screen reader on Linux).
+`PEER_REVIEW_DEFAULT` changes the default target.
 
 ## How it works and why (traps it handles)
 
-- Resolution order: `--handle`; the remembered permanent reviewer, by handle or, when Orca has
-  reissued handles after a restart, by its pane (`tabId:leafId`, stable across restarts); a
-  `"title"` regex; a live pane found through Orca's agent-hook status
-  (`~/.config/orca/agent-hooks/last-status.json`, override `ORCA_HOOK_STATUS`: agent kind per
-  pane, and for omp the session transcript, whose model must match the target regex; for agy any
-  live agy pane); for omp targets the session store (below); otherwise launch. A reviewer found
-  live is adopted as the permanent one by `send`/`ask`/`spawn` (not by `targets`/`resolve`).
-  Several matches: the most recently active pane wins, with a note on stderr. A stale handle is
-  forgotten and the reviewer re-resolved or relaunched.
-- Launch: `orca terminal create --worktree id:<this worktree> --command <launch>` then
-  `terminal wait --for tui-idle` (must report `satisfied`) before the first send; a prompt typed
-  into a TUI that is still starting is lost.
+- Resolution order: `--handle`; the remembered permanent reviewer (its terminal must still run
+  the target's agent kind per `adash ls`, otherwise the pointer would land in a bare shell); a
+  `"title"` regex (matched against the program's terminal title and the window name); a live
+  terminal in the worktree whose agent, per `adash ls --all --json` (`handle`, `agentType`,
+  `model`, `identity` = session file), is the target's kind and whose model matches the target
+  regex; for omp targets the session store (below); otherwise launch. A reviewer found live is
+  adopted as the permanent one by `send`/`ask`/`spawn` (not by `targets`/`resolve`). Several
+  matches: the most recently active one wins, with a note on stderr. A handle that no longer
+  exists is forgotten and the reviewer re-resolved or relaunched.
+- Launch: `adash term new --cwd <worktree> --title '<target> reviewer' --command <launch>`, then
+  `adash term wait --quiet-ms 2000` until the screen is quiet and (omp, agy) the input area's
+  rule lines are drawn, up to 6 min, before the first send; a prompt typed into a TUI that is
+  still starting is lost.
 - Session-store resolution: for omp targets it scans the worktree's session store
   (`~/.omp/agent/sessions/-<cwd relative to $HOME, / → ->`), picks the newest session whose
   dominant `"model"` matches the regex, reads its title (first record), and finds the omp
-  terminal in that worktree whose title contains it. Terminal titles and handles change
-  after Orca restarts; resolution is redone on `terminal_handle_stale`.
-- Delivery: Orca's `accepted: true` is not delivery. The tool waits until Orca's hook status
-  shows the pane's current prompt carrying `[marker]`, or a user record containing the marker
-  in the agent's session store, and retries once after re-resolving.
-- Completion (omp, agy): Orca's agent-hook status (`last-status.json`) records each pane's turn
-  with its prompt and state; the turn end (`agent_end` for omp, `Stop` for agy) sets `done`.
-  `wait` reads it every 2 s and returns when the `[marker]` turn is `done` and still `done` 3 s
-  later (a background job can resume a turn), so the answer arrives about 5 s after the turn
-  ends. A finished turn with no answer (agy wrote no file) exits 4 at once instead of waiting
-  for `--timeout`. While the turn is `working`, nothing is returned: an omp reviewer writes
-  preamble text before its tool calls and may wait on subagents without a busy token in the tail,
-  which earlier made `wait` return that preamble as the answer.
-- Completion fallback (Claude/Codex, or the hook no longer shows the marker's turn because
-  another prompt replaced it): an assistant text record after the marker, no busy token in the
-  terminal tail (`Working`, `⟨esc⟩`, `Completing` for omp; `esc to interrupt` for
-  Claude/Codex), and the file unchanged for `--settle` seconds, checked every `--poll` seconds.
-  `orca terminal wait --for tui-idle` fires mid-turn and is not used.
+  terminal in that worktree whose title contains it.
+- Delivery: a successful `adash term send` is not delivery. The tool waits until a user record
+  containing the marker appears in the agent's session store (agy: the marker on the screen),
+  and retries once after re-resolving.
+- Completion (omp, Claude Code, Codex): read from the reviewer's own session record, the file
+  holding the `[marker]` user record. The turn is done when the last message after it ends the
+  turn (omp `stopReason` `stop`/`length`; Claude `stop_reason` `end_turn` or a `turn_duration`
+  record; Codex `task_complete`), not a message with a pending tool call, and the file is
+  unchanged 3 s later (a finished background job can resume the turn). `wait` checks every 2 s
+  and re-parses only when the file changed, so the answer arrives about 5 s after the turn
+  ends. A turn that ended in error or abort must stay unchanged for `--settle` seconds (omp
+  retries provider errors). A finished turn with no answer exits 4 at once instead of waiting
+  for `--timeout`. While the turn is working nothing is returned: an omp reviewer writes
+  preamble text before its tool calls and may wait on subagents with nothing on the screen.
+  Screen quiet (`adash term wait`) is not used for completion: it fires mid-turn.
 - The answer is read from the session store, never scraped from the TUI (hard-wrapped,
-  redraw noise). Orca JSON is parsed after replacing invalid UTF-8; never pipe it to `jq`.
+  redraw noise). `adash term` JSON is parsed after replacing invalid UTF-8.
 - Composer hazard: if the reviewer's input box holds text, sending would submit the
   user's draft together with yours. The tool refuses (exit 5) unless `--force`.
 - Slash-command prompts (`/skill:…`) create no user record; send plain text only.
+- adash threads: with `$ADASH_HANDLE` set, `send` runs `adash thread register` and `wait` runs
+  `adash thread answered` (`ADASH_HOOK=0` turns this off); they never affect the review.

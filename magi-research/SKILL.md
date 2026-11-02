@@ -1,6 +1,6 @@
 ---
 name: magi-research
-description: "Run research inside Orca with three agents in fixed roles: the main session (Claude Opus) plans, decides and edits; a permanent Argon session (Antigravity agy, Gemini 4 Argon) proposes options, designs and mockups; a permanent Astra session (omp, GPT-6-Astra; Codex fallback) criticizes and corrects. Use when a research task needs fresh alternatives (figure redesign, section structure, framing, experiment design: \"제안 받아봐\", \"창의적인 대안\", \"원점에서 다시\", \"다른 방식은 없어?\") or a hard check (\"검토받아\", \"비판해줘\", \"수락받아\", \"검토자들과 논의해봐\"), or when the user says magi. Use peer-agent-review alone for a single sign-off by one reviewer; this skill decides which agent to ask, in what order, and how to merge their answers."
+description: "Run research with three agents in fixed roles, the helpers living in adash terminals (adash's private tmux server): the main session (Claude Opus) plans, decides and edits; a permanent Argon session (Antigravity agy, Gemini 4 Argon) proposes options, designs and mockups; a permanent Astra session (omp, GPT-6-Astra; Codex fallback) criticizes and corrects. Use when a research task needs fresh alternatives (figure redesign, section structure, framing, experiment design: \"제안 받아봐\", \"창의적인 대안\", \"원점에서 다시\", \"다른 방식은 없어?\") or a hard check (\"검토받아\", \"비판해줘\", \"수락받아\", \"검토자들과 논의해봐\"), or when the user says magi. Use peer-agent-review alone for a single sign-off by one reviewer; this skill decides which agent to ask, in what order, and how to merge their answers."
 ---
 
 # magi-research: propose with Argon, criticize with Astra, decide in the main session
@@ -8,9 +8,11 @@ description: "Run research inside Orca with three agents in fixed roles: the mai
 Three roles, one rule: **ask Argon when you need options, ask Astra when you need judgment,
 and keep every decision and every file edit in the main session.**
 
-**Built for Orca.** The proposer and the critic are permanent sessions in Orca terminals of the
-current worktree, reached through the Orca CLI (`orca-ide`; override with `ORCA_CLI`). Outside
-Orca the script stops with exit 6; there is no headless substitute for the roles.
+**Built on adash terminals.** The proposer and the critic are permanent sessions in adash
+terminals (windows of adash's private tmux server) opened in the current worktree, reached
+through `adash term`. `magi.py` stops with exit 6 when `adash` is not on PATH, or when the caller
+is neither in an adash terminal (`$ADASH_HANDLE` unset) nor has `tmux`; there is no headless
+substitute for the roles.
 
 | Role | Agent | Good at | Weak at |
 |---|---|---|---|

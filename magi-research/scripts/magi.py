@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""magi.py: route a brief to the proposer (Argon) or the critic (Astra) inside Orca.
+"""magi.py: route a brief to the proposer (Argon) or the critic (Astra) in adash terminals.
 
   magi.py propose  --brief F --marker M [--out FILE] [--thinking L]
       Argon through agy, peer-agent-review mode `propose` (non-hostile, mockups allowed in the
@@ -10,11 +10,12 @@
   magi.py both     --brief F --marker M [--out-dir DIR]
       Same brief to both at once: Argon `propose`, critic `discuss`. Prints both answers.
 
-Requires Orca: both reviewers run as permanent sessions in Orca terminals of the current
-worktree, reached with the Orca CLI (`orca-ide`, override with ORCA_CLI). Transport is
-peer-agent-review's `peer_review.py` (override its path with PEER_REVIEW).
+Requires adash: both reviewers run as permanent sessions in adash terminals (windows of adash's
+private tmux server) opened in the current worktree, reached with `adash term`. `adash` must be on
+PATH, and the caller must run in an adash terminal (ADASH_HANDLE set) or have tmux on PATH.
+Transport is peer-agent-review's `peer_review.py` (override its path with PEER_REVIEW).
 Exit codes: as peer_review.py (2 resolution, 3 not delivered, 4 timeout, 5 composer busy);
-6 Orca CLI missing.
+6 adash (or tmux) missing.
 """
 from __future__ import annotations
 
@@ -29,7 +30,6 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PEER = Path(os.environ.get('PEER_REVIEW', HERE.parent.parent / 'peer-agent-review/scripts/peer_review.py'))
-ORCA = os.environ.get('ORCA_CLI', 'orca-ide')
 FALLBACK_CODES = {2, 3}  # resolution failure, not delivered: the critic is unreachable
 # Argon runs agy with tool permissions auto-approved so it can build mockups unattended.
 # MAGI_ARGON_SAFE=1 keeps peer-agent-review's default launch (accept-edits, prompts on tools).
@@ -87,8 +87,11 @@ def main() -> int:
     ap.add_argument('--out', help='also write the answer to this file')
     ap.add_argument('--out-dir', help='for `both`: write argon.md and critic.md here')
     a = ap.parse_args()
-    if not shutil.which(ORCA):
-        print(f'[magi] Orca CLI `{ORCA}` not found: magi-research runs inside Orca only', file=sys.stderr)
+    if not shutil.which('adash'):
+        print('[magi] `adash` not found on PATH: magi-research runs its reviewers in adash terminals', file=sys.stderr)
+        return 6
+    if not (os.environ.get('ADASH_HANDLE') or shutil.which('tmux')):
+        print('[magi] not in an adash terminal (ADASH_HANDLE unset) and tmux not found', file=sys.stderr)
         return 6
     if not PEER.exists():
         print(f'[magi] peer_review.py not found at {PEER} (set PEER_REVIEW)', file=sys.stderr)
