@@ -86,8 +86,10 @@ BUILTIN_TARGETS = {
             'oneshot': ['omp', '-p', '--no-session', '--model', 'sol']},
     'luna': {'transport': 'session', 'agent': 'omp', 'model': r'luna', 'thinking': 'medium',
              'launch': ['omp', '--model', 'luna']},
-    'opus': {'transport': 'session', 'agent': 'omp', 'model': r'opus', 'thinking': 'medium',
-             'launch': ['omp', '--model', 'opus']},
+    # 'opus' alone also matches google-antigravity/claude-opus-*, which omp may pick and which
+    # bills Antigravity's shared Claude & GPT quota: pin the Anthropic provider
+    'opus': {'transport': 'session', 'agent': 'omp', 'model': r'^(?!google-antigravity/).*opus', 'thinking': 'medium',
+             'launch': ['omp', '--model', 'anthropic/claude-opus-5-5']},
     'codex': {'transport': 'session', 'agent': 'codex', 'launch': ['codex', '-s', 'read-only'],
               'oneshot': ['codex', 'exec', '--skip-git-repo-check', '-s', 'read-only', '-']},
     'claude': {'transport': 'session', 'agent': 'claude', 'launch': ['claude', '--permission-mode', 'plan'],
