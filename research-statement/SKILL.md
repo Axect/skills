@@ -14,7 +14,7 @@ Produce research statements that let a busy, partly non-specialist committee ans
 - Tailoring a base statement to a call type (PI-group postdoc, independent fellowship, AI-for-science fellowship, short 1~2 page statement) or to a specific host.
 - Translating an approved Korean draft into the English submission.
 
-Not for project proposals, project descriptions, research outlines, or templated Part B documents (`research-proposal`); route by the document name in the call, and when a call asks for both, keep the statement on the person and trajectory and the proposal on the project. Not for cover letters as such (reuse the fit and "why me" material, but a cover letter has its own job), not for reviewing other people's papers.
+Not for project proposals, project descriptions, research outlines, or templated Part B documents (`research-proposal`); route by the document name in the call, and when a call asks for both, keep the statement on the person and trajectory and the proposal on the project. Not for cover letters as such (reuse the fit and "why me" material, but a cover letter has its own job), not for reviewing other people's papers. Once a paragraph's content is settled, use `academic-prose` for the sentence pass (wording, claim strength, referents, real word counts); `rs_check.py` stays the document-level check.
 
 ## Inputs to confirm
 

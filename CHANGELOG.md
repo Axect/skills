@@ -2,6 +2,20 @@
 
 All notable changes to this repository are documented in this file.
 
+## 2026-11-06
+
+### Added
+- `academic-prose`: paragraph- and sentence-level editing of English academic prose, returning a revised paragraph and a reason per change, at strength `minimal`, `moderate`, or `restructure` (two or three structurally different alternatives). The rules come from reading 22 public writing skills (among them anthropics doc-coauthoring, blader/humanizer, K-Dense scientific-writing, nature-skills nature-polishing, stop-slop, Orchestra ml-paper-writing, avoid-ai-writing, scholarly-writing-refiner, SNL paper-writing-skill) and from house review practice. Each rule is tagged as house policy, adopted with the source's own condition, or varied, and `references/sources.md` records licence evidence, stars and installs (read 2026-11-06), and what was adopted or rejected; nothing was copied from sources without a licence. `scripts/prose_check.py` (standard library) reports exact sentence word counts, punctuation candidates, comma-enclosed phrases, stranded auxiliaries, demonstratives with earlier occurrences, repeated words, and word lists for Markdown, Typst, LaTeX, or plain text; `--compare` reports surface differences in math, citation keys, quantity macros, numbers and negations with their context, hedges, and scope words, and lists unsupported constructs instead of passing them silently. `scripts/test_prose_check.py` is the regression suite (19 tests).
+
+### Changed
+- `research-statement`: points to `academic-prose` for the sentence pass; `rs_check.py` stays the document-level check.
+
+### Notes
+- Popular writing skills were surveyed before writing this one, and none was installed as it stands: several present em dashes as correct punctuation, map use to utilize and start to commence, fix "minimize changes" as a rule, or report results in the present tense, all against this house style.
+- Design and script went through 14 adversarial review rounds before landing. The first prototype's `--compare` reported no difference for a swapped pair of scores, a moved negation, a changed equation, and a changed citation key, and `--strict` returned success on short inputs it never analysed. Later rounds found input that the normaliser dropped silently: Typst strings, raw text, or math whose `/*`, `[`, or `$` swallowed the following prose, and Markdown backticks paired across headings, setext underlines, longer closing fences, list items, and HTML blocks. The Markdown path now follows CommonMark block rules (containers parsed recursively, lazy continuation only after an open paragraph), Typst is read in one pass with no later pattern pass, and anything the scanner cannot classify stops the run with exit 2 instead of being skipped.
+- Beyond the shipped tests, the script was checked against reference renderers during review: CommonMark (markdown-it-py) on random mixes of 60 Markdown fragments, 0 lost prose markers in 3,200 inputs, and `typst eval` on random mixes of 34 Typst fragments, 0 silent losses in 1,381 valid inputs (419 invalid mixes had no reference and were skipped). These cover those fragments and seeds only.
+- Run on a real research-statement paragraph and two earlier versions (development examples, not an independent test), it reproduced the defects reviewers had flagged by hand: a 56-word sentence, a comma-enclosed phrase between object and complement, a stranded "it cannot", one verb used three times, and "how far back" and "must look" as colloquial wording.
+
 ## 2026-10-28
 
 ### Added

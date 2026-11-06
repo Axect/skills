@@ -26,6 +26,7 @@ Directories created before this convention keep their names, and a directory is 
 |---|---|---|---|
 | `academic-jobs` | Curate academic opportunities from AJO/InspireHEP **and official institution/group recruitment**. Broad postdoc searches include both tracks; explicit board-only requests remain narrow. Merge verified vacancies while separating standing routes, prospects and conflicting evidence. Bundles the `ajo` board CLI and a portable direct-snapshot validator/diff. | `academic-jobs/SKILL.md` | `uv` for the board CLI; Python 3 for the standard-library snapshot helper; web search/read tools for direct discovery |
 | `academic-cv` | Build, audit, and tailor academic CVs and fill funder CV templates (DFG, ERC, Humboldt, AAS-style): a master CV plus tailored cuts, honest publication status (published, accepted, preprint, submitted with journal, in preparation), bolded own name and contribution lines for multi-author work. Rules from 22 sources (university career offices, DFG, ERC, Humboldt, NASA Hubble review, AAS, AAS Journals, MPS, physicists) with verbatim, string-checked quotes. `scripts/cv_check.py` checks Markdown, Typst, LaTeX, or PDF for status labels, review entries without a journal, reverse chronology, bold own name, metrics, prose dashes, placeholders, and page limits. | `academic-cv/SKILL.md` | None (stdlib Python; `pdftotext` for PDFs) |
+| `academic-prose` | Edit English academic sentences and paragraphs once the content is settled: a revised paragraph plus the reason for each change, under a plain house style (no em or en dashes, no colon-joined clauses, no hype or formality inflation, result verbs matched to the evidence, no phrases that split subject and verb, clear referents, real word counts). Strengths `minimal`, `moderate`, `restructure`. Rules merged from 22 surveyed public writing skills and house review practice, each tagged as house policy, adopted with its source's condition, or varied. `scripts/prose_check.py` lists candidates to read (sentence word counts, punctuation, comma-enclosed phrases, stranded auxiliaries, demonstratives, repeated words, word lists) for Markdown, Typst, LaTeX, or plain text, and `--compare` reports surface differences in protected tokens (math, citation keys, quantities, numbers, negations) between two versions. | `academic-prose/SKILL.md` | None (stdlib Python) |
 | `adversarial-review` | Stress-test a paper draft or report with a parallel persona swarm (hostile theorist, statistician, editor, citation auditor, figure critic) and produce a ranked fix list | `adversarial-review/SKILL.md` | None |
 | `bibtex-gen` | Generate bibtex entries by routing each reference to its most authoritative source — InspireHEP for HEP, Google Scholar (via `scholarly`) for non-HEP, CrossRef DOI bibtex as the publisher fallback. Auto-classifies HEP via an InspireHEP probe; `--hep` / `--no-hep` for overrides. Accepts arXiv IDs, DOIs, titles, or URLs and supports batch input. | `bibtex-gen/SKILL.md` | None — `scholarly` is declared in the orchestrator's PEP 723 header and auto-installed by `uv run` |
 | `chrome-session` | Read auth-walled pages (Overleaf comment threads, Google Scholar, university-VPN resources) from the user's own logged-in Chrome through Playwright MCP's Chrome extension: the first command starts a background daemon that owns one tab in a separate tab group, and every later `text`/`fetch`/`eval`/`snapshot`/`nav` reuses that tab until `stop` or an idle timeout closes it. No per-connection approval dialog once the token is saved; the user's tabs stay invisible to the agent. Includes the Overleaf threads/ranges/line-mapping recipe and why remote-debugging-port tools cannot reuse the default profile on Chrome ≥136. | `chrome-session/SKILL.md` | Chrome + Playwright Extension; `~/.config/playwright-mcp/token.env` (chmod 600); Node `npx` |
@@ -91,6 +92,14 @@ Requires `uv` on `PATH`. The skill bundles a small uv project (`ajo`); `uv run -
 No external setup required. `scripts/cv_check.py` uses the Python standard library; PDF input needs `pdftotext` (poppler-utils).
 
 - `references/evidence.md` holds each rule with verbatim, string-checked quotes; `references/sources.md` lists the 22 sources.
+
+### academic-prose
+
+No external setup required. `scripts/prose_check.py` uses the Python standard library only.
+
+- Run `python3 academic-prose/scripts/prose_check.py DRAFT.md` for candidates and `--compare OLD NEW` after an edit. Every flag is a place to read, not a verdict; `--strict` fails only on dash or colon candidates, and exit 2 means part of the input could not be analysed.
+- `references/rules.md` gives each rule's source, the source's own condition, and how this skill varies it; `references/sources.md` lists the surveyed skills with licence evidence and what was adopted or rejected.
+- Document skills (`research-statement`, `research-proposal`, `cover-letter`) decide content and structure and call this skill for the sentence pass. `scripts/test_prose_check.py` is the regression suite.
 
 ### adversarial-review
 
@@ -450,6 +459,7 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 
 - Choose `academic-jobs` for academic opportunity curation: broad postdoc requests combine AJO/InspireHEP with official institution/group discovery automatically. Explicit board-only requests stay narrow; named-lab searches start with the employer. Results separate verified vacancies, standing routes, research-fit leads and conflicts, with source-aware deduplication and dated update tracking.
 - Choose `academic-cv` to build, tailor, or audit a CV or funder CV template: the call's rules first, most relevant sections first, honest publication status, and the applicant's own role on every multi-author item.
+- Choose `academic-prose` to polish, tighten, or restructure English academic sentences once the content is settled: a revised paragraph with a reason per change, claim wording matched to the evidence, referents and word counts checked, and a protected-token comparison between versions. Choose the document skills for what a statement, proposal, or letter should say, and `adversarial-review` to test whether claims hold.
 - Choose `adversarial-review` to stress-test a paper draft or report before submission, simulate hostile referees, or audit citations and figures.
 - Choose `bibtex-gen` to build a `.bib` file or one-off bibtex entries from arXiv IDs / DOIs / paper titles — HEP papers are routed to InspireHEP, non-HEP papers go to Google Scholar with CrossRef DOI bibtex as the publisher fallback, and source-native keys are preserved verbatim.
 - Choose `clickup-cli` to inspect or manage ClickUp tasks and workspace resources through an already configured CLI, with duplicate prevention and saved-value verification.
@@ -492,6 +502,12 @@ Requires a Zoom **Server-to-Server OAuth** app on a paid account with AI Compani
 skills/
 ├── academic-cv/
 ├── academic-jobs/
+├── academic-prose/
+│   ├── SKILL.md
+│   ├── references/
+│   └── scripts/
+│       ├── prose_check.py
+│       └── test_prose_check.py
 ├── adversarial-review/
 ├── bibtex-gen/
 ├── clickup-cli/
