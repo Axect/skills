@@ -1,6 +1,6 @@
 ---
 name: peer-agent-review
-description: "Ask another AI agent to review or discuss your work and act on its answer: by default a permanent live omp session running GPT-6-Astra in the same worktree, launched automatically in a new adash terminal (`adash term`, adash's private tmux server) when none exists and reused for every later brief (\"Astra 확인\", \"Astra와 논의해봐\", \"Astra에게 검토\"), or any other live omp/Claude Code/Codex session, or a headless one-shot CLI (codex exec, claude -p, omp -p). Writes a durable brief, sends a one-line pointer, verifies delivery in the agent's session store, waits for the turn to finish, and reads the answer from the store. Encodes the accept loop (first line 수락/수정 필요 with replacement sentences, re-send until accepted) and the discussion mode (judgments, reasons, counterarguments, no verdict). Use adversarial-review for a parallel persona swarm inside your own session; use workshop-paper-review for OpenReview reports."
+description: "Ask another AI agent to review or discuss your work and act on its answer: by default a permanent live omp session running GPT-6.2-Astra in the same worktree, launched automatically in a new adash terminal (`adash term`, adash's private tmux server) when none exists and reused for every later brief (\"Astra 확인\", \"Astra와 논의해봐\", \"Astra에게 검토\"), or any other live omp/Claude Code/Codex session, or a headless one-shot CLI (codex exec, claude -p, omp -p). Writes a durable brief, sends a one-line pointer, verifies delivery in the agent's session store, waits for the turn to finish, and reads the answer from the store. Encodes the accept loop (first line 수락/수정 필요 with replacement sentences, re-send until accepted) and the discussion mode (judgments, reasons, counterarguments, no verdict). Use adversarial-review for a parallel persona swarm inside your own session; use workshop-paper-review for OpenReview reports."
 ---
 
 # peer-agent-review: get a second agent's verdict or discussion, then act on it
@@ -24,8 +24,9 @@ in the brief.
 
 **The reviewer is permanent.** `send`/`ask` reuse a live reviewer of the target in the worktree
 (the remembered one, else one found running there); only if none exists do they launch one in a
-new adash terminal opened in the worktree directory (`omp --model gpt-6-astra --thinking medium`
-for astra; override the level with `--thinking`). Its handle is remembered in
+new adash terminal opened in the worktree directory (`omp --model <newest astra> --thinking medium`
+for astra, currently `gpt-6.2-astra`: the `astra`, `sol` and `luna` targets launch the newest
+`*-astra`/`*-sol`/`*-luna` in `omp models`; override the level with `--thinking`). Its handle is remembered in
 `~/.cache/peer-agent-review/reviewers.json`.
 Every later brief goes to the same session, so the reviewer keeps its own earlier answers and
 the loop below can run to agreement. Do not use a headless one-shot unless the user asks for

@@ -5,7 +5,7 @@
       Argon through agy, peer-agent-review mode `propose` (non-hostile, mockups allowed in the
       folder the brief names).
   magi.py critique --brief F --marker M [--mode accept|discuss] [--out FILE] [--thinking L]
-      Astra through omp (GPT-6-Astra). Falls back to a Codex session (read-only) when omp is
+      Astra through omp (GPT-6.2-Astra). Falls back to a Codex session (read-only) when omp is
       not installed or the Astra session cannot be resolved, launched, or reached.
   magi.py both     --brief F --marker M [--out-dir DIR]
       Same brief to both at once: Argon `propose`, critic `discuss`. Prints both answers.

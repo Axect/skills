@@ -77,15 +77,17 @@ ANSWERS = HOME / '.cache/peer-agent-review/answers'
 
 # `launch` starts the permanent reviewer in an adash terminal (thinking level from --thinking or
 # the target's `thinking`); `oneshot` is the headless fallback used only with --oneshot.
+# '{latest:F}' becomes the newest omp model whose id ends in '-F' (gpt-6.2-astra for 'astra'),
+# so a new release is picked up without editing this table.
 BUILTIN_TARGETS = {
     'astra': {'transport': 'session', 'agent': 'omp', 'model': r'astra', 'thinking': 'medium',
-              'launch': ['omp', '--model', 'gpt-6-astra'],
-              'oneshot': ['omp', '-p', '--no-session', '--model', 'gpt-6-astra']},
+              'launch': ['omp', '--model', '{latest:astra}'],
+              'oneshot': ['omp', '-p', '--no-session', '--model', '{latest:astra}']},
     'sol': {'transport': 'session', 'agent': 'omp', 'model': r'\bsol\b|-sol', 'thinking': 'medium',
-            'launch': ['omp', '--model', 'sol'],
-            'oneshot': ['omp', '-p', '--no-session', '--model', 'sol']},
+            'launch': ['omp', '--model', '{latest:sol}'],
+            'oneshot': ['omp', '-p', '--no-session', '--model', '{latest:sol}']},
     'luna': {'transport': 'session', 'agent': 'omp', 'model': r'luna', 'thinking': 'medium',
-             'launch': ['omp', '--model', 'luna']},
+             'launch': ['omp', '--model', '{latest:luna}']},
     # 'opus' alone also matches google-antigravity/claude-opus-*, which omp may pick and which
     # bills Antigravity's shared Claude & GPT quota: pin the Anthropic provider
     'opus': {'transport': 'session', 'agent': 'omp', 'model': r'^(?!google-antigravity/).*opus', 'thinking': 'medium',
@@ -220,8 +222,23 @@ def kind_ok(spec: dict, agent: dict | None) -> bool:
     return bool(agent) and agent.get('agentType') == AGENT_KIND.get(spec.get('agent', 'omp'))
 
 
+def latest_model(family: str) -> str:
+    """Newest omp model id ending in '-<family>', by the version numbers in the id."""
+    r = subprocess.run(['omp', 'models', 'find', family, '--json'], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit(f"cannot list omp models for '{family}': {r.stderr.strip()[-500:]}")
+    ids = [m['id'] for m in json.loads(r.stdout).get('models', []) if m['id'].endswith('-' + family)]
+    if not ids:
+        raise SystemExit(f"no omp model id ends in '-{family}' (omp models find {family})")
+    return max(ids, key=lambda i: tuple(int(n) for n in re.findall(r'\d+', i)))
+
+
+def expand_latest(cmd: list[str]) -> list[str]:
+    return [re.sub(r'\{latest:(\w+)\}', lambda m: latest_model(m.group(1)), c) for c in cmd]
+
+
 def launch_command(spec: dict, thinking: str | None) -> str:
-    cmd = list(spec.get('launch') or [])
+    cmd = expand_latest(spec.get('launch') or [])
     if not cmd:
         raise SystemExit(f"spawn: target '{spec['name']}' has no launch command; add 'launch' in the targets file")
     level = thinking or spec.get('thinking')
@@ -695,7 +712,7 @@ def cmd_oneshot(a, spec, cwd) -> int:
     prompt = f"[{a.marker}]\n{brief}\n\n{MODE_SUFFIX[a.mode]}"
     if a.note:
         prompt += '\n' + a.note
-    r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, cwd=cwd, timeout=a.timeout)
+    r = subprocess.run(expand_latest(cmd), input=prompt, capture_output=True, text=True, cwd=cwd, timeout=a.timeout)
     if r.returncode != 0:
         print(r.stderr[-2000:], file=sys.stderr)
         return 3

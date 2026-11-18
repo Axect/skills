@@ -1,6 +1,6 @@
 ---
 name: magi-research
-description: "Run research with three agents in fixed roles, the helpers living in adash terminals (adash's private tmux server): the main session (Claude Opus) plans, decides and edits; a permanent Argon session (Antigravity agy, Gemini 4 Argon) proposes options, designs and mockups; a permanent Astra session (omp, GPT-6-Astra; Codex fallback) criticizes and corrects. Use when a research task needs fresh alternatives (figure redesign, section structure, framing, experiment design: \"제안 받아봐\", \"창의적인 대안\", \"원점에서 다시\", \"다른 방식은 없어?\") or a hard check (\"검토받아\", \"비판해줘\", \"수락받아\", \"검토자들과 논의해봐\"), or when the user says magi. Use peer-agent-review alone for a single sign-off by one reviewer; this skill decides which agent to ask, in what order, and how to merge their answers."
+description: "Run research with three agents in fixed roles, the helpers living in adash terminals (adash's private tmux server): the main session (Claude Opus) plans, decides and edits; a permanent Argon session (Antigravity agy, Gemini 4 Argon) proposes options, designs and mockups; a permanent Astra session (omp, GPT-6.2-Astra; Codex fallback) criticizes and corrects. Use when a research task needs fresh alternatives (figure redesign, section structure, framing, experiment design: \"제안 받아봐\", \"창의적인 대안\", \"원점에서 다시\", \"다른 방식은 없어?\") or a hard check (\"검토받아\", \"비판해줘\", \"수락받아\", \"검토자들과 논의해봐\"), or when the user says magi. Use peer-agent-review alone for a single sign-off by one reviewer; this skill decides which agent to ask, in what order, and how to merge their answers."
 ---
 
 # magi-research: propose with Argon, criticize with Astra, decide in the main session
@@ -18,7 +18,7 @@ substitute for the roles.
 |---|---|---|---|
 | Main (decider) | Claude Opus, this session | plans, verifies, edits, talks to the user | anchoring on its first idea; defends its own draft |
 | Proposer | Argon: agy, `gemini-4-argon-<level>`, target `argon` | breaking out of the current form, reframing axes and structure, building runnable mockups (figures, scripts) fast | long and confident prose, overstated wording ("완벽히", "원천 차단"), invented section names or line numbers, slow (3 to 15 min) |
-| Critic | Astra: omp, `gpt-6-astra`, target `astra`; fallback Codex (`codex -s read-only`, target `codex`) when omp is missing or the Astra session cannot be resolved or reached | fact and number checks, claim scope, statistical fairness, citation scope, counterexamples, exact replacement sentences | conservative: improves the current form rather than replacing it |
+| Critic | Astra: omp, `gpt-6.2-astra`, target `astra`; fallback Codex (`codex -s read-only`, target `codex`) when omp is missing or the Astra session cannot be resolved or reached | fact and number checks, claim scope, statistical fairness, citation scope, counterexamples, exact replacement sentences | conservative: improves the current form rather than replacing it |
 
 Observed on a PRX manuscript revision (2026-10): Astra caught a wrong claim in the main
 session's draft (a shared lookup table read as "unused when out of window"), a pooled
